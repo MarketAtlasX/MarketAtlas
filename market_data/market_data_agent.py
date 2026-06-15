@@ -41,6 +41,35 @@ class MarketDataAgent:
             "volume": self.volume_status()
         }
 
+    @classmethod
+    def from_yfinance(cls, symbol: str, period: str = "1mo", interval: str = "1d") -> "MarketDataAgent":
+        """Fetch live price data from Yahoo Finance and return a MarketDataAgent instance.
+
+        Uses the *yfinance* library (no API key required). Falls back gracefully
+        with a synthetic flat price series if the ticker is unavailable.
+        """
+        try:
+            # Disable yfinance's SQLite cache (avoids sqlite3 build issues on some platforms)
+            import yfinance.cache as _yfc
+            _yfc._TzCache.initialise = lambda self: setattr(self, "initialised", 0)
+            _yfc._CookieCache.initialise = lambda self: setattr(self, "initialised", 0)
+
+            import yfinance as yf
+
+            stock = yf.Ticker(symbol)
+            df = stock.history(period=period, interval=interval)
+            if df.empty:
+                prices = [100.0]
+                volumes = None
+            else:
+                prices = (df["Close"].tolist() if "Close" in df.columns else df["Adj Close"].tolist())
+                volumes = df["Volume"].tolist() if "Volume" in df.columns else None
+        except Exception:
+            prices = [100.0]
+            volumes = None
+
+        return cls(prices, volumes)
+
     def ingest_from_alpha(self, symbol: str):
         """Try to enrich prices from Alpha Vantage (fallback to existing series)."""
         res = fetch_alpha_vantage_daily(symbol)

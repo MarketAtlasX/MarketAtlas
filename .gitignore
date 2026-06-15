@@ -5,3 +5,5 @@ __pycache__/
 .test_tmp/
 .tmp/
 *.py[cod]
+venv/
+*.egg-info/
