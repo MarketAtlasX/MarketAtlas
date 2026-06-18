@@ -3,11 +3,11 @@ from typing import Optional
 from impact.impact_agent import ImpactAgent
 
 app = FastAPI(title="impact-service")
-agent = ImpactAgent()
 
 
 @app.post("/ingest")
 def ingest(payload: Optional[dict] = Body(None)):
+    agent = ImpactAgent()
     state = payload or {"text": ""}
     state = agent.ingest(state)
     return {"status": "ingested", "state": state}
@@ -15,6 +15,7 @@ def ingest(payload: Optional[dict] = Body(None)):
 
 @app.post("/extract")
 def extract(payload: Optional[dict] = Body(None)):
+    agent = ImpactAgent()
     state = payload or {"text": ""}
     state = agent.extract(state)
     return {"entities": state.get("entities"), "relations": state.get("relations")}
@@ -22,6 +23,7 @@ def extract(payload: Optional[dict] = Body(None)):
 
 @app.post("/process")
 def process(payload: Optional[dict] = Body(None)):
+    agent = ImpactAgent()
     state = payload or {"text": ""}
     state = agent.ingest(state)
     state = agent.extract(state)

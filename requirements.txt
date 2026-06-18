@@ -1,13 +1,2 @@
-langchain
-langgraph
-networkx
-numpy
-requests
-python-dotenv
-langchain
-langgraph
-networkx
-neo4j
-fastapi
-uvicorn[standard]
-pika
+# This file is auto-generated. For development, use: pip install -e .[dev]
+-e .

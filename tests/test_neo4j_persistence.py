@@ -1,4 +1,3 @@
-import os
 
 from market_agents.impact.impact_agent import ImpactAgent
 

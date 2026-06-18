@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import numpy as np  # noqa: E402
+
 try:
     from market_agents.market_data.market_data_agent import MarketDataAgent
     from market_agents.impact.impact_agent import ImpactAgent
@@ -21,8 +23,6 @@ except Exception:
     from market_data.market_data_agent import MarketDataAgent
     from impact.impact_agent import ImpactAgent
     from recommendation.recommendation_agent import RecommendationAgent
-
-import numpy as np
 
 
 def run_demo():

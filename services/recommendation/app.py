@@ -11,5 +11,5 @@ def decide(payload: Optional[dict] = Body(None)):
     """Accepts payload with `snapshot` and `impact` and returns a recommendation."""
     snapshot = (payload or {}).get("snapshot")
     impact = (payload or {}).get("impact")
-    decision = agent.decide(snapshot=snapshot, impact=impact)
+    decision = agent.decide(market=snapshot, impact=impact)
     return decision

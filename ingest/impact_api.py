@@ -4,12 +4,12 @@ from typing import Dict, Any
 
 
 def fetch_gdelt_events(query: str = "conflict") -> Dict[str, Any]:
-    """Fetch recent GDELT events matching a query. Returns fallback on failure.
+    """Fetch recent GDELT doc/articles matching a query. Returns fallback on failure.
 
     GDELT APIs are public and generally do not require a key.
     """
-    url = "https://api.gdeltproject.org/api/v2/events/search"
-    params = {"query": query, "mode": "artlist", "format": "JSON"}
+    url = "https://api.gdeltproject.org/api/v2/doc/doc"
+    params = {"query": query, "mode": "artlist", "format": "json"}
     try:
         r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
@@ -21,17 +21,21 @@ def fetch_gdelt_events(query: str = "conflict") -> Dict[str, Any]:
 
 
 def fetch_acled_events() -> Dict[str, Any]:
-    """Attempt to fetch ACLED recent export (best-effort). Fallback on failure.
+    """Fetch ACLED events via the v2 API. Requires ACLED_EMAIL and ACLED_KEY env vars.
 
-    ACLED may require registration for API access; this attempts a public CSV download
-    and otherwise returns an empty list.
+    Returns fallback on failure or if credentials are missing.
     """
-    url = "https://acleddata.com/data-export-tool/"  # not a stable API, best-effort
+    email = os.environ.get("ACLED_EMAIL")
+    key = os.environ.get("ACLED_KEY")
+    if not email or not key:
+        return {"acled_reachable": False, "error": "ACLED_EMAIL/ACLED_KEY not set"}
+    url = "https://api.acleddata.com/acled/read"
+    params = {"email": email, "key": key, "limit": 50, "format": "json"}
     try:
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, params=params, timeout=10)
         r.raise_for_status()
-        # we don't parse the site; just return that it's reachable
-        return {"acled_reachable": True}
+        j = r.json()
+        return {"acled_reachable": True, "total": j.get("total", 0), "events": j.get("data", [])}
     except Exception:
         return {"acled_reachable": False}
 
@@ -42,7 +46,7 @@ def fetch_eia_data(series_id: str) -> Dict[str, Any]:
     apikey = os.environ.get("EIA_API_KEY")
     if not apikey:
         return {"series_id": series_id, "values": [0.0, 0.1]}
-    url = f"https://api.eia.gov/series/"
+    url = "https://api.eia.gov/series/"
     params = {"api_key": apikey, "series_id": series_id}
     try:
         r = requests.get(url, params=params, timeout=10)

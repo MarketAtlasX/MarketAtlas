@@ -48,8 +48,10 @@ def write_graph(nodes: Dict[str, Dict[str, Any]], relations: List[Tuple[str, str
             )
         # create relations
         for a, rel, b in relations:
+            safe_rel = "".join(c for c in rel if c.isalnum() or c == "_")
             tx.run(
-                "MERGE (a:Entity {name: $a}) MERGE (b:Entity {name: $b}) MERGE (a)-[r:`" + rel + "`]->(b)",
+                "MERGE (a:Entity {name: $a}) MERGE (b:Entity {name: $b}) "
+                f"MERGE (a)-[r:{safe_rel}]->(b)",
                 a=a,
                 b=b,
             )
