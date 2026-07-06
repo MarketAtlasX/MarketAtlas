@@ -39,7 +39,7 @@ export function useWorldState() {
       setDashboard({ ...dashRes, countries: countriesRes.countries || [] })
       setError(null)
     } catch (e) {
-      setError(String(e))
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
@@ -77,4 +77,5 @@ export function riskScoreToColor(score: number): string {
 export function countryNameToCode(name: string): string {
   return COUNTRY_NAME_TO_CODE[name.toLowerCase()] || ''
 }
+
 
