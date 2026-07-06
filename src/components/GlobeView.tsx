@@ -12,7 +12,7 @@ import type { SupplyChainLink, SupplyChainPath } from '../data/supplyChains'
 import { worldStates, getRiskColor } from '../data/worldState'
 import { forecasts, getForecastAtDay } from '../data/forecasts'
 import type { LiveCountryState, DashboardData } from '../hooks/useWorldState'
-import { riskScoreToColor, nameToCode } from '../hooks/useWorldState'
+import { riskScoreToColor, countryNameToCode as nameToCode } from '../hooks/useWorldState'
 import type { GlobeMode, AgentMode } from './GlobeControls'
 
 const Globe = createGlobe as unknown as (...args: unknown[]) => any
@@ -729,3 +729,4 @@ export default function GlobeView({
     <div ref={containerRef} className="globe-container w-full h-full relative" />
   )
 }
+
