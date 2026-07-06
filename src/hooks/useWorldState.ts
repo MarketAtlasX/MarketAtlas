@@ -74,6 +74,7 @@ export function riskScoreToColor(score: number): string {
   return '#dc2626'
 }
 
-export function nameToCode(name: string): string {
+export function countryNameToCode(name: string): string {
   return COUNTRY_NAME_TO_CODE[name.toLowerCase()] || ''
 }
+
