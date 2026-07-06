@@ -11,6 +11,8 @@ import { getAllSupplyChainLinks, supplyChainPaths, getSupplyChainCountries } fro
 import type { SupplyChainLink, SupplyChainPath } from '../data/supplyChains'
 import { worldStates, getRiskColor } from '../data/worldState'
 import { forecasts, getForecastAtDay } from '../data/forecasts'
+import type { LiveCountryState, DashboardData } from '../hooks/useWorldState'
+import { riskScoreToColor, nameToCode } from '../hooks/useWorldState'
 import type { GlobeMode, AgentMode } from './GlobeControls'
 
 const Globe = createGlobe as unknown as (...args: unknown[]) => any
@@ -111,6 +113,7 @@ interface GlobeViewProps {
   onEventClick?: (event: GeoEvent) => void
   activeLayers: Record<string, boolean>
   onSupplyChainClick?: (path: SupplyChainPath) => void
+  liveWorldState?: LiveCountryState[] | null
 }
 
 function findNearestCountry(lat: number, lng: number): Country | null {
@@ -142,7 +145,7 @@ function findNearestEvent(lat: number, lng: number): GeoEvent | null {
 export default function GlobeView({
   selectedCountry, onCountryClick, onOpenMap,
   mode, agentMode, forecastDay, selectedEvent, onEventClick,
-  activeLayers, onSupplyChainClick,
+  activeLayers, onSupplyChainClick, liveWorldState,
 }: GlobeViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
@@ -330,19 +333,24 @@ export default function GlobeView({
   const getWorldStatePoints = useCallback(() => {
     if (mode !== 'worldState') return []
 
-    return worldStates.map(ws => {
-      const riskColor = getRiskColor(ws.riskScore)
+    const source = liveWorldState && liveWorldState.length > 0 ? liveWorldState : worldStates
+
+    return source.map((ws: any) => {
+      const code = ws.code || nameToCode(ws.name || ws.id)
+      const score = ws.risk_score !== undefined ? ws.risk_score * 100 : ws.riskScore
+      const riskColor = ws.code ? getRiskColor(score) : riskScoreToColor(ws.risk_score ?? 0)
+      const latlng = countries.find(c => c.code === code)
       return {
-        lat: countries.find(c => c.code === ws.code)?.lat ?? 0,
-        lng: countries.find(c => c.code === ws.code)?.lng ?? 0,
-        radius: Math.max(0.4, ws.riskScore * 0.01),
+        lat: latlng?.lat ?? 0,
+        lng: latlng?.lng ?? 0,
+        radius: Math.max(0.4, (score || 35) * 0.01),
         color: riskColor,
         altitude: 0.01,
         name: ws.name,
-        riskScore: ws.riskScore,
+        riskScore: score,
       }
     }).filter(p => p.lat !== 0 || p.lng !== 0)
-  }, [mode])
+  }, [mode, liveWorldState])
 
   const getForecastPoints = useCallback(() => {
     if (mode !== 'forecast') return []
