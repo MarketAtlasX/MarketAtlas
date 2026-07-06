@@ -15,11 +15,13 @@ import EventDetailPanel from './components/EventDetailPanel'
 import SupplyChainPanel from './components/SupplyChainPanel'
 import ExplainabilityPanel from './components/ExplainabilityPanel'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { useWorldState } from './hooks/useWorldState'
 import type { Country } from './data/countries'
 import type { GeoEvent } from './data/events'
 import type { SupplyChainPath } from './data/supplyChains'
 
 export default function App() {
+  const { dashboard } = useWorldState()
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
   const [showMapView, setShowMapView] = useState(false)
 
@@ -107,6 +109,7 @@ export default function App() {
                   onEventClick={handleEventClick}
                   activeLayers={activeLayers}
                   onSupplyChainClick={handleSupplyChainClick}
+                  liveWorldState={dashboard?.countries ?? null}
                 />
 
                 {!showMapView && (
