@@ -6,7 +6,9 @@ environment variables.
 """
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
+
+from ..types import GraphNodes, Relations
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +41,7 @@ def _get_driver() -> Optional[object]:
         return None
 
 
-def write_graph(nodes: Dict[str, Dict[str, Any]], relations: List[Tuple[str, str, str]], driver=None) -> bool:
+def write_graph(nodes: GraphNodes, relations: Relations, driver=None) -> bool:
     """Persist nodes and relations into Neo4j.
 
     - `nodes` is a mapping node_name -> properties

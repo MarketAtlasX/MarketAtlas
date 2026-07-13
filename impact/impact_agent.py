@@ -1,11 +1,12 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 import networkx as nx
 
 from ..ingest.impact_api import fetch_acled_events, fetch_eia_data, fetch_gdelt_events
+from ..types import GraphNodes, Relations, State
 
 
-def _persist_graph(nodes: Dict[str, Dict[str, Any]], relations: List[Tuple[str, str, str]]) -> bool:
+def _persist_graph(nodes: GraphNodes, relations: Relations) -> bool:
     """Best-effort persistence helper. Keeps persistence logic testable.
 
     Returns True if a write was attempted and succeeded, False otherwise.
@@ -37,7 +38,7 @@ class ImpactAgent:
     def __init__(self) -> None:
         self.g = nx.DiGraph()
 
-    def ingest(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def ingest(self, state: State) -> State:
         text = state.get("text", "")
         if not text or not isinstance(text, str):
             state["text"] = ""
@@ -49,7 +50,7 @@ class ImpactAgent:
         state.setdefault("eia", fetch_eia_data("TOTAL.STOCKS"))
         return state
 
-    def extract(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def extract(self, state: State) -> State:
         text = state.get("text", "")
         if not text:
             state["entities"] = []
@@ -78,7 +79,7 @@ class ImpactAgent:
         state["relations"] = relations
         return state
 
-    def store(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def store(self, state: State) -> State:
         for e in state.get("entities", []):
             if e not in self.g:
                 self.g.add_node(e, severity=0.0)
@@ -98,7 +99,7 @@ class ImpactAgent:
         state["local_severity"] = local
         return state
 
-    def propagate(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def propagate(self, state: State) -> State:
         if not self.g.nodes:
             state["composite_risk"] = 0.0
             return state
@@ -116,7 +117,7 @@ class ImpactAgent:
         state["composite_risk"] = float(max(0.0, min(1.0, comp)))
         return state
 
-    def output(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def output(self, state: State) -> State:
         if not self.g.nodes:
             state["graph_summary"] = {}
             state["relations"] = []
