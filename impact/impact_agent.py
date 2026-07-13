@@ -39,6 +39,9 @@ class ImpactAgent:
 
     def ingest(self, state: Dict[str, Any]) -> Dict[str, Any]:
         text = state.get("text", "")
+        if not text or not isinstance(text, str):
+            state["text"] = ""
+            return state
         state["text"] = text
         # fetch a small set of external events for context (best-effort)
         state.setdefault("gdelt", fetch_gdelt_events())
@@ -48,6 +51,10 @@ class ImpactAgent:
 
     def extract(self, state: Dict[str, Any]) -> Dict[str, Any]:
         text = state.get("text", "")
+        if not text:
+            state["entities"] = []
+            state["relations"] = []
+            return state
         entities = set()
         relations = []
         for part in text.split("."):
@@ -92,6 +99,9 @@ class ImpactAgent:
         return state
 
     def propagate(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.g.nodes:
+            state["composite_risk"] = 0.0
+            return state
         decay = 0.5
         for node in list(self.g.nodes):
             base = self.g.nodes[node].get("severity", 0.0)
@@ -107,6 +117,10 @@ class ImpactAgent:
         return state
 
     def output(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.g.nodes:
+            state["graph_summary"] = {}
+            state["relations"] = []
+            return state
         state["graph_summary"] = {n: dict(self.g.nodes[n]) for n in self.g.nodes}
         # also capture relations for persistence / inspection
         relations = []
