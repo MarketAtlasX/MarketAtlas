@@ -4,8 +4,8 @@ This module provides a lightweight write API used by `ImpactAgent` to
 persist nodes and relations when a Neo4j endpoint is configured via
 environment variables.
 """
-from typing import Dict, Any, List, Tuple, Optional
 import os
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from neo4j import GraphDatabase
