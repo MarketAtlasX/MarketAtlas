@@ -1,179 +1,212 @@
-# market_agents
+# MarketAtlas Market Agents
 
-MarketAtlas `market_agents` is a lightweight Python prototype that combines market signals with simple geopolitical impact analysis and basic trade recommendations. It's designed to be fast to iterate on and resilient when external services (APIs, Neo4j) are unavailable.
+> *Intelligent agents that combine market signals with geopolitical impact to produce actionable trade recommendations.*
 
-Core agents
+A lightweight, modular Python prototype that analyzes geopolitical events, computes market impact, and generates BUY/HOLD/SELL recommendations through a pipeline of specialized agents.
 
-- Impact Analysis Agent: extracts simple entity relations from text, builds an in-memory graph, and computes local/composite risk scores.
-- Market Data Agent: computes momentum, rolling volatility, and volume status from a price series.
-- Recommendation Agent: synthesizes market snapshot + impact score to produce BUY / HOLD / SELL guidance.
+---
 
-What works today
+## The Triad of Agents
 
-- Runnable demo entrypoint: `main.py`.
-- Best-effort ingest helpers for Alpha Vantage, FRED, EIA, GDELT, and ACLED with deterministic fallbacks.
-- A focused pytest suite covering demo flows, market-data signals, impact processing, recommendation logic, and ingest helper behavior.
-- Optional Neo4j persistence for Impact graphs (best-effort -- does not break runtime if Neo4j is unreachable).
+```
+                    ┌──────────────────┐
+                    │   User Query /   │
+                    │   News Event     │
+                    └────────┬─────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+     ┌────────────┐  ┌────────────┐  ┌────────────┐
+     │   Impact   │  │   Market   │  │Recommend.  │
+     │ Analysis  │  │    Data    │  │  Engine    │
+     │   Agent   │  │   Agent    │  │   Agent    │
+     ├────────────┤  ├────────────┤  ├────────────┤
+     │ GDELT     │  │ Momentum   │  │ Heuristic  │
+     │ ACLED     │  │ Volatility │  │ Rules:     │
+     │ EIA       │  │ Volume     │  │ Risk+Moment│
+     │ Entity    │  │ YFinance   │  │ → SELL     │
+     │ Graph     │  │ AlphaV.    │  │ LowRisk+   │
+     │ Severity  │  │ FRED       │  │ Up → BUY   │
+     │ Risk      │  │ Cache      │  │ High Vol   │
+     │ Score     │  │            │  │ → HOLD     │
+     └─────┬──────┘  └─────┬──────┘  └──────┬─────┘
+           │               │                │
+           └───────────────┼────────────────┘
+                           ▼
+              ┌──────────────────────┐
+              │  Recommendation:     │
+              │  BUY / HOLD / SELL   │
+              │  + Confidence Score  │
+              └──────────────────────┘
+```
 
-Repository layout
+---
 
-```text
+## What Each Agent Does
+
+### Impact Analysis Agent
+```python
+ImpactAgent()  # Full pipeline: ingest → extract → store → propagate → output
+  ├── ingest()       # Fetch from GDELT, ACLED, EIA (with fallback data)
+  ├── extract()      # Rule-based entity/relation extraction
+  ├── store()        # Build NetworkX directed graph
+  ├── propagate()    # Propagate severity across edges with decay
+  └── output()       # Summarize graph, persist to Neo4j (optional)
+```
+
+### Market Data Agent
+```python
+MarketDataAgent()
+  ├── momentum()           # Compute price momentum
+  ├── rolling_volatility() # Compute rolling volatility
+  ├── volume_status()      # Classify volume as surge/thin/unknown
+  ├── snapshot()           # Full market snapshot
+  ├── from_yfinance()      # Fetch live from Yahoo Finance
+  └── ingest_from_alpha()  # Fetch from Alpha Vantage (with fallback)
+```
+
+### Recommendation Agent
+```python
+RecommendationAgent()
+  └── decide(market_snapshot, impact_score)
+      ├── risk > 0.7 AND momentum < 0  → SELL
+      ├── risk < 0.3 AND momentum > 0   → BUY
+      ├── volatility > 0.04             → HOLD
+      └── otherwise                     → HOLD with hedge
+```
+
+---
+
+## FastAPI Microservices
+
+Three independent services + a Gateway orchestrator, all with OpenTelemetry tracing, Prometheus metrics, and circuit breakers:
+
+```
+┌──────────┐     ┌─────────────┐     ┌──────────────────┐
+│  Client  │────►│   Gateway   │────►│  Market Data     │
+│          │     │   Service   │     │  /snapshot       │
+│          │     │             │────►│  Impact Analysis │
+│          │     │  circuit    │     │  /impact         │
+│          │     │  breakers   │────►│  Recommendation  │
+│          │     │  rate limit │     │  /recommendation │
+└──────────┘     └─────────────┘     └──────────────────┘
+```
+
+| Service | Port | Endpoint | What It Does |
+|---------|------|----------|-------------|
+| **Gateway** | Dynamic | `/analyze` | Orchestrates all 3 downstream services |
+| **Market Data** | 8001 | `/snapshot` | Returns momentum, volatility, volume |
+| **Impact** | 8002 | `/impact` | Runs full geopolitical impact pipeline |
+| **Recommendation** | 8003 | `/recommendation` | Returns BUY/HOLD/SELL |
+| All | — | `/health`, `/metrics` | Observability |
+
+---
+
+## Key Features
+
+- **Deterministic fallbacks** — All external APIs return realistic mock data when unavailable
+- **Best-effort architecture** — Pipeline never breaks if APIs, Neo4j, or databases are unreachable
+- **Neo4j persistence** — Impact graphs optionally persist to Neo4j (graceful fallback)
+- **OpenTelemetry tracing** — Distributed tracing across all services
+- **Prometheus metrics** — Request counts, latency histograms, path-level timing
+- **Pybreaker circuit breakers** — Prevent cascading failures in the gateway
+- **Slowapi rate limiting** — Protect downstream services from overload
+- **Docker Compose** — Full dev environment (Neo4j + RabbitMQ + 3 services)
+
+---
+
+## Quick Start
+
+```bash
+# Install with all extras
+pip install -e .[dev,neo4j,messaging]
+
+# Run the demo
+python main.py
+
+# Run tests
+make test
+# or
+pytest tests/ -v
+
+# Start microservices
+make run
+# or
+uvicorn services.gateway:app --port 8000
+
+# Full Docker environment
+docker compose -f docker-compose.dev.yml up
+```
+
+---
+
+## Tests (11 passing)
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| `test_demo.py` | 1 | Demo runner produces expected keys |
+| `test_market_data_agent.py` | 3 | Momentum, volatility, volume edge cases |
+| `test_impact_and_recommendation.py` | 2 | Full impact pipeline + all 4 recommendation paths |
+| `test_ingest_helpers.py` | 4 | API fallbacks + payload parsing |
+| `test_services.py` | 3 | Service health, snapshot, impact, recommendation |
+| `test_neo4j_persistence.py` | 1 | Neo4j persistence triggered correctly |
+| `test_gateway_service.py` | 1 | Gateway orchestrates all downstream services |
+
+---
+
+## Project Structure
+
+```
 market_agents/
-  main.py
-  graph/
-  impact/
-  ingest/
-  market_data/
-  persistence/
-  recommendation/
-  tests/
-  requirements.txt
-  README.md
-  docker-compose.neo4j.yml
+├── main.py                       # Demo entry point
+├── contracts.py                  # Pydantic models for all APIs
+├── types.py                      # Type aliases
+├── observability.py              # OpenTelemetry, Prometheus, JSON logging
+│
+├── impact/
+│   └── impact_agent.py           # 5-stage geopolitical impact pipeline
+│
+├── market_data/
+│   └── market_data_agent.py      # Momentum, volatility, volume + 3 data sources
+│
+├── recommendation/
+│   └── recommendation_agent.py   # Heuristic BUY/HOLD/SELL engine
+│
+├── ingest/
+│   ├── market_api.py             # Alpha Vantage + FRED (with fallbacks)
+│   ├── impact_api.py             # GDELT + ACLED + EIA (with fallbacks)
+│   └── cache/                    # Cached JSON fallback data
+│
+├── persistence/
+│   └── neo4j_client.py           # Optional graph persistence
+│
+├── graph/
+│   └── workflow.py               # LangGraph placeholder
+│
+├── services/
+│   ├── gateway.py                # Orchestrator with circuit breakers
+│   ├── market_service.py         # Market snapshot API
+│   ├── impact_service.py         # Impact analysis API
+│   ├── recommendation_service.py # Recommendation API
+│   └── common.py                 # Shared FastAPI app factory
+│
+├── tests/                        # 11 tests
+├── api_specs/                    # OpenAPI 3.0 YAML specs
+├── docs/                         # OpenAPI 3.1 JSON schemas + agent event schema
+│
+├── pyproject.toml
+├── requirements.txt
+├── Makefile
+└── docker-compose*.yml
 ```
 
-Setup
+---
 
-1. Create and activate a virtual environment and install dependencies:
+## Design Principles
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-2. (Optional) Create a `.env` file in the repository root for live API keys and optional Neo4j connection information:
-
-```env
-ALPHAVANTAGE_API_KEY=your_key_here
-FRED_API_KEY=your_key_here
-EIA_API_KEY=your_key_here
-# Optional Neo4j connection (when running the local Neo4j container)
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=test
-```
-
-Running the demo
-
-From the repository root:
-
-```powershell
-python main.py
-```
-
-Run tests
-
-```powershell
-python -m pytest -q tests
-```
-
-Neo4j (local development)
-
-This repo includes `docker-compose.neo4j.yml` to run a local Neo4j instance for development and optional persistence. The service uses `NEO4J_AUTH=neo4j/test` by default.
-
-Start Neo4j (background):
-
-```powershell
-docker compose -f docker-compose.neo4j.yml up -d
-```
-
-Check status:
-
-```powershell
-docker compose -f docker-compose.neo4j.yml ps
-```
-
-The browser is available at http://localhost:7474 (use `neo4j` / `test` by default). If you start Neo4j locally, set `NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD` in your environment or `.env` file so the `ImpactAgent` can attempt best-effort writes.
-
-Git and pushing changes
-
-To stage, commit and push the changes made in this workspace:
-
-```powershell
-cd <repo-root>
-git add .
-git commit -m "Update README, add Neo4j persistence and tests"
-git push origin main
-```
-
-Status & notes
-
-- All tests in `tests/` currently pass locally (11 passed at the last run).
-- Neo4j persistence is optional: `ImpactAgent` attempts a best-effort write when `NEO4J_URI` is set; failures are ignored so the pipeline remains resilient.
-- The `persistence/neo4j_client.py` contains a simple MERGE-based writer -- consider hardening Cypher parameterization for production.
-
-Next steps
-
-- Add CI (GitHub Actions) to run tests on push/PR and a separate job to exercise Neo4j integration using Docker-in-Docker or GitHub services.
-- Expand the LangGraph workflow and integrate an LLM-based impact extractor.
-
-Files of interest
-
-- README: [README.md](README.md)
-- Local Neo4j compose: [docker-compose.neo4j.yml](docker-compose.neo4j.yml)
-- Neo4j client: [persistence/neo4j_client.py](persistence/neo4j_client.py)
-- Impact agent: [impact/impact_agent.py](impact/impact_agent.py)
-
-**Recent Work (up to June 2, 2026)**
-
-- **Tests:** All unit tests pass locally (11 passed) -- run with `python -m pytest -q tests`.
-- **Microservices scaffold:** Added lightweight FastAPI wrappers and Dockerfiles for three services:
-  - `services/market_data` -- market-data-service (port 8001)
-  - `services/impact` -- impact-service (port 8002)
-  - `services/recommendation` -- recommendation-service (port 8003)
-- **Local dev compose:** Added `docker-compose.dev.yml` to run Neo4j, RabbitMQ, and the three services for local development.
-- **API specs:** Minimal OpenAPI specs added under `api_specs/` for the three services.
-
-**Run everything locally (recommended dev flow)**
-
-- Start Docker Desktop and ensure the engine is running.
-- From the repository root run:
-
-```powershell
-docker compose -f docker-compose.dev.yml up -d
-docker compose -f docker-compose.dev.yml ps
-```
-
-- Service docs (when services are running):
-  - Market data: `http://localhost:8001/docs`
-  - Impact: `http://localhost:8002/docs`
-  - Recommendation: `http://localhost:8003/docs`
-
-**Quick local checks (without Docker)**
-
-- Run unit tests:
-
-```powershell
-python -m pytest -q tests
-```
-
-- Run the demo (uses local fallback data):
-
-```powershell
-python main.py
-```
-
-**How persistence and messaging are wired in dev**
-
-- `docker-compose.dev.yml` brings up:
-  - Neo4j (bolt/http ports 7687/7474) for graph persistence.
-  - RabbitMQ (5672/15672) to enable an event-driven flow later.
-- The `impact` service is configured (in compose) with `NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD` so it will attempt best-effort writes when Neo4j is available.
-
-**What's been committed and pushed**
-
-- Commit `e8e0c20`: Update README, add Neo4j persistence and tests
-- Commit `a20fe8e`: Scaffold FastAPI services, add docker-compose.dev and API specs
-
-Both commits were pushed to `origin/main`.
-
-**Next recommended steps (pick one and I can implement it)**
-
-- Add an ingest->impact example using RabbitMQ (publish/subscribe demo).
-- Harden Neo4j client (`persistence/neo4j_client.py`) with parameterized Cypher and retries.
-- Add GitHub Actions to run unit tests and build service images on push.
-
-If you'd like me to implement one of these now, tell me which and I'll proceed.
-
-If you'd like, I can commit and push these changes now and then start the local Neo4j container for you.
+1. **Resilient first** — Every external dependency has a deterministic fallback
+2. **Agents as building blocks** — Each agent is independently testable and composable
+3. **Observable by default** — OpenTelemetry + Prometheus on every service
+4. **Graceful degradation** — No single point of failure takes down the pipeline
+5. **Minimal dependencies** — Lightweight Python, no heavy ML frameworks required
+6. **Container-native** — Docker Compose for local development and deployment
