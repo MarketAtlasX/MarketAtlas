@@ -1,6 +1,7 @@
 import os
+from typing import Any, Dict
+
 import requests
-from typing import Dict, Any
 
 
 def fetch_gdelt_events(query: str = "conflict") -> Dict[str, Any]:
