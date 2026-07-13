@@ -5,11 +5,12 @@ from ..ingest.market_api import fetch_alpha_vantage_daily, fetch_fred_series
 
 class MarketDataAgent:
     """Compute simple market signals from price and volume series."""
-    def __init__(self, prices, volumes=None):
+    def __init__(self, prices, volumes=None) -> None:
         self.prices = np.array(prices, dtype=float)
         self.volumes = np.array(volumes, dtype=float) if volumes is not None else None
 
-    def momentum(self, lookback=14):
+    def momentum(self, lookback: int = 14) -> float:
+        """Compute price momentum over a lookback window."""
         if len(self.prices) < lookback + 1:
             return 0.0
         prev = self.prices[-(lookback+1)]
@@ -17,14 +18,16 @@ class MarketDataAgent:
             return 0.0
         return float((self.prices[-1] - prev) / prev)
 
-    def rolling_volatility(self, window=14):
+    def rolling_volatility(self, window: int = 14) -> float:
+        """Compute rolling volatility as standard deviation of returns."""
         if len(self.prices) < window + 1:
             return 0.0
         returns = np.diff(self.prices) / self.prices[:-1]
         windowed = returns[-window:]
         return float(np.std(windowed, ddof=1))
 
-    def volume_status(self, lookback=14):
+    def volume_status(self, lookback: int = 14) -> str:
+        """Classify trading volume as surge, thin, or normal."""
         if self.volumes is None or len(self.volumes) < 2:
             return "unknown"
         avg = float(np.mean(self.volumes[-lookback:])) if len(self.volumes) >= lookback else float(np.mean(self.volumes))
@@ -35,7 +38,8 @@ class MarketDataAgent:
             return "thin"
         return "normal"
 
-    def snapshot(self):
+    def snapshot(self) -> dict:
+        """Return a summary dict of current market signals."""
         return {
             "momentum": self.momentum(),
             "volatility": self.rolling_volatility(),
@@ -71,17 +75,15 @@ class MarketDataAgent:
 
         return cls(prices, volumes)
 
-    def ingest_from_alpha(self, symbol: str):
+    def ingest_from_alpha(self, symbol: str) -> dict:
         """Try to enrich prices from Alpha Vantage (fallback to existing series)."""
-        res = fetch_alpha_vantage_daily(symbol)
-        return res
+        return fetch_alpha_vantage_daily(symbol)
 
-    def ingest_from_fred(self, series_id: str):
-        res = fetch_fred_series(series_id)
-        return res
+    def ingest_from_fred(self, series_id: str) -> dict:
+        """Fetch economic data from FRED API."""
+        return fetch_fred_series(series_id)
 
-    def load_from_cache(self, symbol: str):
-        """Load cached alphavantage JSON if present under ingest/cache."""
+    def load_from_cache(self, symbol: str) -> list | None:
         from pathlib import Path
 
         cache = Path(__file__).resolve().parent.parent / "ingest" / "cache" / f"alphavantage_{symbol}.json"
