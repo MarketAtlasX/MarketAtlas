@@ -1,5 +1,10 @@
+"""FastAPI microservice for market data signals.
+
+Provides a `/snapshot` endpoint that computes momentum, volatility,
+and volume status from price and volume series.
+"""
 from typing import Optional
-from fastapi import FastAPI, Body
+from fastapi import FastAPI, Body, HTTPException
 from market_data.market_data_agent import MarketDataAgent
 
 app = FastAPI(title="market-data-service")
@@ -14,6 +19,8 @@ def snapshot(payload: Optional[dict] = Body(None)):
     """
     if payload and isinstance(payload, dict) and "prices" in payload:
         prices = payload.get("prices", [])
+        if not prices or not all(isinstance(p, (int, float)) for p in prices):
+            raise HTTPException(status_code=422, detail="'prices' must be a non-empty list of numbers")
         volumes = payload.get("volumes")
     else:
         # deterministic fallback series when no input provided
