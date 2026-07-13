@@ -10,6 +10,12 @@ from market_data.market_data_agent import MarketDataAgent
 app = FastAPI(title="market-data-service")
 
 
+@app.get("/health")
+def health():
+    """Health check endpoint."""
+    return {"service": "market-data-service", "status": "healthy"}
+
+
 @app.post("/snapshot")
 def snapshot(payload: Optional[dict] = Body(None)):
     """Return a market snapshot (momentum, volatility, volume).

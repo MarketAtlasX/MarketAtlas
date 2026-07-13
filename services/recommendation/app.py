@@ -11,6 +11,12 @@ app = FastAPI(title="recommendation-service")
 agent = RecommendationAgent()
 
 
+@app.get("/health")
+def health():
+    """Health check endpoint."""
+    return {"service": "recommendation-service", "status": "healthy"}
+
+
 @app.post("/decide")
 def decide(payload: Optional[dict] = Body(None)):
     """Accepts payload with `snapshot` and `impact` and returns a recommendation.

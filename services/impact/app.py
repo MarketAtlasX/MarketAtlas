@@ -10,6 +10,12 @@ from impact.impact_agent import ImpactAgent
 app = FastAPI(title="impact-service")
 
 
+@app.get("/health")
+def health():
+    """Health check endpoint."""
+    return {"service": "impact-service", "status": "healthy"}
+
+
 def _validate_text(payload: Optional[dict]) -> dict:
     if payload is None or not payload.get("text", "").strip():
         raise HTTPException(status_code=422, detail="Field 'text' is required and must be non-empty")
