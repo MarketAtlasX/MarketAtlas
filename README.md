@@ -13,7 +13,7 @@ What works today
 - Runnable demo entrypoint: `main.py`.
 - Best-effort ingest helpers for Alpha Vantage, FRED, EIA, GDELT, and ACLED with deterministic fallbacks.
 - A focused pytest suite covering demo flows, market-data signals, impact processing, recommendation logic, and ingest helper behavior.
-- Optional Neo4j persistence for Impact graphs (best-effort — does not break runtime if Neo4j is unreachable).
+- Optional Neo4j persistence for Impact graphs (best-effort -- does not break runtime if Neo4j is unreachable).
 
 Repository layout
 
@@ -101,7 +101,7 @@ Status & notes
 
 - All tests in `tests/` currently pass locally (11 passed at the last run).
 - Neo4j persistence is optional: `ImpactAgent` attempts a best-effort write when `NEO4J_URI` is set; failures are ignored so the pipeline remains resilient.
-- The `persistence/neo4j_client.py` contains a simple MERGE-based writer — consider hardening Cypher parameterization for production.
+- The `persistence/neo4j_client.py` contains a simple MERGE-based writer -- consider hardening Cypher parameterization for production.
 
 Next steps
 
@@ -114,5 +114,66 @@ Files of interest
 - Local Neo4j compose: [docker-compose.neo4j.yml](docker-compose.neo4j.yml)
 - Neo4j client: [persistence/neo4j_client.py](persistence/neo4j_client.py)
 - Impact agent: [impact/impact_agent.py](impact/impact_agent.py)
+
+**Recent Work (up to June 2, 2026)**
+
+- **Tests:** All unit tests pass locally (11 passed) -- run with `python -m pytest -q tests`.
+- **Microservices scaffold:** Added lightweight FastAPI wrappers and Dockerfiles for three services:
+  - `services/market_data` -- market-data-service (port 8001)
+  - `services/impact` -- impact-service (port 8002)
+  - `services/recommendation` -- recommendation-service (port 8003)
+- **Local dev compose:** Added `docker-compose.dev.yml` to run Neo4j, RabbitMQ, and the three services for local development.
+- **API specs:** Minimal OpenAPI specs added under `api_specs/` for the three services.
+
+**Run everything locally (recommended dev flow)**
+
+- Start Docker Desktop and ensure the engine is running.
+- From the repository root run:
+
+```powershell
+docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml ps
+```
+
+- Service docs (when services are running):
+  - Market data: `http://localhost:8001/docs`
+  - Impact: `http://localhost:8002/docs`
+  - Recommendation: `http://localhost:8003/docs`
+
+**Quick local checks (without Docker)**
+
+- Run unit tests:
+
+```powershell
+python -m pytest -q tests
+```
+
+- Run the demo (uses local fallback data):
+
+```powershell
+python main.py
+```
+
+**How persistence and messaging are wired in dev**
+
+- `docker-compose.dev.yml` brings up:
+  - Neo4j (bolt/http ports 7687/7474) for graph persistence.
+  - RabbitMQ (5672/15672) to enable an event-driven flow later.
+- The `impact` service is configured (in compose) with `NEO4J_URI`, `NEO4J_USER`, and `NEO4J_PASSWORD` so it will attempt best-effort writes when Neo4j is available.
+
+**What's been committed and pushed**
+
+- Commit `e8e0c20`: Update README, add Neo4j persistence and tests
+- Commit `a20fe8e`: Scaffold FastAPI services, add docker-compose.dev and API specs
+
+Both commits were pushed to `origin/main`.
+
+**Next recommended steps (pick one and I can implement it)**
+
+- Add an ingest->impact example using RabbitMQ (publish/subscribe demo).
+- Harden Neo4j client (`persistence/neo4j_client.py`) with parameterized Cypher and retries.
+- Add GitHub Actions to run unit tests and build service images on push.
+
+If you'd like me to implement one of these now, tell me which and I'll proceed.
 
 If you'd like, I can commit and push these changes now and then start the local Neo4j container for you.

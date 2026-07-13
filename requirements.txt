@@ -1,2 +1,2 @@
-# This file is auto-generated. For development, use: pip install -e .[dev]
--e .
+# For development: pip install -e .[dev,neo4j,messaging]
+-e .[dev,neo4j,messaging]
