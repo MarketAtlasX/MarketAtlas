@@ -1,3 +1,8 @@
+"""FastAPI microservice for geopolitical impact analysis.
+
+Provides `/ingest`, `/extract`, and `/process` endpoints that wrap the
+ImpactAgent for NLP-based event extraction and risk scoring.
+"""
 from fastapi import FastAPI, Body, HTTPException
 from typing import Optional
 from impact.impact_agent import ImpactAgent
@@ -15,28 +20,37 @@ def _validate_text(payload: Optional[dict]) -> dict:
 def ingest(payload: Optional[dict] = Body(None)):
     """Ingest text and enrich with external event data (GDELT, ACLED, EIA)."""
     state = _validate_text(payload)
-    agent = ImpactAgent()
-    state = agent.ingest(state)
-    return {"status": "ingested", "state": state}
+    try:
+        agent = ImpactAgent()
+        state = agent.ingest(state)
+        return {"status": "ingested", "state": state}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"ingestion failed: {exc}")
 
 
 @app.post("/extract")
 def extract(payload: Optional[dict] = Body(None)):
     """Extract entities and relations from the input text."""
     state = _validate_text(payload)
-    agent = ImpactAgent()
-    state = agent.extract(state)
-    return {"entities": state.get("entities"), "relations": state.get("relations")}
+    try:
+        agent = ImpactAgent()
+        state = agent.extract(state)
+        return {"entities": state.get("entities"), "relations": state.get("relations")}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"extraction failed: {exc}")
 
 
 @app.post("/process")
 def process(payload: Optional[dict] = Body(None)):
     """Run the full impact pipeline: ingest, extract, store, propagate, output."""
     state = _validate_text(payload)
-    agent = ImpactAgent()
-    state = agent.ingest(state)
-    state = agent.extract(state)
-    state = agent.store(state)
-    state = agent.propagate(state)
-    state = agent.output(state)
-    return {"graph": state.get("graph_summary"), "relations": state.get("relations"), "local_severity": state.get("local_severity"), "composite_risk": state.get("composite_risk")}
+    try:
+        agent = ImpactAgent()
+        state = agent.ingest(state)
+        state = agent.extract(state)
+        state = agent.store(state)
+        state = agent.propagate(state)
+        state = agent.output(state)
+        return {"graph": state.get("graph_summary"), "relations": state.get("relations"), "local_severity": state.get("local_severity"), "composite_risk": state.get("composite_risk")}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"processing failed: {exc}")

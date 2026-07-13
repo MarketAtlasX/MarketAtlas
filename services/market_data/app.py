@@ -27,5 +27,8 @@ def snapshot(payload: Optional[dict] = Body(None)):
         prices = [100, 101, 102, 103, 104, 103, 102, 101, 102, 103, 105, 106, 107, 108, 110]
         volumes = [1000 + i * 10 for i in range(len(prices))]
 
-    agent = MarketDataAgent(prices, volumes)
-    return agent.snapshot()
+    try:
+        agent = MarketDataAgent(prices, volumes)
+        return agent.snapshot()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"snapshot computation failed: {exc}")
