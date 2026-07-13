@@ -5,7 +5,7 @@ import networkx as nx
 from ..ingest.impact_api import fetch_acled_events, fetch_eia_data, fetch_gdelt_events
 
 
-def _persist_graph(nodes: Dict[str, Dict[str, Any]], relations: List[Tuple[str, str, str]]):
+def _persist_graph(nodes: Dict[str, Dict[str, Any]], relations: List[Tuple[str, str, str]]) -> bool:
     """Best-effort persistence helper. Keeps persistence logic testable.
 
     Returns True if a write was attempted and succeeded, False otherwise.
@@ -34,10 +34,10 @@ class ImpactAgent:
     This local implementation is rule-based and deterministic for an initial prototype.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.g = nx.DiGraph()
 
-    def ingest(self, state: Dict[str, Any]):
+    def ingest(self, state: Dict[str, Any]) -> Dict[str, Any]:
         text = state.get("text", "")
         state["text"] = text
         # fetch a small set of external events for context (best-effort)
@@ -46,7 +46,7 @@ class ImpactAgent:
         state.setdefault("eia", fetch_eia_data("TOTAL.STOCKS"))
         return state
 
-    def extract(self, state: Dict[str, Any]):
+    def extract(self, state: Dict[str, Any]) -> Dict[str, Any]:
         text = state.get("text", "")
         entities = set()
         relations = []
@@ -71,7 +71,7 @@ class ImpactAgent:
         state["relations"] = relations
         return state
 
-    def store(self, state: Dict[str, Any]):
+    def store(self, state: Dict[str, Any]) -> Dict[str, Any]:
         for e in state.get("entities", []):
             if e not in self.g:
                 self.g.add_node(e, severity=0.0)
@@ -91,7 +91,7 @@ class ImpactAgent:
         state["local_severity"] = local
         return state
 
-    def propagate(self, state: Dict[str, Any]):
+    def propagate(self, state: Dict[str, Any]) -> Dict[str, Any]:
         decay = 0.5
         for node in list(self.g.nodes):
             base = self.g.nodes[node].get("severity", 0.0)
@@ -106,7 +106,7 @@ class ImpactAgent:
         state["composite_risk"] = float(max(0.0, min(1.0, comp)))
         return state
 
-    def output(self, state: Dict[str, Any]):
+    def output(self, state: Dict[str, Any]) -> Dict[str, Any]:
         state["graph_summary"] = {n: dict(self.g.nodes[n]) for n in self.g.nodes}
         # also capture relations for persistence / inspection
         relations = []
