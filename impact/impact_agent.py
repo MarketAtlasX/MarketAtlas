@@ -1,7 +1,8 @@
+from typing import Any, Dict, List, Tuple
+
 import networkx as nx
-from typing import Dict, Any
-from ..ingest.impact_api import fetch_gdelt_events, fetch_acled_events, fetch_eia_data
-from typing import List, Tuple
+
+from ..ingest.impact_api import fetch_acled_events, fetch_eia_data, fetch_gdelt_events
 
 
 def _persist_graph(nodes: Dict[str, Dict[str, Any]], relations: List[Tuple[str, str, str]]):
