@@ -15,13 +15,12 @@ if str(ROOT) not in sys.path:
 import numpy as np  # noqa: E402
 
 try:
-    from market_agents.market_data.market_data_agent import MarketDataAgent
     from market_agents.impact.impact_agent import ImpactAgent
+    from market_agents.market_data.market_data_agent import MarketDataAgent
     from market_agents.recommendation.recommendation_agent import RecommendationAgent
-except Exception:
-    # fallback when running as script with CWD=market_agents
-    from market_data.market_data_agent import MarketDataAgent
+except ImportError:
     from impact.impact_agent import ImpactAgent
+    from market_data.market_data_agent import MarketDataAgent
     from recommendation.recommendation_agent import RecommendationAgent
 
 
