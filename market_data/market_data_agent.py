@@ -1,4 +1,5 @@
 import numpy as np
+
 from ..ingest.market_api import fetch_alpha_vantage_daily, fetch_fred_series
 
 
