@@ -1,3 +1,8 @@
+"""Pytest configuration for the MarketAtlas test suite.
+
+Ensures the project root and repo parent are on sys.path so that
+absolute and relative imports work correctly during test execution.
+"""
 import sys
 from pathlib import Path
 
