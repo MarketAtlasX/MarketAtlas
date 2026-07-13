@@ -22,12 +22,17 @@ def _validate_text(payload: Optional[dict]) -> dict:
     return payload
 
 
+def _get_agent() -> ImpactAgent:
+    """Factory function to create an ImpactAgent instance."""
+    return ImpactAgent()
+
+
 @app.post("/ingest")
 def ingest(payload: Optional[dict] = Body(None)):
     """Ingest text and enrich with external event data (GDELT, ACLED, EIA)."""
     state = _validate_text(payload)
     try:
-        agent = ImpactAgent()
+        agent = _get_agent()
         state = agent.ingest(state)
         return {"status": "ingested", "state": state}
     except Exception as exc:
@@ -39,7 +44,7 @@ def extract(payload: Optional[dict] = Body(None)):
     """Extract entities and relations from the input text."""
     state = _validate_text(payload)
     try:
-        agent = ImpactAgent()
+        agent = _get_agent()
         state = agent.extract(state)
         return {"entities": state.get("entities"), "relations": state.get("relations")}
     except Exception as exc:
@@ -51,7 +56,7 @@ def process(payload: Optional[dict] = Body(None)):
     """Run the full impact pipeline: ingest, extract, store, propagate, output."""
     state = _validate_text(payload)
     try:
-        agent = ImpactAgent()
+        agent = _get_agent()
         state = agent.ingest(state)
         state = agent.extract(state)
         state = agent.store(state)
