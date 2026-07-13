@@ -7,6 +7,7 @@ app = FastAPI(title="impact-service")
 
 @app.post("/ingest")
 def ingest(payload: Optional[dict] = Body(None)):
+    """Ingest text and enrich with external event data (GDELT, ACLED, EIA)."""
     agent = ImpactAgent()
     state = payload or {"text": ""}
     state = agent.ingest(state)
@@ -15,6 +16,7 @@ def ingest(payload: Optional[dict] = Body(None)):
 
 @app.post("/extract")
 def extract(payload: Optional[dict] = Body(None)):
+    """Extract entities and relations from the input text."""
     agent = ImpactAgent()
     state = payload or {"text": ""}
     state = agent.extract(state)
@@ -23,6 +25,7 @@ def extract(payload: Optional[dict] = Body(None)):
 
 @app.post("/process")
 def process(payload: Optional[dict] = Body(None)):
+    """Run the full impact pipeline: ingest, extract, store, propagate, output."""
     agent = ImpactAgent()
     state = payload or {"text": ""}
     state = agent.ingest(state)
