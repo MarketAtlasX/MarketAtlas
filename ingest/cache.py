@@ -25,6 +25,7 @@ ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 def load_env_file(path: Path) -> Dict[str, str]:
+    """Load a KEY=VALUE env file into a dict, skipping comments and blank lines."""
     env = {}
     if not path.exists():
         return env
@@ -39,11 +40,13 @@ def load_env_file(path: Path) -> Dict[str, str]:
     return env
 
 
-def ensure_cache_dir():
+def ensure_cache_dir() -> None:
+    """Create the cache directory if it does not exist."""
     CACHE_DIR.mkdir(exist_ok=True)
 
 
-def save_json(obj: Any, filename: str):
+def save_json(obj: Any, filename: str) -> Path:
+    """Serialize obj as JSON and write to the cache directory."""
     ensure_cache_dir()
     p = CACHE_DIR / filename
     with p.open("w", encoding="utf-8") as f:
@@ -51,7 +54,8 @@ def save_json(obj: Any, filename: str):
     return p
 
 
-def fetch_and_cache(alpha_symbols=None, fred_series=None, eia_series=None):
+def fetch_and_cache(alpha_symbols=None, fred_series=None, eia_series=None) -> dict:
+    """Fetch data from all configured APIs and write JSON cache files."""
     if alpha_symbols is None:
         alpha_symbols = ["AAPL", "MSFT"]
     if fred_series is None:
