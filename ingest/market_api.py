@@ -1,6 +1,7 @@
 import os
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Optional, Dict, Any
 
 
 def fetch_alpha_vantage_daily(symbol: str, apikey: Optional[str] = None) -> Dict[str, Any]:
