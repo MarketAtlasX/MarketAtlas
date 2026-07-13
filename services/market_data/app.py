@@ -7,8 +7,9 @@ app = FastAPI(title="market-data-service")
 
 @app.post("/snapshot")
 def snapshot(payload: Optional[dict] = Body(None)):
-    """Return a market snapshot. Accepts optional JSON body with `prices` and optional `volumes`.
+    """Return a market snapshot (momentum, volatility, volume).
 
+    Accepts optional JSON body with `prices` and optional `volumes`.
     Example body: {"prices": [100,101,102], "volumes": [1000,1100,900]}
     """
     if payload and isinstance(payload, dict) and "prices" in payload:
