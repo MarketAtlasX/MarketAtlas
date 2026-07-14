@@ -21,8 +21,8 @@ const fragmentShader = `
     float lat = atan(vPosition.z, vPosition.x);
     float lng = asin(vPosition.y / 2.0);
 
-    float latLine = sin(lat * 8.0);
-    float lngLine = sin(lng * 16.0);
+    float latLine = sin(lat * 10.0);
+    float lngLine = sin(lng * 20.0);
 
     float grid = smoothstep(0.98, 0.995, abs(latLine)) + smoothstep(0.98, 0.995, abs(lngLine));
     grid = clamp(grid, 0.0, 1.0);
@@ -56,4 +56,5 @@ export default function Grid() {
     </mesh>
   )
 }
+
 
