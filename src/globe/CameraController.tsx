@@ -105,7 +105,7 @@ export function useCameraController(onReady?: (handle: CameraControllerHandle) =
 
   useFrame((_, delta) => {
     if (autoRotate.current && !isAnimating.current) {
-      angle.current += delta * 0.15
+      angle.current += delta * 0.2
       const radius = camera.position.length()
       camera.position.x = radius * Math.sin(angle.current)
       camera.position.z = radius * Math.cos(angle.current)
@@ -115,3 +115,4 @@ export function useCameraController(onReady?: (handle: CameraControllerHandle) =
 
   return handle
 }
+
