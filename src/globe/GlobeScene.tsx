@@ -92,7 +92,7 @@ const GlobeScene = forwardRef<GlobeSceneHandle, GlobeSceneProps>(function GlobeS
 
   return (
     <Canvas
-      camera={{ position: [0, 1.5, 5], fov: 45, near: 0.1, far: 1000 }}
+      camera={{ position: [0, 1.5, 5], fov: 45, near: 0.1, far: 2000 }}
       gl={{
         antialias: true,
         alpha: true,
@@ -120,4 +120,5 @@ const GlobeScene = forwardRef<GlobeSceneHandle, GlobeSceneProps>(function GlobeS
 })
 
 export default GlobeScene
+
 
