@@ -36,7 +36,7 @@ function NodePulse({ data: d, radius }: { data: NodeData; radius: number }) {
   const color = useMemo(() => new THREE.Color(d.color || '#00d4ff'), [d.color])
   const pulseCol = useMemo(() => new THREE.Color(d.pulseColor || d.color || '#00d4ff'), [d.pulseColor, d.color])
   const nodeSize = d.radius || 0.08
-  const speed = d.pulseSpeed || 1.5
+  const speed = d.pulseSpeed || 2.0
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime() * speed
@@ -106,3 +106,4 @@ export default function Nodes({ data, visible = true }: NodesProps) {
     </group>
   )
 }
+
