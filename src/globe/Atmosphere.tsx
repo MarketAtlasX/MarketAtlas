@@ -36,7 +36,7 @@ const fragmentShader = `
 export default function Atmosphere() {
   const uniforms = useMemo(
     () => ({
-      glowColor: { value: new THREE.Color('#4488ff') },
+      glowColor: { value: new THREE.Color('#5599ff') },
       intensity: { value: 0.6 },
       power: { value: 3.0 },
     }),
@@ -66,3 +66,4 @@ export default function Atmosphere() {
     </mesh>
   )
 }
+
