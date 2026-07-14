@@ -2,7 +2,7 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-const COUNT = 5000
+const COUNT = 4500
 const SIZE = 800
 
 export default function Stars() {
@@ -50,4 +50,5 @@ export default function Stars() {
     </points>
   )
 }
+
 
