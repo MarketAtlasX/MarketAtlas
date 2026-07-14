@@ -7,7 +7,7 @@ interface HologramProps {
   radius?: number
 }
 
-export default function Hologram({ radius = 2.02 }: HologramProps) {
+export default function Hologram({ radius = 2.01 }: HologramProps) {
   const ref = useRef<THREE.Mesh>(null)
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
@@ -38,3 +38,4 @@ export default function Hologram({ radius = 2.02 }: HologramProps) {
     </mesh>
   )
 }
+
