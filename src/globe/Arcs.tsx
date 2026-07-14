@@ -34,7 +34,7 @@ function latLngToPosition(lat: number, lng: number, radius: number): THREE.Vecto
 function computeArcPoints(
   startLat: number, startLng: number,
   endLat: number, endLng: number,
-  radius: number, segments: number = 60,
+  radius: number, segments: number = 80,
 ): THREE.Vector3[] {
   const start = latLngToPosition(startLat, startLng, radius)
   const end = latLngToPosition(endLat, endLng, radius)
@@ -97,3 +97,4 @@ export default function Arcs({ data, visible = true }: ArcsProps) {
     </group>
   )
 }
+
