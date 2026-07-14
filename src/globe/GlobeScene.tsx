@@ -53,7 +53,7 @@ function SceneInner({ onControllerReady, ...props }: GlobeSceneProps & { onContr
     <>
       {props.showStars && <Stars />}
 
-      <directionalLight position={[8, 6, 8]} intensity={2.5} color="#ffffff" />
+      <directionalLight position={[8, 6, 8]} intensity={3.0} color="#ffffff" />
       <directionalLight position={[-6, -3, -4]} intensity={0.6} color="#4488ff" />
       <ambientLight intensity={0.4} color="#446688" />
       <hemisphereLight args={['#88bbff', '#002244', 0.6]} />
@@ -120,3 +120,4 @@ const GlobeScene = forwardRef<GlobeSceneHandle, GlobeSceneProps>(function GlobeS
 })
 
 export default GlobeScene
+
