@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type {
   GraphViewType,
 } from '../types/graphTypes'
@@ -44,6 +44,8 @@ export default function IntelligenceGraphPanel({
   const [causalData, setCausalData] = useState<CausalGraphType | null>(null)
   const [reasoningData, setReasoningData] = useState<ReasoningGraphType | null>(null)
   const [confidenceData, setConfidenceData] = useState<ConfidenceGraphType | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const graphParams = { symbol, company_name: companyName, current_price: currentPrice, root_event: rootEvent, target_asset: targetAsset }
 
@@ -69,8 +71,14 @@ export default function IntelligenceGraphPanel({
   useEffect(() => {
     if (useRealtime) {
       ws.requestAll(graphParams as any)
-      const interval = setInterval(() => ws.requestAll(graphParams as any), 30000)
-      return () => clearInterval(interval)
+      setLastUpdated(new Date().toLocaleTimeString())
+      refreshTimerRef.current = setInterval(() => {
+        ws.requestAll(graphParams as any)
+        setLastUpdated(new Date().toLocaleTimeString())
+      }, 30000)
+      return () => {
+        if (refreshTimerRef.current) clearInterval(refreshTimerRef.current)
+      }
     }
   }, [useRealtime, symbol, currentPrice, rootEvent, targetAsset])
 
@@ -105,6 +113,7 @@ export default function IntelligenceGraphPanel({
   const handleRefresh = useCallback(() => {
     if (useRealtime) {
       ws.requestAll(graphParams as any)
+      setLastUpdated(new Date().toLocaleTimeString())
     }
   }, [useRealtime, ws, graphParams])
 
@@ -130,9 +139,13 @@ export default function IntelligenceGraphPanel({
           {ws.connected && (
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Graph Engine Connected" />
           )}
+          {lastUpdated && (
+            <span className="text-[9px] text-gray-500 font-mono">{lastUpdated}</span>
+          )}
           <button
             onClick={handleRefresh}
             className="px-2 py-1 text-[10px] text-gray-400 hover:text-white transition-colors"
+            title="Refresh graphs"
           >
             ↻
           </button>
