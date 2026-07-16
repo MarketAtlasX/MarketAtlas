@@ -1,8 +1,8 @@
 # MarketAtlas — Frontend
 
-> *An AI-powered geopolitical trading intelligence command center. Interactive globe. Real-time signals. Causal reasoning. All in one dashboard.*
+> *An AI-powered geopolitical trading intelligence command center. Interactive globe. Real-time signals. Causal reasoning. Four-graph intelligence system. All in one dashboard.*
 
-Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas transforms global political, economic, and conflict events into actionable trading intelligence through a stunning 3D interface.
+Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas transforms global political, economic, and conflict events into actionable trading intelligence through a stunning 3D interface and a four-graph Intelligence System that reveals *why* predictions are made, not just *what* the predictions are.
 
 ---
 
@@ -21,14 +21,15 @@ Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas t
                     │  │   3D Interactive     │  │ Markets   │  │
                     │  │      Globe.gl        │  ├───────────┤  │
                     │  │                      │  │ Signal    │  │
-                    │  │  9 Visualization     │  │ Dashboard │  │
+                    │  │  10 Visualization    │  │ Dashboard │  │
                     │  │      Modes           │  ├───────────┤  │
                     │  │                      │  │ Events    │  │
                     │  │  Default / Events /  │  │ Timeline  │  │
                     │  │  Graph / Supply /    │  ├───────────┤  │
                     │  │  Risk / Similar /    │  │ Market    │  │
                     │  │  Agents / World /    │  │ Charts    │  │
-                    │  │  Forecast            │  └───────────┘  │
+                    │  │  Forecast /          │  └───────────┘  │
+                    │  │  Intelligence        │                 │
                     │  └──────────────────────┘                 │
                     │                                            │
                     │  ┌──────────────────────────────────────┐  │
@@ -45,7 +46,7 @@ Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas t
 
 ---
 
-## 9 Visualization Modes
+## 10 Visualization Modes
 
 | Mode | What You See |
 |------|-------------|
@@ -58,6 +59,7 @@ Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas t
 | **Agents** | AI agent activity visualization (conflict, energy, supply chain, market) |
 | **World** | Risk choropleth — color-coded country risk scores |
 | **Forecast** | Time-projected scenarios at +7d, +30d, +90d |
+| **Intelligence** | Four-graph Intelligence System — see below |
 
 ---
 
@@ -95,6 +97,49 @@ Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas t
 - Structured responses with source citations
 - Full offline fallback with keyword-aware mock responses
 
+### Intelligence Graph System ⭐⭐⭐⭐⭐
+
+The most innovative feature — instead of showing raw predictions, the system shows **why, how, how confident, and what assumptions matter** through four interconnected graph views powered by the Graph Engine (port 8005).
+
+#### 1. Forecast Graph 📈
+D3.js-powered time series with confidence bands:
+- Historical price line (solid, indigo)
+- Predicted price line (dashed, amber)
+- Confidence interval shading (wider = less certain)
+- Past / Today / Future visual separation
+
+#### 2. Causal Graph 🔗 ⭐⭐⭐⭐⭐
+React Flow interactive knowledge graph — the biggest innovation:
+- **Iran Conflict → Oil Price → Inflation → Interest Rates → Technology Valuation → NVIDIA**
+- Ranked causal paths with confidence scores
+- Every node is color-coded by type (event=red, country=blue, commodity=amber, sector=purple, company=green, asset=cyan)
+- Drag to explore, zoom to inspect, MiniMap for overview
+- Ranked path badges (Path #1, #2, #3)
+
+#### 3. Reasoning Graph 🧠 ⭐⭐⭐⭐⭐
+AI agent contribution flow — every agent's reasoning is visible:
+- 10 specialized agents (News, Conflict, Energy, Economic, Supply Chain, Market, Risk, Forecast, Geo-Political, Sentiment)
+- Color-coded by sentiment: bullish (green), bearish (red), neutral (gray)
+- Confidence bars with percentages
+- Disagreement edges between agents (red dashed)
+- Consensus verdict: BUY / SELL / neutral
+
+#### 4. Confidence Graph 🎯
+Factor decomposition instead of a single number:
+- Data Quality
+- Historical Similarity
+- Agent Agreement
+- World State Stability
+- Market Volatility
+- Each factor has a description explaining *why* the system is confident or uncertain
+- Overall confidence bar with color gradient (red → amber → green)
+
+#### Real-Time WebSocket
+- Graph Engine on port 8005
+- Auto-reconnect with 5s backoff
+- Live graph updates every 30s
+- Connection indicator (green pulsing dot)
+
 ---
 
 ## Tech Stack
@@ -105,9 +150,11 @@ Built with React 19, TypeScript 6, Vite 8, and Tailwind CSS v4 — MarketAtlas t
 | **Language** | TypeScript 6 |
 | **Build** | Vite 8 |
 | **Styling** | Tailwind CSS v4 |
-| **3D Globe** | globe.gl / Three.js |
+| **3D Globe** | globe.gl / Three.js / @react-three/fiber + drei |
 | **Maps** | Leaflet + React-Leaflet |
-| **Charts** | Recharts |
+| **Charts** | Recharts + D3.js |
+| **Graph Visualization** | @xyflow/react (React Flow v12) |
+| **Animations** | GSAP (camera fly-to, event animations) |
 | **Icons** | Lucide React |
 | **HTTP** | Axios |
 | **Testing** | Vitest |
@@ -128,7 +175,16 @@ React App (localhost:3000)
   │
   ├── /ws               → proxy → backend WebSocket (localhost:8000)
   │
-  ├── /api/world-state/* → proxy → World State (localhost:8004)
+  ├── /api/world-state/* → proxy → World State Engine (localhost:8004)
+  │
+  ├── /api/graph/*       → proxy → Graph Engine (localhost:8005)
+  │   ├── GET /forecast        → Forecast graph
+  │   ├── GET /causal          → Causal graph (KG path finding)
+  │   ├── GET /reasoning       → Agent reasoning graph
+  │   ├── GET /confidence      → Confidence decomposition
+  │   └── GET /all             → All four graphs at once
+  │
+  ├── /ws/graph          → proxy → Graph Engine WebSocket (localhost:8005)
   │
   └── Offline fallback → Built-in mock data for every API
 ```
@@ -141,7 +197,7 @@ React App (localhost:3000)
 frontend/
 ├── src/
 │   ├── main.tsx                   # Entry point
-│   ├── App.tsx                    # Root layout (237 lines)
+│   ├── App.tsx                    # Root layout (250 lines)
 │   ├── index.css                  # Tailwind + custom styles + animations
 │   │
 │   ├── api/                       # API clients
@@ -151,9 +207,25 @@ frontend/
 │   │   ├── endpoints.ts           # URL constants
 │   │   └── geopoliticalApi.ts     # Events + market prices
 │   │
-│   ├── components/                # 20 React components
-│   │   ├── GlobeView.tsx          # 3D globe (732 lines, 9 modes)
-│   │   ├── GlobeControls.tsx      # Bottom toolbar with mode selectors
+│   ├── graph/                      # ★ Intelligence Graph System
+│   │   ├── index.ts                 # Barrel exports
+│   │   ├── types/
+│   │   │   └── graphTypes.ts        # Graph data TypeScript interfaces
+│   │   ├── hooks/
+│   │   │   ├── useGraphData.ts      # REST polling for graph data
+│   │   │   └── useGraphSocket.ts    # WebSocket for real-time graphs
+│   │   ├── layouts/
+│   │   │   └── graphLayouts.ts      # Hierarchical layout + React Flow converters
+│   │   └── components/
+│   │       ├── IntelligenceGraphPanel.tsx  # Tabbed panel (4 graph views)
+│   │       ├── ForecastGraph.tsx          # D3.js line chart with confidence bands
+│   │       ├── CausalGraph.tsx            # React Flow interactive causal KG
+│   │       ├── ReasoningGraph.tsx         # React Flow agent reasoning flow
+│   │       └── ConfidenceGraph.tsx        # D3.js confidence factor bars
+│   │
+│   ├── components/                # 21 React components
+│   │   ├── GlobeView.tsx          # 3D globe (732 lines, 10 modes)
+│   │   ├── GlobeControls.tsx      # Bottom toolbar (incl. Intelligence mode)
 │   │   ├── MapView.tsx            # Country detail container
 │   │   ├── CountryMap.tsx         # Leaflet map with routes + ports
 │   │   ├── CountryMarkets.tsx     # Market dashboard (22 indices)
@@ -182,7 +254,9 @@ frontend/
 │   │
 │   ├── hooks/
 │   │   ├── useWebSocket.ts        # WebSocket with auto-reconnect
-│   │   └── useWorldState.ts       # World state polling
+│   │   ├── useWorldState.ts       # World state polling
+│   │   ├── useGraphData.ts        # Graph REST polling
+│   │   └── useGraphSocket.ts      # Graph WebSocket
 │   │
 │   ├── context/
 │   │   └── ThemeContext.tsx        # Dark/light theme
@@ -216,6 +290,9 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Start Graph Engine (separate terminal, port 8005)
+cd ../graph_engine && python main.py
 ```
 
 ---
@@ -229,3 +306,5 @@ npm run preview
 5. **Causal clarity** — Every insight is traceable through explainability panels
 6. **Country-centric** — All data orbits around the selected country
 7. **Performance-conscious** — Memoized components, optimized renders, lazy data loading
+8. **Explainable AI** — The four-graph intelligence system shows *why* predictions are made, not just *what* they are. Every causal path, agent reasoning step, and confidence factor is inspectable.
+9. **Graph-native reasoning** — Instead of predicting stocks directly, the system predicts the evolution of the world state and derives stock forecasts from it. News → Dynamic World State → Risk Propagation → Sector State → Company State → Stock Forecast.
