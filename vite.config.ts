@@ -14,6 +14,10 @@ export default defineConfig({
         target: 'http://localhost:8004',
         changeOrigin: true,
       },
+      '/api/graph': {
+        target: 'http://localhost:8005',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.VITE_API_BASE_URL || 'http://localhost:8000',
         changeOrigin: true,
@@ -21,6 +25,10 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('error', () => {})
         },
+      },
+      '/ws/graph': {
+        target: 'ws://localhost:8005',
+        ws: true,
       },
       '/ws': {
         target: (process.env.VITE_API_BASE_URL || 'http://localhost:8000').replace(/^http/, 'ws'),
