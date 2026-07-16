@@ -244,6 +244,20 @@ class CausalGraphBuilder:
             ),
         )
 
+    def get_causal_chain(self, root_event: str, target_asset: str) -> List[str]:
+        paths = self.find_paths(root_event, target_asset, max_depth=1)
+        if not paths:
+            return []
+        return [n.id for n in paths[0].nodes]
+
+    def get_path_summary(self, root_event: str, target_asset: str) -> str:
+        paths = self.find_paths(root_event, target_asset)
+        if not paths:
+            return f"No causal path found from {root_event} to {target_asset}"
+        best = paths[0]
+        chain = " -> ".join(n.id for n in best.nodes)
+        return f"{chain} (confidence: {best.strength:.1%})"
+
     def _make_node(self, name: str) -> GraphNode:
         node_type = NODE_TYPE_MAP.get(name, NodeType.concept)
         return GraphNode(
