@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from graph_engine.builder.graph_builder import GraphBuilder
-from graph_engine.models.graph_models import GraphEngineResponse
+from graph_engine.models.graph_models import GraphData, GraphEngineResponse
 from graph_engine.layouts.layout_engine import LayoutEngine
 
 router = APIRouter(prefix="/api/graph", tags=["graph"])
@@ -51,7 +51,6 @@ def get_causal_graph(
     try:
         result = builder.build_causal_graph(root_event, target_asset, max_paths)
         if apply_layout and "combined_graph" in result:
-            from graph_engine.models.graph_models import GraphData
             cg = result["combined_graph"]
             if isinstance(cg, dict):
                 gd = GraphData(**cg)
