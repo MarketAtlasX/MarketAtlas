@@ -117,6 +117,10 @@ export default function IntelligenceGraphPanel({
     }
   }, [useRealtime, ws, graphParams])
 
+  const handleTabChange = useCallback((tab: GraphViewType) => {
+    setActiveTab(tab)
+  }, [])
+
   return (
     <div className="flex flex-col h-full bg-gray-900/40 backdrop-blur-sm rounded-xl border border-gray-700/30 overflow-hidden">
       <div className="flex items-center border-b border-gray-700/30 px-2">
@@ -125,7 +129,7 @@ export default function IntelligenceGraphPanel({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 ${
+              className={`px-3 py-2 text-xs font-medium transition-colors border-b-2 relative group ${
                 activeTab === tab.key
                   ? 'border-indigo-500 text-indigo-400'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
