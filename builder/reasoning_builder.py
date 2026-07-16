@@ -106,6 +106,24 @@ class ReasoningGraphBuilder:
             consensus_confidence=consensus["confidence"],
         )
 
+    def get_agent_by_name(self, agents: List[AgentOpinion], name: str) -> Optional[AgentOpinion]:
+        for a in agents:
+            if a.agent_name == name:
+                return a
+        return None
+
+    def get_split_analysis(self, opinions: List[AgentOpinion]) -> Dict:
+        bullish = [o for o in opinions if o.sentiment == "bullish"]
+        bearish = [o for o in opinions if o.sentiment == "bearish"]
+        neutral = [o for o in opinions if o.sentiment == "neutral"]
+        return {
+            "bullish_count": len(bullish),
+            "bearish_count": len(bearish),
+            "neutral_count": len(neutral),
+            "bullish_avg_conf": round(sum(o.confidence for o in bullish) / max(len(bullish), 1), 3),
+            "bearish_avg_conf": round(sum(o.confidence for o in bearish) / max(len(bearish), 1), 3),
+        }
+
     def _compute_consensus(self, opinions: List[AgentOpinion]) -> Dict:
         bullish = sum(o.confidence for o in opinions if o.sentiment == "bullish")
         bearish = sum(o.confidence for o in opinions if o.sentiment == "bearish")
