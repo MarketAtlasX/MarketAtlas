@@ -76,3 +76,43 @@ class TestGraphEngine:
             assert factor["name"]
             assert factor["value"] > 0
             assert factor["description"]
+
+    def test_causal_multiple_paths(self):
+        resp = client.get("/api/graph/causal?root_event=China&target_asset=Apple&max_paths=10")
+        data = resp.json()
+        assert len(data["data"]["paths"]) >= 1
+
+    def test_reasoning_consensus_non_empty(self):
+        resp = client.get("/api/graph/reasoning?target=TSLA")
+        data = resp.json()
+        assert data["data"]["consensus"] is not None
+        assert data["data"]["consensus_confidence"] > 0
+
+    def test_forecast_graph_structure(self):
+        resp = client.get("/api/graph/forecast?symbol=TSLA&company_name=Tesla&current_price=250")
+        data = resp.json()
+        forecast = data["data"]["forecast"]
+        assert forecast["symbol"] == "TSLA"
+        assert len(forecast["historical"]) > 0
+        assert len(forecast["predicted"]) > 0
+        assert forecast["current_price"] == 250.0
+
+    def test_websocket_graph_engine(self):
+        from fastapi.testclient import TestClient
+        ws_client = TestClient(app)
+        with ws_client.websocket_connect("/ws/graph") as ws:
+            ws.send_json({"type": "get_forecast", "payload": {"symbol": "AAPL", "current_price": 200}})
+            data = ws.receive_json()
+            assert data["type"] == "forecast_update"
+
+    def test_causal_path_ranks_unique(self):
+        resp = client.get("/api/graph/causal?root_event=Iran%20Conflict&target_asset=NVIDIA&max_paths=5")
+        data = resp.json()
+        ranks = data["data"]["ranked_paths"]
+        assert len(ranks) == len(set(ranks))
+
+    def test_confidence_predictions(self):
+        resp = client.get("/api/graph/confidence?target=AAPL&prediction_value=250&prediction_direction=bearish")
+        data = resp.json()
+        assert data["data"]["prediction_value"] == 250.0
+        assert data["data"]["prediction_direction"] == "bearish"
