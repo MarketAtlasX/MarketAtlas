@@ -1,6 +1,6 @@
-import { Globe, BarChart3, GitBranch, Truck, Waves, History, Network, Sliders, Layers } from 'lucide-react'
+import { Globe, BarChart3, GitBranch, Truck, Waves, History, Network, Sliders, Layers, BrainCircuit } from 'lucide-react'
 
-export type GlobeMode = 'default' | 'events' | 'graph' | 'supplyChain' | 'risk' | 'similarity' | 'agent' | 'worldState' | 'forecast'
+export type GlobeMode = 'default' | 'events' | 'graph' | 'supplyChain' | 'risk' | 'similarity' | 'agent' | 'worldState' | 'forecast' | 'intelligence'
 export type AgentMode = 'conflict' | 'energy' | 'supplyChain' | 'market'
 
 interface GlobeControlsProps {
@@ -25,6 +25,7 @@ const modes: { mode: GlobeMode; label: string; icon: typeof Globe }[] = [
   { mode: 'agent', label: 'Agents', icon: Network },
   { mode: 'worldState', label: 'World', icon: Layers },
   { mode: 'forecast', label: 'Forecast', icon: Sliders },
+  { mode: 'intelligence', label: 'Intelligence', icon: BrainCircuit },
 ]
 
 const agents: { mode: AgentMode; label: string }[] = [
