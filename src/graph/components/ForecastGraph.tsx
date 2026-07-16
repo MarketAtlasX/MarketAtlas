@@ -154,16 +154,33 @@ export default function ForecastGraph({ data, width = 500, height = 300 }: Props
   if (!data) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500 text-sm">
-        No forecast data available
+        <div className="flex flex-col items-center gap-2">
+          <svg className="animate-spin h-6 w-6 text-indigo-400" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span>No forecast data available</span>
+        </div>
       </div>
     )
   }
+
+  const changePct = historical && historical.length > 1
+    ? ((current_price! - historical[historical.length - 1].value) / historical[historical.length - 1].value * 100).toFixed(2)
+    : null
 
   return (
     <div className="w-full h-full">
       <div className="flex items-center justify-between px-2 mb-1">
         <span className="text-xs font-medium text-gray-400">{symbol} Price Forecast</span>
-        <span className="text-lg font-bold text-indigo-400">${current_price?.toFixed(2)}</span>
+        <div className="flex items-center gap-2">
+          {changePct && (
+            <span className={`text-xs font-mono ${Number(changePct) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {Number(changePct) >= 0 ? '+' : ''}{changePct}%
+            </span>
+          )}
+          <span className="text-lg font-bold text-indigo-400">${current_price?.toFixed(2)}</span>
+        </div>
       </div>
       <svg ref={svgRef} width={width} height={height} className="w-full" />
     </div>
