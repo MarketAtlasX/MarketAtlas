@@ -14,6 +14,7 @@ import type { GlobeMode, AgentMode } from './components/GlobeControls'
 import EventDetailPanel from './components/EventDetailPanel'
 import SupplyChainPanel from './components/SupplyChainPanel'
 import ExplainabilityPanel from './components/ExplainabilityPanel'
+import { IntelligenceGraphPanel } from './graph'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useWorldState } from './hooks/useWorldState'
 import type { Country } from './data/countries'
@@ -183,51 +184,68 @@ export default function App() {
         </section>
 
         <aside className="w-96 border-l dark:border-white/10 border-gray-200 flex flex-col dark:bg-gray-950/80 bg-white/80 backdrop-blur-sm overflow-y-auto">
-          {selectedCountry && (
-            <div className="p-4 border-b dark:border-white/10 border-gray-200">
+          {globeMode === 'intelligence' ? (
+            <div className="flex-1 p-0">
               <ErrorBoundary>
-                <CountryMarkets country={selectedCountry} />
+                <IntelligenceGraphPanel
+                  symbol="NVDA"
+                  companyName="NVIDIA Corporation"
+                  currentPrice={880.0}
+                  rootEvent="Iran Conflict"
+                  targetAsset="NVIDIA"
+                  useRealtime={true}
+                />
               </ErrorBoundary>
             </div>
+          ) : (
+            <>
+              {selectedCountry && (
+                <div className="p-4 border-b dark:border-white/10 border-gray-200">
+                  <ErrorBoundary>
+                    <CountryMarkets country={selectedCountry} />
+                  </ErrorBoundary>
+                </div>
+              )}
+
+              <div className="p-4 border-b dark:border-white/10 border-gray-200">
+                <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
+                  {globeMode === 'supplyChain' ? 'Supply Chain Network' : 'Signal Dashboard'}
+                </h3>
+                <ErrorBoundary>
+                  {globeMode === 'supplyChain' && !selectedCountry ? (
+                    <SupplyChainPanel country={null} />
+                  ) : (
+                    <SignalDashboard country={selectedCountry} />
+                  )}
+                </ErrorBoundary>
+              </div>
+
+              <div className="p-4 border-b dark:border-white/10 border-gray-200">
+                <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
+                  {globeMode === 'events' || globeMode === 'similarity' ? 'Event Evolution' : 'Event Timeline'}
+                </h3>
+                <ErrorBoundary>
+                  {globeMode === 'events' || globeMode === 'similarity' ? (
+                    <EventEvolutionPanel
+                      country={selectedCountry}
+                      onEventClick={handleEventClick}
+                    />
+                  ) : (
+                    <EventTimeline country={selectedCountry} />
+                  )}
+                </ErrorBoundary>
+              </div>
+
+              <div className="p-4">
+                <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
+                  Market Analytics
+                </h3>
+                <ErrorBoundary>
+                  <MarketCharts country={selectedCountry} />
+                </ErrorBoundary>
+              </div>
+            </>
           )}
-
-          <div className="p-4 border-b dark:border-white/10 border-gray-200">
-            <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
-              {globeMode === 'supplyChain' ? 'Supply Chain Network' : 'Signal Dashboard'}
-            </h3>
-            <ErrorBoundary>
-              {globeMode === 'supplyChain' && !selectedCountry ? (
-                <SupplyChainPanel country={null} />
-              ) : (
-                <SignalDashboard country={selectedCountry} />
-              )}
-            </ErrorBoundary>
-          </div>
-
-          <div className="p-4 border-b dark:border-white/10 border-gray-200">
-            <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
-              {globeMode === 'events' || globeMode === 'similarity' ? 'Event Evolution' : 'Event Timeline'}
-            </h3>
-            <ErrorBoundary>
-              {globeMode === 'events' || globeMode === 'similarity' ? (
-                <EventEvolutionPanel
-                  country={selectedCountry}
-                  onEventClick={handleEventClick}
-                />
-              ) : (
-                <EventTimeline country={selectedCountry} />
-              )}
-            </ErrorBoundary>
-          </div>
-
-          <div className="p-4">
-            <h3 className="text-xs font-semibold dark:text-gray-300 text-gray-700 uppercase tracking-wider mb-3">
-              Market Analytics
-            </h3>
-            <ErrorBoundary>
-              <MarketCharts country={selectedCountry} />
-            </ErrorBoundary>
-          </div>
         </aside>
       </main>
 
