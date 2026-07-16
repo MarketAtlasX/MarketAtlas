@@ -43,6 +43,22 @@ async def graph_websocket(websocket: WebSocket):
     await manager.handle_connection(websocket)
 
 
+@app.get("/api/graph/config")
+def get_config():
+    return {
+        "service": settings.service_name,
+        "version": "0.1.0",
+        "host": settings.host,
+        "port": settings.port,
+        "log_level": settings.log_level,
+    }
+
+
+@app.get("/api/graph/version")
+def get_version():
+    return {"version": "0.1.0", "service": "graph_engine", "build": "2026-07-16"}
+
+
 @app.get("/")
 def root():
     return {
