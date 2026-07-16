@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 import random
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from graph_engine.models.graph_models import (
     ForecastGraph,
@@ -74,6 +74,21 @@ class ForecastGraphBuilder:
             historical=historical,
             predicted=predicted,
         )
+
+    def get_price_at_day(self, forecast: ForecastGraph, day: int) -> Optional[float]:
+        for p in forecast.predicted:
+            if p.day == day:
+                return p.value
+        for p in forecast.historical:
+            if p.day == day:
+                return p.value
+        return None
+
+    def get_forecast_range(self, forecast: ForecastGraph) -> Tuple[float, float]:
+        if not forecast.predicted:
+            return (0, 0)
+        values = [p.value for p in forecast.predicted]
+        return (min(values), max(values))
 
     def to_graph_data(self, forecast: ForecastGraph) -> GraphData:
         nodes: List[GraphNode] = []
