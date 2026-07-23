@@ -11,6 +11,7 @@ class RetrieverType(str, Enum):
     MARKET = "market"
     HISTORICAL = "historical"
     GRAPH = "graph"
+    MEMORY = "memory"
 
 
 @dataclass

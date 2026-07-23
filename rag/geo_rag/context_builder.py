@@ -13,6 +13,7 @@ class GeoContext:
     historical_context: str = ""
     graph_context: str = ""
     market_context: str = ""
+    memory_context: str = ""
     combined_text: str = ""
     source_summary: str = ""
     metadata: dict = field(default_factory=dict)
@@ -26,12 +27,14 @@ class GeoContextBuilder:
         historical_results: Optional[List[RetrievalResult]] = None,
         graph_results: Optional[List[RetrievalResult]] = None,
         market_results: Optional[List[RetrievalResult]] = None,
+        memory_results: Optional[List[RetrievalResult]] = None,
         max_tokens: int = 4000,
     ) -> GeoContext:
         news_context = self._format_results(news_results or [], "News Articles")
         historical_context = self._format_results(historical_results or [], "Historical Events")
         graph_context = self._format_results(graph_results or [], "Knowledge Graph")
         market_context = self._format_results(market_results or [], "Market Data")
+        memory_context = self._format_results(memory_results or [], "Episodic Memory")
 
         source_counts = {}
         for results, label in [
@@ -39,6 +42,7 @@ class GeoContextBuilder:
             (historical_results or [], "historical"),
             (graph_results or [], "graph"),
             (market_results or [], "market"),
+            (memory_results or [], "memory"),
         ]:
             if results:
                 source_counts[label] = len(results)
@@ -56,6 +60,8 @@ class GeoContextBuilder:
             sections.append(graph_context)
         if market_context:
             sections.append(market_context)
+        if memory_context:
+            sections.append(memory_context)
 
         combined = "\n\n".join(sections)
 
@@ -68,6 +74,7 @@ class GeoContextBuilder:
             historical_context=historical_context,
             graph_context=graph_context,
             market_context=market_context,
+            memory_context=memory_context,
             combined_text=combined,
             source_summary=source_summary,
             metadata={"source_counts": source_counts},

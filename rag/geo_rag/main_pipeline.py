@@ -13,6 +13,7 @@ from rag.retrievers.base import RetrievalResult, RetrieverType
 from rag.retrievers.graph_retriever import GraphRetriever
 from rag.retrievers.historical_retriever import HistoricalRetriever
 from rag.retrievers.market_retriever import MarketRetriever
+from rag.retrievers.memory_retriever import MemoryRetriever
 from rag.retrievers.multi_retriever import MultiRetriever, MultiRetrievalResult
 from rag.retrievers.news_retriever import NewsRetriever
 
@@ -38,6 +39,7 @@ class GeoRAGPipeline:
         historical_retriever: Optional[HistoricalRetriever] = None,
         graph_retriever: Optional[GraphRetriever] = None,
         market_retriever: Optional[MarketRetriever] = None,
+        memory_retriever: Optional[MemoryRetriever] = None,
         analog_retriever: Optional[AnalogRetriever] = None,
         multi_retriever: Optional[MultiRetriever] = None,
         intent_classifier: Optional[GeoIntentClassifier] = None,
@@ -47,6 +49,7 @@ class GeoRAGPipeline:
         self.historical_retriever = historical_retriever or HistoricalRetriever()
         self.graph_retriever = graph_retriever or GraphRetriever()
         self.market_retriever = market_retriever or MarketRetriever()
+        self.memory_retriever = memory_retriever or MemoryRetriever()
         self.analog_retriever = analog_retriever or AnalogRetriever()
         self.multi_retriever = multi_retriever or MultiRetriever()
         self.intent_classifier = intent_classifier or GeoIntentClassifier()
@@ -68,6 +71,7 @@ class GeoRAGPipeline:
         historical_results: List[RetrievalResult] = []
         graph_results: List[RetrievalResult] = []
         market_results: List[RetrievalResult] = []
+        memory_results: List[RetrievalResult] = []
 
         retrievers_to_run = self._get_retrievers_for_intent(intent.intent)
 
@@ -97,6 +101,10 @@ class GeoRAGPipeline:
             nonlocal market_results
             market_results = await self.market_retriever.retrieve(query, limit=limit_per_source)
 
+        async def run_memory():
+            nonlocal memory_results
+            memory_results = await self.memory_retriever.retrieve(query, limit=limit_per_source)
+
         tasks = []
         if "news" in retrievers_to_run:
             tasks.append(run_news())
@@ -106,11 +114,13 @@ class GeoRAGPipeline:
             tasks.append(run_graph())
         if "market" in retrievers_to_run:
             tasks.append(run_market())
+        if "memory" in retrievers_to_run:
+            tasks.append(run_memory())
 
         if tasks:
             await asyncio.gather(*tasks)
 
-        all_results = news_results + historical_results + graph_results + market_results
+        all_results = news_results + historical_results + graph_results + market_results + memory_results
         all_results.sort(key=lambda r: r.score, reverse=True)
 
         reranked = all_results
@@ -146,6 +156,7 @@ class GeoRAGPipeline:
             historical_results=historical_results,
             graph_results=graph_results,
             market_results=market_results,
+            memory_results=memory_results,
         )
 
         prompt = self._build_prompt(query, context, intent)
@@ -159,6 +170,8 @@ class GeoRAGPipeline:
             sources_used.append("graph")
         if market_results:
             sources_used.append("market")
+        if memory_results:
+            sources_used.append("memory")
 
         multi_results = MultiRetrievalResult(
             query=query,
@@ -167,6 +180,7 @@ class GeoRAGPipeline:
                 RetrieverType.HISTORICAL: historical_results,
                 RetrieverType.GRAPH: graph_results,
                 RetrieverType.MARKET: market_results,
+                RetrieverType.MEMORY: memory_results,
             },
             all_results=all_results,
         )
@@ -184,15 +198,15 @@ class GeoRAGPipeline:
 
     def _get_retrievers_for_intent(self, intent: GeoIntent) -> List[str]:
         intent_map = {
-            GeoIntent.NEWS_ANALYSIS: ["news"],
-            GeoIntent.HISTORICAL_ANALOG: ["historical", "analog"],
+            GeoIntent.NEWS_ANALYSIS: ["news", "memory"],
+            GeoIntent.HISTORICAL_ANALOG: ["historical", "analog", "memory"],
             GeoIntent.MARKET_IMPACT: ["market", "news"],
             GeoIntent.GRAPH_RELATIONSHIP: ["graph"],
-            GeoIntent.GEOPOLITICAL_RISK: ["news", "historical", "graph"],
-            GeoIntent.GENERAL_QUERY: ["news", "historical"],
-            GeoIntent.MULTI_SOURCE: ["news", "historical", "graph", "market"],
+            GeoIntent.GEOPOLITICAL_RISK: ["news", "historical", "graph", "memory"],
+            GeoIntent.GENERAL_QUERY: ["news", "historical", "memory"],
+            GeoIntent.MULTI_SOURCE: ["news", "historical", "graph", "market", "memory"],
         }
-        return intent_map.get(intent, ["news"])
+        return intent_map.get(intent, ["news", "memory"])
 
     def _build_prompt(self, query: str, context: GeoContext, intent: IntentResult) -> str:
         prompt_parts = [
