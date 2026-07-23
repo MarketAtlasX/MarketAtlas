@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph-engine"
+version = "0.1.0"
+description = "MarketAtlas Graph Engine — causal, reasoning, forecast, and confidence graphs"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "networkx>=3.0",
+    "numpy>=1.24",
+]
+
+[tool.setuptools.packages.find]
+include = ["graph_engine*"]
