@@ -1,6 +1,8 @@
 import { X, AlertTriangle, TrendingUp, TrendingDown, Minus, Clock, MapPin } from 'lucide-react'
 import { getSimilarEvents } from '../data/events'
 import type { GeoEvent } from '../data/events'
+import HistoricalAnalogyPanel from './HistoricalAnalogyPanel'
+import LessonsPanel from './LessonsPanel'
 
 interface EventDetailPanelProps {
   event: GeoEvent
@@ -156,6 +158,14 @@ export default function EventDetailPanel({ event, onClose, onEventClick, onShowE
           >
             Show causal path from {event.countryCode}
           </button>
+
+          <div className="pt-2 border-t border-gray-700/30">
+            <HistoricalAnalogyPanel event={event} />
+          </div>
+
+          <div className="pt-2 border-t border-gray-700/30">
+            <LessonsPanel event={event} />
+          </div>
         </div>
       </div>
     </div>
