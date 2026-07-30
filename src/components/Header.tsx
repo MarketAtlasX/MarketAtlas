@@ -1,7 +1,12 @@
-import { Sun, Moon, Globe } from 'lucide-react'
+import { Sun, Moon, Globe, FlaskConical } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 
-export default function Header() {
+interface HeaderProps {
+  onSimulationToggle?: () => void
+  simulationActive?: boolean
+}
+
+export default function Header({ onSimulationToggle, simulationActive }: HeaderProps) {
   const { theme, toggle } = useTheme()
 
   return (
@@ -17,6 +22,20 @@ export default function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        {onSimulationToggle && (
+          <button
+            onClick={onSimulationToggle}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              simulationActive
+                ? 'bg-purple-600 text-white'
+                : 'dark:hover:bg-white/10 hover:bg-gray-100 dark:text-gray-300 text-gray-600'
+            }`}
+            title="Scenario Simulator"
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            Simulator
+          </button>
+        )}
         <div className="flex items-center gap-2 text-xs dark:text-gray-400 text-gray-600">
           <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           Live
