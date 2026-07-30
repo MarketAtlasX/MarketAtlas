@@ -11,6 +11,7 @@ import MarketCharts from './components/MarketCharts'
 import ChatBot from './components/ChatBot'
 import GlobeControls from './components/GlobeControls'
 import type { GlobeMode, AgentMode } from './components/GlobeControls'
+import LiveEventFeed from './components/LiveEventFeed'
 import EventDetailPanel from './components/EventDetailPanel'
 import SupplyChainPanel from './components/SupplyChainPanel'
 import ExplainabilityPanel from './components/ExplainabilityPanel'
@@ -118,6 +119,7 @@ export default function App() {
                     <h2 className="text-sm font-semibold dark:text-white/80 text-gray-900/80 drop-shadow-lg">
                       {selectedCountry
                         ? `${selectedCountry.name} Market Overview`
+                        : globeMode === 'liveEvents' ? 'Live Events Feed'
                         : globeMode === 'events' ? 'Real-Time Events'
                         : globeMode === 'graph' ? 'Neo4j Knowledge Graph'
                         : globeMode === 'supplyChain' ? 'Global Supply Chain Network'
@@ -195,6 +197,12 @@ export default function App() {
                   targetAsset="NVIDIA"
                   useRealtime={true}
                 />
+              </ErrorBoundary>
+            </div>
+          ) : globeMode === 'liveEvents' ? (
+            <div className="flex-1 p-0">
+              <ErrorBoundary>
+                <LiveEventFeed />
               </ErrorBoundary>
             </div>
           ) : (
