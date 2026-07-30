@@ -18,6 +18,10 @@ export default defineConfig({
         target: 'http://localhost:8005',
         changeOrigin: true,
       },
+      '/api/simulation': {
+        target: 'http://localhost:8005',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.VITE_API_BASE_URL || 'http://localhost:8000',
         changeOrigin: true,
@@ -27,6 +31,10 @@ export default defineConfig({
         },
       },
       '/ws/graph': {
+        target: 'ws://localhost:8005',
+        ws: true,
+      },
+      '/ws/simulation': {
         target: 'ws://localhost:8005',
         ws: true,
       },
