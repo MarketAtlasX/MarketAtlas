@@ -18,6 +18,7 @@ import ExplainabilityPanel from './components/ExplainabilityPanel'
 import { IntelligenceGraphPanel } from './graph'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useWorldState } from './hooks/useWorldState'
+import SimulationView from './simulation/SimulationView'
 import type { Country } from './data/countries'
 import type { GeoEvent } from './data/events'
 import type { SupplyChainPath } from './data/supplyChains'
@@ -26,6 +27,7 @@ export default function App() {
   const { dashboard } = useWorldState()
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null)
   const [showMapView, setShowMapView] = useState(false)
+  const [showSimulation, setShowSimulation] = useState(false)
 
   const [globeMode, setGlobeMode] = useState<GlobeMode>('default')
   const [agentMode, setAgentMode] = useState<AgentMode>('conflict')
@@ -86,8 +88,17 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col dark:bg-gray-950 bg-gray-50 dark:text-white text-gray-900 overflow-hidden">
-      <Header />
+      <Header
+        onSimulationToggle={() => setShowSimulation(prev => !prev)}
+        simulationActive={showSimulation}
+      />
 
+      {showSimulation ? (
+        <main className="flex-1 flex overflow-hidden">
+          <SimulationView />
+        </main>
+      ) : (
+      <>
       <CountryNav
         selectedCountry={selectedCountry}
         onSelect={handleNavSelect}
@@ -258,6 +269,8 @@ export default function App() {
       </main>
 
       <ChatBot />
+      </>
+      )}
     </div>
   )
 }
