@@ -63,6 +63,7 @@ class SimulationWorld:
             "global_indicators": self.global_indicators,
             "supply_chains": self.supply_chains,
             "risk_scores": self.risk_scores,
+            "knowledge_graph": self.knowledge_graph,
         }
 
 

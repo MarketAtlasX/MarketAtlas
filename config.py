@@ -18,8 +18,8 @@ class SimulatorConfig:
 
     default_horizons_days: List[int] = field(default_factory=lambda: [0, 1, 7, 30, 90, 180, 365])
 
-    world_state_api_url: str = "http://localhost:8004"
-    graph_engine_api_url: str = "http://localhost:8003"
+    world_state_api_url: str = "http://localhost:8006"
+    graph_engine_api_url: str = "http://localhost:8005"
 
     memory_store_enabled: bool = True
     max_episode_history: int = 1000

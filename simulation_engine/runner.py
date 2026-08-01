@@ -66,7 +66,7 @@ class SimulationRunner:
             horizon_results[h_days] = result
             all_agent_reports[str(h_days)] = result.agent_reports
 
-        agent_reports = self._run_agents(scenario, world_clone, max(horizon_days))
+        agent_reports = self._run_agents(scenario, self._build_world(world_clone.get_state(), max(horizon_days)), max(horizon_days))
         chief_report = self.chief.synthesize(scenario, agent_reports, max(horizon_days))
 
         mc_results = self.monte_carlo.run(
@@ -96,15 +96,10 @@ class SimulationRunner:
 
         return run
 
-    def _simulate_horizon(
-        self,
-        scenario: Scenario,
-        world_state: Dict[str, Any],
-        horizon_days: int,
-    ) -> HorizonResult:
-        sim_world = SimulationWorld(
+    def _build_world(self, world_state: Dict[str, Any], horizon_days: int) -> SimulationWorld:
+        return SimulationWorld(
             snapshot_id=f"h_{horizon_days}",
-            base_timestamp=scenario.start_time + timedelta(days=horizon_days),
+            base_timestamp=datetime.utcnow() + timedelta(days=horizon_days),
             countries=world_state.get("countries", {}),
             relations=world_state.get("relations", {"trade": [], "military": [], "diplomatic": []}),
             markets=world_state.get("markets", {}),
@@ -113,6 +108,14 @@ class SimulationRunner:
             risk_scores=world_state.get("risk_scores", {}),
             knowledge_graph=world_state.get("knowledge_graph", {"nodes": [], "edges": []}),
         )
+
+    def _simulate_horizon(
+        self,
+        scenario: Scenario,
+        world_state: Dict[str, Any],
+        horizon_days: int,
+    ) -> HorizonResult:
+        sim_world = self._build_world(world_state, horizon_days)
 
         agent_reports = self._run_agents(scenario, sim_world, horizon_days)
 
