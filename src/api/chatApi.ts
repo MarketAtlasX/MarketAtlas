@@ -37,13 +37,13 @@ export interface SimulationResult {
 let backendAvailable: boolean | null = null
 
 async function checkBackend(): Promise<boolean> {
-  if (backendAvailable !== null) return backendAvailable
+  if (backendAvailable === true) return true
   try {
     const res = await fetch('/api/health', { signal: AbortSignal.timeout(2000) })
     backendAvailable = res.ok
     return backendAvailable
   } catch {
-    backendAvailable = false
+    backendAvailable = null
     return false
   }
 }
@@ -63,7 +63,7 @@ export async function sendChat(query: string): Promise<ChatResponse> {
     if (!res.ok) throw new Error('API error')
     return await res.json()
   } catch {
-    backendAvailable = false
+    backendAvailable = null
     return mockChatResponse(query)
   }
 }

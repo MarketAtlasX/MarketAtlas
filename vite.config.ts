@@ -19,7 +19,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/simulation': {
-        target: 'http://localhost:8005',
+        target: 'http://localhost:8007',
         changeOrigin: true,
       },
       '/api': {
@@ -35,7 +35,7 @@ export default defineConfig({
         ws: true,
       },
       '/ws/simulation': {
-        target: 'ws://localhost:8005',
+        target: 'ws://localhost:8007',
         ws: true,
       },
       '/ws': {
