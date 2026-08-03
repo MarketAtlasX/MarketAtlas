@@ -38,12 +38,20 @@ class RunSimulationRequest(BaseModel):
     scenario_id: str
     horizons: Optional[List[int]] = None
     monte_carlo_runs: int = Field(default=100, ge=1, le=10000)
+    portfolio_allocation: Optional[Dict[str, float]] = None
+    sector_data: Optional[Dict[str, Dict[str, float]]] = None
 
 
 class CounterfactualRequest(BaseModel):
     scenario_id: str
     run_id: str
     modifications: List[Dict[str, Any]]
+
+
+class PortfolioImpactRequest(BaseModel):
+    horizon_days: int = Field(default=90, ge=1, le=3650)
+    portfolio_allocation: Optional[Dict[str, float]] = None
+    sector_data: Optional[Dict[str, Dict[str, float]]] = None
 
 
 class SensitivityRequest(BaseModel):
