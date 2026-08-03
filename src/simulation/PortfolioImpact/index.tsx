@@ -3,33 +3,34 @@ import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts'
-import type { PortfolioSummary, ImpactMetric } from '../types'
+import type { PortfolioImpact } from '../types'
 
 interface PortfolioImpactProps {
-  data: PortfolioSummary | null
+  data: PortfolioImpact | null
 }
 
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316']
 
 export default function PortfolioImpact({ data }: PortfolioImpactProps) {
   const pieData = useMemo(() => {
-    if (!data?.impacts) return []
-    return data.impacts
-      .filter(i => i.name.startsWith('sector_'))
-      .map(i => ({
-        name: i.name.replace('sector_', '').replace(/_/g, ' '),
-        value: Math.abs(i.value) * 100,
-        direction: i.direction,
+    if (!data?.sector_contributions) return []
+    return Object.entries(data.sector_contributions)
+      .map(([sector, c]) => ({
+        name: sector.replace(/_/g, ' '),
+        value: c.allocation * 100,
       }))
   }, [data])
 
   const barData = useMemo(() => {
-    if (!data?.impacts) return []
-    return data.impacts.slice(0, 6).map(i => ({
-      name: i.name.replace(/_/g, ' ').substring(0, 20),
-      value: i.value * 100,
-      fill: i.value > 0 ? '#10B981' : '#EF4444',
-    }))
+    if (!data?.sector_contributions) return []
+    return Object.entries(data.sector_contributions)
+      .map(([sector, c]) => ({
+        name: sector.replace(/_/g, ' ').substring(0, 14),
+        value: c.contribution * 100,
+        impact: c.sector_impact * 100,
+        fill: c.contribution > 0 ? '#10B981' : '#EF4444',
+      }))
+      .sort((a, b) => Math.abs(b.value) - Math.abs(a.value))
   }, [data])
 
   if (!data) {
@@ -40,6 +41,8 @@ export default function PortfolioImpact({ data }: PortfolioImpactProps) {
     )
   }
 
+  const impacts = data.impacts || []
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-white">Portfolio Impact</h3>
@@ -48,8 +51,26 @@ export default function PortfolioImpact({ data }: PortfolioImpactProps) {
         <p className="text-sm text-gray-400">{data.summary}</p>
       )}
 
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gray-900 rounded-lg p-3">
+          <span className="text-xs text-gray-500">Total Impact</span>
+          <p className={`text-xl font-bold ${data.total_portfolio_impact >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {(data.total_portfolio_impact * 100).toFixed(2)}%
+          </p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-3">
+          <span className="text-xs text-gray-500">Est. Volatility</span>
+          <p className="text-xl font-bold text-blue-400">{data.estimated_volatility.toFixed(1)}</p>
+        </div>
+        <div className="bg-gray-900 rounded-lg p-3">
+          <span className="text-xs text-gray-500">Risk Score</span>
+          <p className="text-xl font-bold text-yellow-400">{data.risk_score.toFixed(2)}</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-gray-900 rounded-lg p-4">
+          <span className="text-xs text-gray-400">Allocation</span>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -74,6 +95,7 @@ export default function PortfolioImpact({ data }: PortfolioImpactProps) {
         </div>
 
         <div className="bg-gray-900 rounded-lg p-4">
+          <span className="text-xs text-gray-400">Sector Contribution</span>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -91,6 +113,22 @@ export default function PortfolioImpact({ data }: PortfolioImpactProps) {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {impacts.length > 0 && (
+        <div className="bg-gray-900 rounded-lg p-4">
+          <span className="text-xs text-gray-400">Sector Impacts</span>
+          <ul className="mt-2 space-y-1">
+            {impacts.map((i, idx) => (
+              <li key={idx} className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">{i.name.replace('sector_', '').replace(/_/g, ' ')}</span>
+                <span className={i.value >= 0 ? 'text-green-400' : 'text-red-400'}>
+                  {(i.value * 100).toFixed(2)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         {data.risks && data.risks.length > 0 && (
