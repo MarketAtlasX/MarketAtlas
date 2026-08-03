@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query
 from simulator.api.schemas import (
     CounterfactualRequest,
     CreateScenarioRequest,
+    PortfolioImpactRequest,
     RunSimulationRequest,
     SensitivityRequest,
 )
@@ -142,6 +143,14 @@ def run_simulation(body: RunSimulationRequest):
             monte_carlo_runs=body.monte_carlo_runs,
         )
         sim.add_run(run)
+
+        portfolio_impact = _portfolio.calculate_impact(
+            scenario,
+            max(body.horizons or [365]),
+            portfolio_allocation=body.portfolio_allocation,
+            sector_data=body.sector_data,
+        )
+
         return {
             "run_id": run.run_id,
             "simulation_id": sim.id,
@@ -153,6 +162,7 @@ def run_simulation(body: RunSimulationRequest):
                 "outlook": run.chief_report.scenario_outlook,
             },
             "chief_report": run.chief_report.to_dict(),
+            "portfolio_impact": portfolio_impact,
         }
     except Exception as e:
         raise HTTPException(500, f"Simulation failed: {str(e)}")
@@ -269,6 +279,21 @@ def get_portfolio_impact(simulation_id: str, horizon_days: int = Query(90)):
         raise HTTPException(404, f"Simulation {simulation_id} not found")
 
     impact = _portfolio.calculate_impact(sim.scenario, horizon_days)
+    return impact
+
+
+@router.post("/{simulation_id}/portfolio")
+def calculate_portfolio_impact(simulation_id: str, body: PortfolioImpactRequest):
+    sim = _store.get(simulation_id)
+    if not sim:
+        raise HTTPException(404, f"Simulation {simulation_id} not found")
+
+    impact = _portfolio.calculate_impact(
+        sim.scenario,
+        body.horizon_days,
+        portfolio_allocation=body.portfolio_allocation,
+        sector_data=body.sector_data,
+    )
     return impact
 
 
