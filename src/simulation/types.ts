@@ -261,6 +261,69 @@ export interface CounterfactualDelta {
   market_deltas: Record<string, number>
 }
 
+export interface Portfolio {
+  id: string
+  name: string
+  allocation: {
+    version: number
+    allocation: Record<string, number>
+  }
+  created_at: string
+  updated_at: string
+}
+
+export interface SectorMetrics {
+  return_pct: number
+  volatility: number
+}
+
+export interface SectorSnapshot {
+  version: number
+  sectors: Record<string, SectorMetrics>
+  snapshot_time?: string
+  fallback?: boolean
+}
+
+export interface SimulationRunRecord {
+  id: string
+  portfolio_id: string
+  status: string
+  scenario: Record<string, unknown>
+  result: {
+    run_id: string
+    simulation_id: string
+    status: string
+    summary: Record<string, unknown>
+    chief_report?: ChiefReport
+    portfolio_impact?: PortfolioImpact
+  } | null
+  error: string | null
+  market_snapshot_time: string | null
+  sector_data_version: number | null
+  created_at: string
+  completed_at: string | null
+}
+
+export interface PortfolioImpact {
+  total_portfolio_impact: number
+  sector_contributions: Record<string, {
+    allocation: number
+    sector_impact: number
+    contribution: number
+    return_pct?: number
+    volatility?: number
+  }>
+  estimated_volatility: number
+  correlation_shift: number
+  diversification_benefit: number
+  risk_score: number
+  horizon_days: number
+  summary?: string
+  impacts?: ImpactMetric[]
+  risks?: string[]
+  opportunities?: string[]
+}
+
 export interface WSMessage {
   type: string
   [key: string]: unknown
