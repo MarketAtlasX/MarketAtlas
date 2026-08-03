@@ -12,13 +12,14 @@ import WorldMap from './WorldMap'
 import PortfolioImpact from './PortfolioImpact'
 import ConfidencePanel from './ConfidencePanel'
 import ReportViewer from './ReportViewer'
+import PortfolioManager from './PortfolioManager'
 import {
-  createScenario, runSimulation, getSimulation, getReport,
-  getBranches, getPortfolioImpact, listSimulations, createSimulationWebSocket,
+  createSimulationRun, getSimulationRun, listSimulationRuns,
+  createSimulationWebSocket,
 } from './api'
 import type {
-  Scenario, Simulation, SimulationRun, SimulationReport,
-  SimulationBranch, PortfolioSummary, WSMessage,
+  Scenario, Simulation, SimulationRunRecord, SimulationReport,
+  SimulationBranch, Portfolio, PortfolioImpact as PortfolioImpactData, WSMessage,
 } from './types'
 
 type Tab = 'editor' | 'simulation' | 'report'
@@ -27,10 +28,12 @@ export default function SimulationView() {
   const [tab, setTab] = useState<Tab>('editor')
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null)
   const [currentSim, setCurrentSim] = useState<Simulation | null>(null)
-  const [currentRun, setCurrentRun] = useState<SimulationRun | null>(null)
+  const [currentRun, setCurrentRun] = useState<SimulationRunRecord | null>(null)
   const [currentReport, setCurrentReport] = useState<SimulationReport | null>(null)
   const [branches, setBranches] = useState<SimulationBranch[]>([])
-  const [portfolioImpact, setPortfolioImpact] = useState<PortfolioSummary | null>(null)
+  const [portfolioImpact, setPortfolioImpact] = useState<PortfolioImpactData | null>(null)
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null)
+  const [runHistory, setRunHistory] = useState<SimulationRunRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -51,53 +54,46 @@ export default function SimulationView() {
     return () => { ws.close() }
   }, [])
 
+  const handleSelectPortfolio = useCallback((p: Portfolio) => {
+    setPortfolio(p)
+    setTab('editor')
+  }, [])
+
   const handleRun = useCallback(async (scenario: Scenario) => {
+    if (!portfolio) {
+      setError('Create or select a portfolio before running a simulation')
+      return
+    }
     setLoading(true)
     setError(null)
     setCurrentScenario(scenario)
     setCurrentSim(null)
     setCurrentRun(null)
     setCurrentReport(null)
+    setPortfolioImpact(null)
 
     try {
-      const created = await createScenario({
+      const run = await createSimulationRun(portfolio.id, {
         title: scenario.title,
         description: scenario.description,
-        events: scenario.injected_events.map(e => ({
-          type: e.event_type,
-          title: e.title,
-          description: e.description,
-          countries: e.countries,
-          severity: e.severity,
-        })),
-        assumptions: Object.values(scenario.assumptions.assumptions).map(a => ({
-          id: a.id,
-          description: a.description,
-          probability: a.probability,
-          category: a.category,
-          depends_on: a.depends_on,
-        })),
         duration_days: scenario.duration_days,
-        uncertainty: scenario.expected_uncertainty,
+        expected_uncertainty: scenario.expected_uncertainty,
+        injected_events: scenario.injected_events,
+        assumptions: scenario.assumptions,
+        tags: scenario.tags,
       })
 
-      const result = await runSimulation(created.scenario_id)
-      const sim = await getSimulation(result.simulation_id)
-      setCurrentSim(sim)
-      setCurrentRun(sim.runs[sim.runs.length - 1] || null)
+      if (run.status === 'failed') {
+        throw new Error(run.error || 'Simulation failed')
+      }
 
-      const report = await getReport(result.simulation_id)
-      setCurrentReport(report)
+      setCurrentRun(run)
+      const refreshed = await getSimulationRun(run.id)
+      setCurrentRun(refreshed)
+      setPortfolioImpact(refreshed.result?.portfolio_impact ?? null)
 
-      try {
-        const branchData = await getBranches(result.simulation_id)
-        setBranches(branchData.branches)
-      } catch { /* optional */ }
-
-      try {
-        const portfolio = await getPortfolioImpact(result.simulation_id)
-        setPortfolioImpact(portfolio as PortfolioSummary)
-      } catch { /* optional */ }
+      const history = await listSimulationRuns()
+      setRunHistory(history)
 
       setTab('simulation')
     } catch (err) {
@@ -114,19 +110,18 @@ export default function SimulationView() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [portfolio])
 
   const handleRefresh = useCallback(async () => {
-    if (!currentSim) return
+    if (!currentRun) return
     setLoading(true)
     try {
-      const sim = await getSimulation(currentSim.id)
-      setCurrentSim(sim)
-      const report = await getReport(currentSim.id)
-      setCurrentReport(report)
+      const run = await getSimulationRun(currentRun.id)
+      setCurrentRun(run)
+      setPortfolioImpact(run.result?.portfolio_impact ?? null)
     } catch { /* ignore */ }
     setLoading(false)
-  }, [currentSim])
+  }, [currentRun])
 
   return (
     <div className="flex h-full">
@@ -190,59 +185,58 @@ export default function SimulationView() {
         )}
 
         {tab === 'editor' && (
-          <ScenarioEditor onRun={handleRun} />
+          <div className="space-y-6">
+            <PortfolioManager selectedId={portfolio?.id ?? null} onSelect={handleSelectPortfolio} />
+            {portfolio ? (
+              <ScenarioEditor onRun={handleRun} />
+            ) : (
+              <p className="text-sm text-gray-500">Create or select a portfolio to get started.</p>
+            )}
+          </div>
         )}
 
         {tab === 'simulation' && currentRun && (
           <div className="space-y-8">
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-gray-900 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-white mb-2">Horizons</h3>
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(currentRun.horizon_results).map(h => (
-                    <span key={h} className="text-xs px-2 py-1 bg-gray-800 rounded text-gray-400">T+{h}d</span>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">{currentRun.total_paths} Monte Carlo paths</p>
+                <h3 className="text-lg font-semibold text-white mb-2">Status</h3>
+                <span className="text-2xl font-bold text-green-400">{currentRun.status}</span>
+                {portfolio && (
+                  <p className="text-xs text-gray-500 mt-2">Portfolio: {portfolio.name}</p>
+                )}
               </div>
               <div className="bg-gray-900 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-white mb-2">Confidence</h3>
                 <span className={`text-2xl font-bold ${
-                  currentRun.average_confidence > 0.6 ? 'text-green-400' :
-                  currentRun.average_confidence > 0.4 ? 'text-yellow-400' : 'text-red-400'
+                  (currentRun.result?.chief_report?.overall_confidence ?? 0) > 0.6 ? 'text-green-400' :
+                  (currentRun.result?.chief_report?.overall_confidence ?? 0) > 0.4 ? 'text-yellow-400' : 'text-red-400'
                 }`}>
-                  {(currentRun.average_confidence * 100).toFixed(0)}%
+                  {(((currentRun.result?.chief_report?.overall_confidence ?? 0)) * 100).toFixed(0)}%
                 </span>
               </div>
               <div className="bg-gray-900 rounded-lg p-4">
                 <h3 className="text-lg font-semibold text-white mb-2">Outlook</h3>
                 <span className="text-2xl font-bold text-blue-400">
-                  {currentRun.chief_report.scenario_outlook}
+                  {currentRun.result?.chief_report?.scenario_outlook || 'N/A'}
                 </span>
               </div>
             </div>
 
-            <Timeline horizonResults={currentRun.horizon_results} />
-
-            <ProbabilityTree branches={branches} />
-
             <div className="grid grid-cols-2 gap-6">
-              <AgentPanel chiefReport={currentRun.chief_report} />
+              {currentRun.result?.chief_report && (
+                <AgentPanel chiefReport={currentRun.result.chief_report} />
+              )}
               <div className="space-y-6">
-                <WorldMap
-                  events={currentSim?.scenario.injected_events || []}
-                  riskScores={Object.values(currentRun.horizon_results)[0]?.risk_scores}
-                />
                 <PortfolioImpact data={portfolioImpact} />
               </div>
             </div>
 
-            <ImpactGraph
-              impacts={currentRun.chief_report.agent_reports?.market?.impacts ||
-                Object.values(currentRun.chief_report.agent_reports).flatMap(r => r.impacts) || []}
-            />
-
-            <ConfidencePanel run={currentRun} />
+            {currentRun.result?.chief_report && (
+              <ImpactGraph
+                impacts={currentRun.result.chief_report.agent_reports?.market?.impacts ||
+                  Object.values(currentRun.result.chief_report.agent_reports).flatMap(r => r.impacts) || []}
+              />
+            )}
           </div>
         )}
 
