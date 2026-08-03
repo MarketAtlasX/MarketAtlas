@@ -85,7 +85,12 @@ class ConnectionManager:
 
             elif msg_type == "run_simulation":
                 scenario_id = msg.get("scenario_id", "")
-                await self._handle_run_simulation(conn_id, scenario_id)
+                await self._handle_run_simulation(
+                    conn_id,
+                    scenario_id,
+                    portfolio_allocation=msg.get("portfolio_allocation"),
+                    sector_data=msg.get("sector_data"),
+                )
 
             elif msg_type == "ping":
                 await self._send(conn_id, {"type": "pong", "timestamp": datetime.utcnow().isoformat()})
@@ -93,8 +98,14 @@ class ConnectionManager:
         except json.JSONDecodeError:
             await self._send(conn_id, {"type": "error", "message": "Invalid JSON"})
 
-    async def _handle_run_simulation(self, conn_id: str, scenario_id: str):
-        from simulator.api.routes import _runner, _scenario_store, _store
+    async def _handle_run_simulation(
+        self,
+        conn_id: str,
+        scenario_id: str,
+        portfolio_allocation: Optional[Dict[str, float]] = None,
+        sector_data: Optional[Dict[str, Dict[str, float]]] = None,
+    ):
+        from simulator.api.routes import _portfolio, _runner, _scenario_store, _store
         from simulator.models.simulation import Simulation
 
         scenario = _scenario_store.get(scenario_id)
@@ -128,6 +139,13 @@ class ConnectionManager:
         run = _runner.run(scenario=scenario, horizons=horizons, monte_carlo_runs=100)
         sim.add_run(run)
 
+        portfolio_impact = _portfolio.calculate_impact(
+            scenario,
+            max(horizons),
+            portfolio_allocation=portfolio_allocation,
+            sector_data=sector_data,
+        )
+
         await self._send(conn_id, {
             "type": "simulation_complete",
             "simulation_id": sim.id,
@@ -138,6 +156,7 @@ class ConnectionManager:
                 "average_confidence": run.average_confidence,
                 "outlook": run.chief_report.scenario_outlook,
             },
+            "portfolio_impact": portfolio_impact,
         })
 
         await self._send(conn_id, {
