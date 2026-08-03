@@ -8,6 +8,7 @@ from simulator.explainability.graph import CausalChainBuilder, ReasoningGraph
 from simulator.models.agents import AgentReport, AgentType, ChiefReport
 from simulator.models.scenario import Scenario
 from simulator.models.simulation import Simulation, SimulationRun
+from simulator.portfolio_engine.impact import PortfolioImpactEngine
 
 
 class ReportGenerator:
@@ -15,6 +16,7 @@ class ReportGenerator:
         self.confidence = ConfidenceAnalyzer()
         self.explain = CausalChainBuilder()
         self.reasoning = ReasoningGraph()
+        self._portfolio_engine = PortfolioImpactEngine()
 
     def generate(self, simulation: Simulation) -> Dict[str, Any]:
         run = simulation.latest_run()
@@ -88,23 +90,32 @@ class ReportGenerator:
 
             "monte_carlo": run.monte_carlo_stats,
 
-            "portfolio_impact": self._extract_portfolio_impact(run),
+            "portfolio_impact": self._extract_portfolio_impact(run, scenario),
 
             "historical_analogues": self._find_analogues(scenario),
 
             "recommended_actions": chief_report.recommended_actions,
         }
 
-    def _extract_portfolio_impact(self, run: SimulationRun) -> Dict[str, Any]:
+    def _extract_portfolio_impact(
+        self, run: SimulationRun, scenario: Scenario
+    ) -> Dict[str, Any]:
+        horizon = max([int(h) for h in run.horizon_results.keys()] or [365])
+        engine_impact = self._portfolio_engine.calculate_impact(scenario, horizon)
+
         portfolio_report = run.chief_report.agent_reports.get(AgentType.PORTFOLIO)
         if portfolio_report:
+            agent_impacts = [i.to_dict() for i in portfolio_report.impacts]
             return {
-                "summary": portfolio_report.summary,
-                "impacts": [i.to_dict() for i in portfolio_report.impacts],
+                "summary": engine_impact.get("summary", portfolio_report.summary),
+                "impacts": agent_impacts + engine_impact.get("impacts", []),
                 "risks": portfolio_report.key_risks,
                 "opportunities": portfolio_report.key_opportunities,
+                "total_portfolio_impact": engine_impact.get("total_portfolio_impact"),
+                "sector_contributions": engine_impact.get("sector_contributions"),
+                "estimated_volatility": engine_impact.get("estimated_volatility"),
             }
-        return {"note": "No portfolio assessment available"}
+        return engine_impact
 
     def _find_analogues(self, scenario: Scenario) -> List[Dict[str, Any]]:
         analogues = [
