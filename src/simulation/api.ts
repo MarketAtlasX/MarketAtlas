@@ -8,11 +8,33 @@ import type {
   CounterfactualResult,
   ChiefReport,
   WSMessage,
+  Portfolio,
+  SimulationRunRecord,
+  SectorSnapshot,
+  PortfolioImpact,
 } from './types'
+import { ensureAuth, getToken } from './auth'
 
 const simApi = axios.create({
   baseURL: '/api',
   timeout: 120000,
+})
+
+simApi.interceptors.request.use(async (config) => {
+  const token = getToken() || (await ensureAuth())
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+const portfolioApi = axios.create({
+  baseURL: '/api',
+  timeout: 60000,
+})
+
+portfolioApi.interceptors.request.use(async (config) => {
+  const token = getToken() || (await ensureAuth())
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
 })
 
 export async function parseScenario(text: string): Promise<{ scenario_id: string; parsed: Scenario }> {
@@ -116,14 +138,76 @@ export async function listSimulations(): Promise<{ simulations: Simulation[]; to
   return data
 }
 
+export async function listPortfolios(): Promise<Portfolio[]> {
+  const { data } = await portfolioApi.get('/portfolios')
+  return data
+}
+
+export async function createPortfolio(name: string, allocation: Record<string, number>): Promise<Portfolio> {
+  const { data } = await portfolioApi.post('/portfolios', { name, allocation })
+  return data
+}
+
+export async function getPortfolio(portfolioId: string): Promise<Portfolio> {
+  const { data } = await portfolioApi.get(`/portfolios/${portfolioId}`)
+  return data
+}
+
+export async function updatePortfolio(
+  portfolioId: string,
+  patch: Partial<{ name: string; allocation: Record<string, number> }>
+): Promise<Portfolio> {
+  const { data } = await portfolioApi.patch(`/portfolios/${portfolioId}`, patch)
+  return data
+}
+
+export async function deletePortfolio(portfolioId: string): Promise<void> {
+  await portfolioApi.delete(`/portfolios/${portfolioId}`)
+}
+
+export async function createSimulationRun(
+  portfolioId: string,
+  scenario: Record<string, unknown>
+): Promise<SimulationRunRecord> {
+  const { data } = await portfolioApi.post('/simulations', {
+    portfolio_id: portfolioId,
+    scenario,
+  })
+  return data
+}
+
+export async function getSimulationRun(runId: string): Promise<SimulationRunRecord> {
+  const { data } = await portfolioApi.get(`/simulations/${runId}`)
+  return data
+}
+
+export async function listSimulationRuns(): Promise<SimulationRunRecord[]> {
+  const { data } = await portfolioApi.get('/simulations')
+  return data
+}
+
+export async function getSectorSnapshot(): Promise<SectorSnapshot> {
+  const { data } = await portfolioApi.get('/market-data/sectors')
+  return data
+}
+
+export async function fetchPortfolioImpact(runId: string): Promise<PortfolioImpact | null> {
+  const run = await getSimulationRun(runId)
+  return run.result?.portfolio_impact ?? null
+}
+
 export function createSimulationWebSocket(
   onMessage: (msg: WSMessage) => void,
   onConnected?: () => void
 ): WebSocket {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host
+  const token = getToken()
   const baseUrl = import.meta.env.VITE_SIMULATOR_WS_URL || `${protocol}//${host}`
-  const ws = new WebSocket(`${baseUrl}/ws/simulation`)
+  const wsUrl = token
+    ? `${baseUrl}/ws/simulation?token=${encodeURIComponent(token)}`
+    : `${baseUrl}/ws/simulation`
+  const ws = new WebSocket(wsUrl)
 
   ws.onopen = () => {
     onConnected?.()
