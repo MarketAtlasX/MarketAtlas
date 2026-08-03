@@ -1,10 +1,31 @@
 import { useState, useCallback } from 'react'
-import { Play, Plus, X, AlertTriangle } from 'lucide-react'
+import { Play, Plus, X, AlertTriangle, RotateCcw } from 'lucide-react'
 import type { Scenario, InjectedEvent, Assumption } from '../types'
 
 interface ScenarioEditorProps {
   onRun: (scenario: Scenario) => void
   initialText?: string
+}
+
+export const DEFAULT_ALLOCATION: Record<string, number> = {
+  technology: 0.2,
+  financials: 0.15,
+  healthcare: 0.15,
+  consumer_cyclical: 0.1,
+  energy: 0.08,
+  defense: 0.05,
+  utilities: 0.05,
+  materials: 0.05,
+  bonds: 0.1,
+  cash: 0.07,
+}
+
+const ALLOCATION_COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#A3E635', '#E879F9']
+
+function roundAllocation(alloc: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(alloc).map(([k, v]) => [k, Math.max(0, Math.min(1, Math.round(v * 100) / 100))])
+  )
 }
 
 export default function ScenarioEditor({ onRun, initialText }: ScenarioEditorProps) {
@@ -14,8 +35,17 @@ export default function ScenarioEditor({ onRun, initialText }: ScenarioEditorPro
   const [assumptions, setAssumptions] = useState<Assumption[]>([])
   const [durationDays, setDurationDays] = useState(365)
   const [uncertainty, setUncertainty] = useState(0.3)
+  const [allocation, setAllocation] = useState<Record<string, number>>({ ...DEFAULT_ALLOCATION })
   const [newEvent, setNewEvent] = useState({ title: '', type: 'default', severity: 0.5, countries: '' })
   const [newAssumption, setNewAssumption] = useState({ description: '', probability: 0.5, category: 'general' })
+
+  const setSector = useCallback((sector: string, value: number) => {
+    setAllocation(prev => roundAllocation({ ...prev, [sector]: value }))
+  }, [])
+
+  const resetAllocation = useCallback(() => {
+    setAllocation({ ...DEFAULT_ALLOCATION })
+  }, [])
 
   const addEvent = useCallback(() => {
     if (!newEvent.title) return
@@ -65,6 +95,8 @@ export default function ScenarioEditor({ onRun, initialText }: ScenarioEditorPro
     }
     onRun(scenario)
   }, [title, description, events, assumptions, durationDays, uncertainty, onRun])
+
+  const totalAllocation = Object.values(allocation).reduce((a, b) => a + b, 0)
 
   return (
     <div className="space-y-6">
@@ -121,6 +153,47 @@ export default function ScenarioEditor({ onRun, initialText }: ScenarioEditorPro
               value={uncertainty}
               onChange={e => setUncertainty(Number(e.target.value))}
             />
+          </div>
+        </div>
+
+        <div className="border border-gray-700 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-gray-300">Portfolio Allocation</h3>
+            <div className="flex items-center gap-3">
+              <span className={`text-xs ${Math.abs(totalAllocation - 1) < 0.01 ? 'text-green-400' : 'text-yellow-400'}`}>
+                Total: {(totalAllocation * 100).toFixed(0)}%
+              </span>
+              <button
+                onClick={resetAllocation}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-white"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+            {Object.entries(allocation).map(([sector, value], idx) => (
+              <div key={sector}>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-gray-400 capitalize">{sector.replace(/_/g, ' ')}</span>
+                  <span className="text-gray-500">{(value * 100).toFixed(0)}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={0.6}
+                    step={0.01}
+                    value={value}
+                    onChange={e => setSector(sector, Number(e.target.value))}
+                    className="flex-1 accent-blue-500"
+                  />
+                  <span className="w-5 h-2 rounded" style={{ backgroundColor: ALLOCATION_COLORS[idx % ALLOCATION_COLORS.length] }} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -218,3 +291,4 @@ export default function ScenarioEditor({ onRun, initialText }: ScenarioEditorPro
     </div>
   )
 }
+
