@@ -34,6 +34,19 @@ export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token)
 }
 
+export function getUserId(): string {
+  const token = getToken()
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (payload?.sub) return String(payload.sub)
+    } catch { /* fall through */ }
+  }
+  const user = demoUser()
+  const hash = Array.from(user.email).reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) % 1000000, 7)
+  return String(hash)
+}
+
 export async function ensureAuth(): Promise<string> {
   const cached = getToken()
   if (cached) return cached

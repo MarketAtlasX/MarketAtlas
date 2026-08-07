@@ -36,6 +36,23 @@ export interface SimulationResult {
 
 let backendAvailable: boolean | null = null
 
+const CONVERSATION_KEY = 'marketatlas_conversation_id'
+
+function getConversationId(): string {
+  let id = localStorage.getItem(CONVERSATION_KEY)
+  if (!id) {
+    id = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `conv-${Date.now()}`
+    localStorage.setItem(CONVERSATION_KEY, id)
+  }
+  return id
+}
+
+export function resetConversation(): void {
+  localStorage.removeItem(CONVERSATION_KEY)
+}
+
 async function checkBackend(): Promise<boolean> {
   if (backendAvailable === true) return true
   try {
@@ -54,14 +71,23 @@ export async function sendChat(query: string): Promise<ChatResponse> {
     return mockChatResponse(query)
   }
   try {
+    const { getUserId } = await import('../simulation/auth')
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({
+        query,
+        conversation_id: getConversationId(),
+        user_id: getUserId(),
+      }),
       signal: AbortSignal.timeout(60000),
     })
     if (!res.ok) throw new Error('API error')
-    return await res.json()
+    const data = await res.json()
+    if (data.conversation_id) {
+      localStorage.setItem(CONVERSATION_KEY, data.conversation_id)
+    }
+    return data
   } catch {
     backendAvailable = null
     return mockChatResponse(query)
