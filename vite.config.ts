@@ -11,7 +11,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api/world-state': {
-        target: 'http://localhost:8004',
+        target: 'http://localhost:8006',
         changeOrigin: true,
       },
       '/api/graph': {

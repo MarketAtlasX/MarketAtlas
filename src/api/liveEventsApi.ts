@@ -117,7 +117,7 @@ export interface PaginatedResponse<T> {
   items: T[]
 }
 
-const BASE = '/api/v1/live-events'
+const BASE = '/live-events'
 
 async function apiGet<T>(url: string): Promise<T> {
   const { data } = await api.get<T>(url)
@@ -187,14 +187,14 @@ export const liveEventsApi = {
 
 export const alertApi = {
   list: () =>
-    apiGet<UserAlert[]>('/api/v1/live-events/alerts'),
+    apiGet<UserAlert[]>('/live-events/alerts'),
 
   unreadCount: () =>
-    apiGet<{ count: number }>('/api/v1/live-events/alerts/unread-count'),
+    apiGet<{ count: number }>('/live-events/alerts/unread-count'),
 
   markRead: (id: string) =>
-    apiPost<void>(`/api/v1/live-events/alerts/${id}/read`),
+    apiPost<void>(`/live-events/alerts/${id}/read`),
 
   markAllRead: () =>
-    apiPost<void>('/api/v1/live-events/alerts/read-all'),
+    apiPost<void>('/live-events/alerts/read-all'),
 }
