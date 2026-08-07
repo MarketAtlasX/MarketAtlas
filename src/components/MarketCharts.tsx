@@ -7,6 +7,7 @@ import type { Country } from '../data/countries'
 import { ChartSkeleton } from './Skeleton'
 import { EmptyState } from './EmptyState'
 import { fetchMarketPrices } from '../api/geopoliticalApi'
+import { getEntityIdsForTicker } from '../api/countryApi'
 import type { MarketPrice } from '../api/geopoliticalApi'
 
 function rand(min: number, max: number) { return min + Math.random() * (max - min) }
@@ -51,10 +52,15 @@ export default function MarketCharts({ country }: Props) {
     setTransition(true)
     setRealPrices(null)
 
-    if (country && country.tickers.length > 0) {
-      const entityId = country.tickers[0].charCodeAt(0) + country.tickers[0].charCodeAt(1)
-      fetchMarketPrices(entityId, 30).then((prices) => {
-        if (prices.length > 0) setRealPrices(prices)
+    const ticker = country?.tickers?.[0]
+    if (ticker) {
+      getEntityIdsForTicker(ticker).then((ids) => {
+        const entityId = ids[0] ?? country?.entityIds?.[0]
+        if (entityId) {
+          fetchMarketPrices(entityId, 30).then((prices) => {
+            if (prices.length > 0) setRealPrices(prices)
+          }).catch(() => {})
+        }
       }).catch(() => {})
     }
 

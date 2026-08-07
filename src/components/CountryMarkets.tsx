@@ -6,6 +6,7 @@ import { TrendingUp, TrendingDown, BarChart3, DollarSign, Clock, Building2 } fro
 import { flagFromCode, type Country } from '../data/countries'
 import { Skeleton } from './Skeleton'
 import { fetchLatestPrice, fetchMarketPrices } from '../api/geopoliticalApi'
+import { getEntityIdsForTicker } from '../api/countryApi'
 import type { MarketPrice } from '../api/geopoliticalApi'
 
 interface Props {
@@ -87,13 +88,18 @@ export default function CountryMarkets({ country }: Props) {
     setRealPrices(null)
     setRealLatest(null)
 
-    const entityId = country.tickers.length > 0 ? country.tickers[0].charCodeAt(0) + country.tickers[0].charCodeAt(1) : 0
-    if (entityId > 0) {
-      fetchLatestPrice(entityId).then((price) => {
-        if (price) setRealLatest(price)
-      }).catch(() => {})
-      fetchMarketPrices(entityId, 30).then((prices) => {
-        if (prices.length > 0) setRealPrices(prices)
+    const ticker = country.tickers[0]
+    if (ticker) {
+      getEntityIdsForTicker(ticker).then((ids) => {
+        const entityId = ids[0] ?? country.entityIds?.[0]
+        if (entityId) {
+          fetchLatestPrice(entityId).then((price) => {
+            if (price) setRealLatest(price)
+          }).catch(() => {})
+          fetchMarketPrices(entityId, 30).then((prices) => {
+            if (prices.length > 0) setRealPrices(prices)
+          }).catch(() => {})
+        }
       }).catch(() => {})
     }
 

@@ -8,6 +8,7 @@
   marketCap?: string
   tradingHours?: string
   tickers: string[]
+  entityIds?: number[]
   lat: number
   lng: number
   commodities: string[]

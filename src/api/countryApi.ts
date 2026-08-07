@@ -20,6 +20,43 @@ let backendAvailable: boolean | null = null
 let checkingBackend = false
 let checkQueue: Array<(v: boolean) => void> = []
 
+let tickerMapPromise: Promise<Map<string, number[]>> | null = null
+
+async function loadTickerMap(): Promise<Map<string, number[]>> {
+  const map = new Map<string, number[]>()
+  const online = await checkBackend()
+  if (!online) return map
+  try {
+    const { data } = await api.get<{ items: Array<{ id: number; ticker_symbols?: string | null }> }>('/entities?limit=1000')
+    for (const item of data.items ?? []) {
+      for (const symbol of (item.ticker_symbols ?? '').split(',')) {
+        const s = symbol.trim().toUpperCase()
+        if (!s) continue
+        const ids = map.get(s) ?? []
+        if (!ids.includes(item.id)) ids.push(item.id)
+        map.set(s, ids)
+      }
+    }
+  } catch {
+    return map
+  }
+  return map
+}
+
+export async function getEntityIdsForTicker(ticker: string): Promise<number[]> {
+  if (!ticker) return []
+  if (!tickerMapPromise) {
+    tickerMapPromise = loadTickerMap()
+  }
+  try {
+    const map = await tickerMapPromise
+    return map.get(ticker.toUpperCase()) ?? []
+  } catch {
+    tickerMapPromise = null
+    return []
+  }
+}
+
 function checkBackend(): Promise<boolean> {
   if (backendAvailable !== null) return Promise.resolve(backendAvailable)
   if (checkingBackend) {
