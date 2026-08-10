@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "world-state"
+version = "0.1.0"
+description = "Dynamic World State — the consciousness of MarketAtlas"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.100",
+    "uvicorn",
+    "pydantic>=2.0",
+    "numpy",
+]
+
+[tool.setuptools.packages.find]
+include = ["world_state*"]
