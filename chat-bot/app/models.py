@@ -1,0 +1,115 @@
+from pydantic import BaseModel, Field
+from typing import Optional, Any
+from enum import Enum
+
+
+class IntentType(str, Enum):
+    NEWS = "NEWS"
+    MARKET = "MARKET"
+    IMPACT = "IMPACT"
+    RECOMMENDATION = "RECOMMENDATION"
+    SIMULATION = "SIMULATION"
+    GRAPH = "GRAPH"
+    REPORT = "REPORT"
+    SIMILARITY = "SIMILARITY"
+
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    query: str
+    conversation_id: Optional[str] = None
+    stream: bool = False
+
+
+class ChatResponse(BaseModel):
+    conversation_id: str
+    query: str
+    response: str
+    intent: IntentType
+    agents_used: list[str]
+    confidence: float
+    sources: list[str] = []
+    report: Optional[dict[str, Any]] = None
+    explanations: Optional[dict[str, Any]] = None
+
+
+class GraphEntity(BaseModel):
+    name: str
+    type: str
+    properties: dict[str, Any] = {}
+
+
+class GraphRelation(BaseModel):
+    source: str
+    target: str
+    relation: str
+    properties: dict[str, Any] = {}
+
+
+class IntelligenceReport(BaseModel):
+    title: str
+    event: str
+    affected_sectors: list[str]
+    risk_score: float
+    expected_market_impact: str
+    recommended_assets: list[str]
+    confidence: float
+    reasoning: str
+    sources: list[str] = []
+    timestamp: str = ""
+
+
+class SimulationResult(BaseModel):
+    scenario: str
+    consequences: dict[str, str]
+    probability: float
+    time_horizon: str
+    key_risks: list[str]
+
+
+class FeatureContribution(BaseModel):
+    feature: str
+    impact_pct: float
+    direction: str = "positive"
+
+
+class SHAPExplanation(BaseModel):
+    prediction: str = ""
+    predicted_change_pct: float = 0.0
+    base_value: float = 0.0
+    contributions: list[FeatureContribution] = Field(default_factory=list)
+
+
+class AttentionWeight(BaseModel):
+    input_label: str
+    weight: float = 0.0
+    rank: int = 0
+
+
+class AttentionExplanation(BaseModel):
+    query: str = ""
+    top_events: list[AttentionWeight] = Field(default_factory=list)
+    top_features: list[AttentionWeight] = Field(default_factory=list)
+
+
+class GraphPathStep(BaseModel):
+    source: str
+    relation: str
+    target: str
+
+
+class GraphExplanation(BaseModel):
+    start_entity: str = ""
+    end_entity: str = ""
+    path: list[GraphPathStep] = Field(default_factory=list)
+    path_summary: str = ""
+
+
+class ExplanationResult(BaseModel):
+    shap: Optional[SHAPExplanation] = None
+    attention: Optional[AttentionExplanation] = None
+    graph: Optional[GraphExplanation] = None
