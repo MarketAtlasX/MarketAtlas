@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Optional
 
-from ..types import GraphNodes, Relations
+from ..type_defs import GraphNodes, Relations
 
 logger = logging.getLogger(__name__)
 

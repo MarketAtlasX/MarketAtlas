@@ -3,7 +3,7 @@ from typing import Any, Dict
 import networkx as nx
 
 from ..ingest.impact_api import fetch_acled_events, fetch_eia_data, fetch_gdelt_events
-from ..types import GraphNodes, Relations, State
+from ..type_defs import GraphNodes, Relations, State
 
 
 def _persist_graph(nodes: GraphNodes, relations: Relations) -> bool:

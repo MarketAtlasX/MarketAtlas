@@ -5,7 +5,7 @@ and volume status from price and volume series.
 """
 from typing import Optional
 from fastapi import FastAPI, Body, HTTPException
-from market_data.market_data_agent import MarketDataAgent
+from market_agents.market_data.market_data_agent import MarketDataAgent
 
 app = FastAPI(title="market-data-service")
 

@@ -5,7 +5,7 @@ and returns a BUY/SELL/HOLD recommendation.
 """
 from fastapi import FastAPI, Body, HTTPException
 from typing import Optional
-from recommendation.recommendation_agent import RecommendationAgent
+from market_agents.recommendation.recommendation_agent import RecommendationAgent
 
 app = FastAPI(title="recommendation-service")
 agent = RecommendationAgent()

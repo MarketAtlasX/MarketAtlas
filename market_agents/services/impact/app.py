@@ -5,7 +5,7 @@ ImpactAgent for NLP-based event extraction and risk scoring.
 """
 from fastapi import FastAPI, Body, HTTPException
 from typing import Optional
-from impact.impact_agent import ImpactAgent
+from market_agents.impact.impact_agent import ImpactAgent
 
 app = FastAPI(title="impact-service")
 
