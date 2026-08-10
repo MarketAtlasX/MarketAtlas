@@ -4,7 +4,7 @@
 
 MarketAtlas ingests geopolitical and market events, links them to real-world entities (countries, companies, people, commodities, indices), fetches market data from Yahoo Finance, and runs a multi-agent AI pipeline to generate actionable trading signals — **Buy, Sell, Hold, or Short**. Signals can be enriched with knowledge-graph data for deeper geopolitical context.
 
-This repository is the **workspace root** for the MarketAtlas ecosystem. It contains the primary backend service plus workspace configuration for the full multi-repo system.
+This repository is the **monorepo** for the MarketAtlas ecosystem — all services and the frontend live here in one repo (migrated from 10 separate repositories, with full commit history preserved).
 
 ---
 
@@ -13,18 +13,20 @@ This repository is the **workspace root** for the MarketAtlas ecosystem. It cont
 | Directory | Purpose |
 |-----------|---------|
 | `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration |
+| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 5173) |
+| `market_agents/` | AI agent gateway — ImpactAgent, MarketDataAgent, RecommendationAgent (ports 8001–8004) |
+| `knowledge-graph-agent/` | News scraping, entity extraction, relationship graph builder (port 8008) |
+| `world_state/` | Geopolitical risk state & propagation (port 8006) |
+| `memory/` | Semantic/episodic memory service (port 8010) |
+| `graph_engine/` | Knowledge-graph traversal & layout (port 8005) |
+| `simulator/` | Scenario / counterfactual simulator (port 8007) |
+| `pipelines/` | Shared data-factory pipeline package (imported by backend & world_state) |
+| `chat-bot/` | Standalone AI chat interface with multi-agent orchestration |
 | `docs/` | Documentation — API contract (`api-contract.md`) with full endpoint specifications |
 | `dev.sh` | Development orchestrator — starts Docker services, backend, frontend, and agent microservices in parallel |
 | `MarketAtlas.code-workspace` | VS Code multi-root workspace referencing the full ecosystem |
 
-### Sibling Repositories (referenced by workspace & dev.sh)
-
-| Repository | Port | Description |
-|-----------|------|-------------|
-| `frontend/` | 5173 | Vite-based web frontend |
-| `market_agents/` | 8004 | AI agent gateway — ImpactAgent, MarketDataAgent, RecommendationAgent |
-| `knowledge-graph-agent/` | 8005 | News scraping, entity extraction, and relationship graph builder |
-| `chat-bot/` | — | AI chat interface with multi-agent orchestration |
+All services are started and orchestrated by `dev.sh` and talk to each other over HTTP on fixed ports (8000–8010).
 
 ---
 
@@ -118,9 +120,9 @@ This orchestrates everything:
 2. Runs Alembic migrations
 3. Seeds sample event data
 4. Launches the FastAPI backend on `:8000`
-5. Launches the frontend (if `../frontend` exists) on `:5173`
-6. Launches `market_agents` (if found) on `:8004`
-7. Launches `knowledge-graph-agent` (if found) on `:8005`
+5. Launches the frontend on `:5173`
+6. Launches `market_agents` services (ports 8001–8004)
+7. Launches `world_state`, `memory`, `graph_engine`, `simulator`, and `knowledge-graph-agent` (ports 8005–8010)
 
 Press `Ctrl+C` to gracefully shut down all services.
 
@@ -155,7 +157,7 @@ The API will be available at `http://localhost:8000`. Swagger docs at `http://lo
 
 ### VS Code Workspace
 
-Open `MarketAtlas.code-workspace` in VS Code for a multi-root workspace that includes all sibling repositories (`backend`, `frontend`, `market_agents`, `knowledge-graph-agent`, `chat-bot`) in a single editor window.
+Open `MarketAtlas.code-workspace` in VS Code for a multi-root workspace that includes all services (`backend`, `frontend`, `market_agents`, `world_state`, `memory`, `graph_engine`, `simulator`, `knowledge-graph-agent`, `pipelines`, `chat-bot`) in a single editor window.
 
 ### Seed Data
 
@@ -311,8 +313,11 @@ pytest tests/test_routes/test_events.py
 
 ## External Dependencies
 
-- **[market_agents](https://github.com/MarketAtlasX/market_agents)** — AI agent gateway (ImpactAgent, MarketDataAgent, RecommendationAgent). Runs on port 8004. Called via HTTP.
-- **[knowledge-graph-agent](https://github.com/MarketAtlasX/knowledge-graph-agent)** — News scraping, entity extraction, and relationship graphs. Runs on port 8005. Called via HTTP.
+- **[market_agents](https://github.com/MarketAtlasX/market_agents)** — AI agent gateway (ImpactAgent, MarketDataAgent, RecommendationAgent). Runs on ports 8001–8004. Called via HTTP.
+- **[knowledge-graph-agent](https://github.com/MarketAtlasX/knowledge-graph-agent)** — News scraping, entity extraction, and relationship graphs. Runs on port 8008. Called via HTTP.
+- **[world_state](https://github.com/MarketAtlasX/world_state)** — Geopolitical risk service. Runs on port 8006. Called via HTTP.
+
+> **Note:** these were formerly separate repositories; they now live in-tree under this monorepo while their original GitHub repositories remain untouched.
 
 ---
 

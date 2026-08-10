@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     # -------------------------------------------------------------------------
     # Knowledge Graph Agent Service (external microservice)
-    # Runs as ``uvicorn service:app --port 8008`` in ../knowledge-graph-agent/
+    # Runs as ``uvicorn service:app --port 8008`` in ./knowledge-graph-agent/
     # -------------------------------------------------------------------------
     kg_agent_url: str = Field(
         default="http://localhost:8008",
@@ -108,7 +108,7 @@ class Settings(BaseSettings):
 
     # -------------------------------------------------------------------------
     # World State Service (external microservice from separate repo)
-    # Runs as ``uvicorn world_state.server:app --port 8006`` in ../world_state/
+    # Runs as ``uvicorn world_state.server:app --port 8006`` in ./world_state/
     # -------------------------------------------------------------------------
     world_state_url: str = Field(
         default="http://localhost:8006",
@@ -119,7 +119,7 @@ class Settings(BaseSettings):
 
     # -------------------------------------------------------------------------
     # Memory Service (external microservice from separate repo)
-    # Runs as ``uvicorn main:app --port 8010`` in ../memory/
+    # Runs as ``uvicorn main:app --port 8010`` in ./memory/
     # -------------------------------------------------------------------------
     memory_url: str = Field(
         default="http://localhost:8010",
@@ -129,7 +129,7 @@ class Settings(BaseSettings):
 
     # -------------------------------------------------------------------------
     # Graph Engine Service (external microservice from separate repo)
-    # Runs as ``uvicorn graph_engine.main:app --port 8005`` in ../graph_engine/
+    # Runs as ``uvicorn graph_engine.main:app --port 8005`` in ./graph_engine/
     # -------------------------------------------------------------------------
     graph_engine_url: str = Field(
         default="http://localhost:8005",
@@ -139,7 +139,7 @@ class Settings(BaseSettings):
 
     # -------------------------------------------------------------------------
     # Simulator Service (external microservice from separate repo)
-    # Runs as ``uvicorn simulator.main:app --port 8007`` in ../simulator/
+    # Runs as ``uvicorn simulator.main:app --port 8007`` in ./simulator/
     # -------------------------------------------------------------------------
     simulator_url: str = Field(
         default="http://localhost:8007",
