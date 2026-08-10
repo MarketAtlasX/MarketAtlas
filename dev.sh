@@ -41,12 +41,12 @@ fi
 PY_VER="$("$ROOT/venv/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 PIPELINES_SYMLINK="$ROOT/venv/lib/python$PY_VER/site-packages/pipelines"
 PIPELINES_DIR=""
-for d in "$ROOT/../pipelines" "$HOME/pipelines"; do
+for d in "$ROOT/pipelines" "$ROOT/../pipelines" "$HOME/pipelines"; do
   [ -d "$d" ] && PIPELINES_DIR="$d" && break
 done
-if [ -n "$PIPELINES_DIR" ] && [ ! -L "$PIPELINES_SYMLINK" ]; then
+if [ -n "$PIPELINES_DIR" ] && { [ ! -L "$PIPELINES_SYMLINK" ] || [ "$(readlink "$PIPELINES_SYMLINK")" != "$PIPELINES_DIR" ]; }; then
   echo "[pipelines] Installing pipelines package..."
-  ln -sf "$PIPELINES_DIR" "$PIPELINES_SYMLINK"
+  ln -sfn "$PIPELINES_DIR" "$PIPELINES_SYMLINK"
 fi
 
 # ── 1c. Pre-load Ollama model (so first request doesn't time out) ────
@@ -62,9 +62,9 @@ fi
 echo "[backend] Starting on :8000..."
 BACKEND_PY="$ROOT/venv/bin/uvicorn"
 if [ -f "$BACKEND_PY" ]; then
-  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT/.." "$BACKEND_PY" app.main:app --reload --port 8000) &
+  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT" "$BACKEND_PY" app.main:app --reload --port 8000) &
 else
-  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT/.." uvicorn app.main:app --reload --port 8000) &
+  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT" uvicorn app.main:app --reload --port 8000) &
 fi
 PIDS+=($!)
 
@@ -72,9 +72,9 @@ PIDS+=($!)
 echo "[celery] Starting worker + beat..."
 CELERY_PY="$ROOT/venv/bin/celery"
 if [ -f "$CELERY_PY" ]; then
-  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT/.." "$CELERY_PY" -A app.workers.celery_app worker --loglevel=info) &
+  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT" "$CELERY_PY" -A app.workers.celery_app worker --loglevel=info) &
   PIDS+=($!)
-  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT/.." "$CELERY_PY" -A app.workers.celery_app beat --loglevel=info) &
+  (cd "$ROOT/backend" && PYTHONPATH="$ROOT/backend:$ROOT" "$CELERY_PY" -A app.workers.celery_app beat --loglevel=info) &
   PIDS+=($!)
 else
   echo "[celery] celery binary not found, skipping. (pip install -r backend/requirements.txt)"
@@ -95,28 +95,28 @@ fi
 
 # ── 4. Market Agents (optional) ─────────────────────────────────────
 MARKET_DIR=""
-for d in "$ROOT/../market_agents" "$HOME/market_agents"; do
+for d in "$ROOT/market_agents" "$ROOT/../market_agents" "$HOME/market_agents"; do
   [ -d "$d" ] && MARKET_DIR="$d" && break
 done
 if [ -n "$MARKET_DIR" ]; then
   echo "[market-agents] Starting market, impact, recommendation, and gateway services..."
   MARKET_PY="$MARKET_DIR/venv/bin/uvicorn"
   if [ -f "$MARKET_PY" ]; then
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" services.market_data.app:app --reload --port 8001) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" market_agents.services.market_data.app:app --reload --port 8001) &
     PIDS+=($!)
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" services.impact.app:app --reload --port 8002) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" market_agents.services.impact.app:app --reload --port 8002) &
     PIDS+=($!)
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" services.recommendation.app:app --reload --port 8003) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" market_agents.services.recommendation.app:app --reload --port 8003) &
     PIDS+=($!)
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" services.gateway:app --reload --port 8004) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" "$MARKET_PY" market_agents.services.gateway:app --reload --port 8004) &
   else
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn services.market_data.app:app --reload --port 8001) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn market_agents.services.market_data.app:app --reload --port 8001) &
     PIDS+=($!)
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn services.impact.app:app --reload --port 8002) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn market_agents.services.impact.app:app --reload --port 8002) &
     PIDS+=($!)
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn services.recommendation.app:app --reload --port 8003) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn market_agents.services.recommendation.app:app --reload --port 8003) &
     PIDS+=($!)
-    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn services.gateway:app --reload --port 8004) &
+    (cd "$MARKET_DIR" && PYTHONPATH="$(dirname "$MARKET_DIR")" uvicorn market_agents.services.gateway:app --reload --port 8004) &
   fi
   PIDS+=($!)
 else
@@ -125,7 +125,7 @@ fi
 
 # ── 5. World State (optional) ─────────────────────────────────────────
 WS_DIR=""
-for d in "$ROOT/../world_state" "$HOME/world_state"; do
+for d in "$ROOT/world_state" "$ROOT/../world_state" "$HOME/world_state"; do
   [ -d "$d" ] && WS_DIR="$d" && break
 done
 if [ -n "$WS_DIR" ]; then
@@ -148,7 +148,7 @@ fi
 
 # ── 6b. Memory Service (optional) ──────────────────────────────────────
 MEMORY_DIR=""
-for d in "$ROOT/../memory" "$HOME/memory"; do
+for d in "$ROOT/memory" "$ROOT/../memory" "$HOME/memory"; do
   [ -d "$d" ] && MEMORY_DIR="$d" && break
 done
 if [ -n "$MEMORY_DIR" ]; then
@@ -165,7 +165,7 @@ fi
 
 # ── 6c. Graph Engine (optional) ───────────────────────────────────────
 GE_DIR=""
-for d in "$ROOT/../graph_engine" "$HOME/graph_engine"; do
+for d in "$ROOT/graph_engine" "$ROOT/../graph_engine" "$HOME/graph_engine"; do
   [ -d "$d" ] && GE_DIR="$d" && break
 done
 if [ -n "$GE_DIR" ]; then
@@ -183,7 +183,7 @@ fi
 
 # ── 6d. Simulator (optional) ────────────────────────────────────────
 SIM_DIR=""
-for d in "$ROOT/../simulator" "$HOME/simulator"; do
+for d in "$ROOT/simulator" "$ROOT/../simulator" "$HOME/simulator"; do
   [ -d "$d" ] && SIM_DIR="$d" && break
 done
 if [ -n "$SIM_DIR" ]; then
@@ -201,7 +201,7 @@ fi
 
 # ── 6. KG Agent (optional) ──────────────────────────────────────────
 KG_DIR=""
-for d in "$ROOT/../knowledge-graph-agent" "$HOME/knowledge-graph-agent"; do
+for d in "$ROOT/knowledge-graph-agent" "$ROOT/../knowledge-graph-agent" "$HOME/knowledge-graph-agent"; do
   [ -d "$d" ] && KG_DIR="$d" && break
 done
 if [ -n "$KG_DIR" ]; then
