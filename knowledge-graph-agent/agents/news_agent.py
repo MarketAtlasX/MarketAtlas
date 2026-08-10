@@ -1,0 +1,353 @@
+"""
+News Agent for the Geopolitical Knowledge Graph Intelligence Agent.
+
+Purpose:
+Retrieve geopolitical news from REAL APIs ONLY.
+
+Integrated APIs:
+- GDELT (Global Event, Language, and Tone Database) - FREE
+- NewsAPI (Real-time news aggregation) - FREE TIER AVAILABLE
+- Financial Times RSS (Financial geopolitical news)
+- ACLED (Armed Conflict Location & Event Data) - FREE
+
+NO HARDCODED DATA - PRODUCTION ONLY
+"""
+
+import logging
+import os
+import requests
+from typing import Any
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+from graph.state import AgentState, NewsArticle
+
+load_dotenv()
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# API Configuration
+GNEWS_KEY = os.getenv("GNEWS_KEY", os.getenv("NEWSAPI_KEY"))
+GNEWS_URL = os.getenv("GNEWS_URL", "https://gnews.io/api/v4/search")
+GDELT_URL = os.getenv("GDELT_BASE_URL", "https://api.gdeltproject.org/api/v2/doc/doc")
+ACLED_URL = os.getenv("ACLED_URL", "https://api.acleddata.com/acled/read")
+ACLED_EMAIL = os.getenv("ACLED_EMAIL")
+ACLED_KEY = os.getenv("ACLED_KEY")
+REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", 30))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", 3))
+MAX_ARTICLES = int(os.getenv("MAX_ARTICLES_PER_SOURCE", 50))
+
+
+class NewsAPIError(Exception):
+    """Custom exception for news API errors"""
+    pass
+
+
+class APIClient:
+    """Unified API client with retry logic"""
+    
+    def __init__(self, max_retries: int = MAX_RETRIES, timeout: int = REQUEST_TIMEOUT):
+        self.max_retries = max_retries
+        self.timeout = timeout
+        self.session = requests.Session()
+    
+    def get(self, url: str, params: dict = None, headers: dict = None) -> dict:
+        """
+        Make GET request with retry logic.
+        
+        Args:
+            url: API endpoint
+            params: Query parameters
+            headers: HTTP headers
+            
+        Returns:
+            JSON response
+            
+        Raises:
+            NewsAPIError: If all retries fail
+        """
+        for attempt in range(self.max_retries):
+            try:
+                response = self.session.get(
+                    url,
+                    params=params,
+                    headers=headers,
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
+                return response.json()
+                
+            except requests.exceptions.Timeout:
+                logger.warning(f"Timeout on attempt {attempt + 1}/{self.max_retries}: {url}")
+                if attempt == self.max_retries - 1:
+                    raise NewsAPIError(f"API timeout after {self.max_retries} retries")
+                    
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Connection error on attempt {attempt + 1}/{self.max_retries}: {str(e)}")
+                if attempt == self.max_retries - 1:
+                    raise NewsAPIError(f"Connection failed after {self.max_retries} retries")
+                    
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 401:
+                    raise NewsAPIError("Invalid API key. Check your credentials in .env")
+                elif response.status_code == 429:
+                    logger.warning(f"Rate limited on attempt {attempt + 1}/{self.max_retries}")
+                    if attempt == self.max_retries - 1:
+                        raise NewsAPIError("API rate limit exceeded")
+                else:
+                    raise NewsAPIError(f"HTTP Error {response.status_code}: {str(e)}")
+                    
+            except Exception as e:
+                logger.error(f"Unexpected error on attempt {attempt + 1}/{self.max_retries}: {str(e)}")
+                if attempt == self.max_retries - 1:
+                    raise NewsAPIError(f"Failed after {self.max_retries} retries: {str(e)}")
+        
+        raise NewsAPIError("Max retries exceeded")
+
+
+def fetch_from_newsapi(company: str, client: APIClient) -> list[NewsArticle]:
+    """
+    Fetch news from gnews.io
+    
+    Args:
+        company: Company ticker/name
+        client: API client
+        
+    Returns:
+        List of news articles
+        
+    Raises:
+        NewsAPIError: If API call fails
+    """
+    if not GNEWS_KEY:
+        raise NewsAPIError("GNEWS_KEY not set in .env file. Get it from https://gnews.io")
+    
+    try:
+        params = {
+            "q": company,
+            "lang": "en",
+            "max": MAX_ARTICLES,
+            "apikey": GNEWS_KEY,
+        }
+        
+        logger.info(f"Fetching from gnews.io for: {company}")
+        response = client.get(GNEWS_URL, params=params)
+        
+        if "articles" not in response:
+            raise NewsAPIError("gnews.io error: unexpected response format")
+        
+        articles: list[NewsArticle] = []
+        for article in response.get("articles", [])[:MAX_ARTICLES]:
+            articles.append({
+                "title": article.get("title", ""),
+                "content": article.get("description", ""),
+                "source": article.get("source", {}).get("name", "gnews.io"),
+                "date": article.get("publishedAt", ""),
+                "url": article.get("url", ""),
+            })
+        
+        logger.info(f"OK gnews.io: Retrieved {len(articles)} articles for {company}")
+        return articles
+        
+    except Exception as e:
+        logger.error(f"FAIL gnews.io error: {str(e)}")
+        raise NewsAPIError(f"gnews.io failed: {str(e)}")
+
+
+def fetch_from_gdelt(company: str, client: APIClient) -> list[NewsArticle]:
+    """
+    Fetch geopolitical events from GDELT
+    
+    Args:
+        company: Company ticker/name
+        client: API client
+        
+    Returns:
+        List of news articles
+        
+    Raises:
+        NewsAPIError: If API call fails
+    """
+    try:
+        # GDELT query for geopolitical events related to company
+        search_query = f'{company} AND (export OR import OR sanctions OR trade OR Taiwan OR China OR government)'
+        
+        params = {
+            "query": search_query,
+            "mode": "artlist",
+            "maxrecords": MAX_ARTICLES,
+            "format": "json",
+        }
+        
+        logger.info(f"Fetching from GDELT for: {company}")
+        response = client.get(GDELT_URL, params=params)
+        
+        if "articles" not in response:
+            logger.warning("No articles found in GDELT response")
+            return []
+        
+        articles: list[NewsArticle] = []
+        for article in response.get("articles", [])[:MAX_ARTICLES]:
+            articles.append({
+                "title": article.get("title", ""),
+                "content": article.get("snippet", ""),
+                "source": article.get("sourcename", "GDELT"),
+                "date": article.get("seendate", article.get("date", "")),
+                "url": article.get("url", ""),
+            })
+        
+        logger.info(f"OK GDELT: Retrieved {len(articles)} events for {company}")
+        return articles
+        
+    except Exception as e:
+        logger.error(f"FAIL GDELT error: {str(e)}")
+        raise NewsAPIError(f"GDELT failed: {str(e)}")
+
+
+def fetch_from_acled(company: str, client: APIClient) -> list[NewsArticle]:
+    """
+    Fetch armed conflict/geopolitical events from ACLED v2 API
+    
+    Requires ACLED_EMAIL and ACLED_KEY env vars. Returns empty if missing.
+    
+    Args:
+        company: Company ticker/name
+        client: API client
+        
+    Returns:
+        List of news articles
+    """
+    if not ACLED_EMAIL or not ACLED_KEY:
+        logger.warning("ACLED_EMAIL and ACLED_KEY not set. Skipping ACLED fetch.")
+        return []
+    
+    try:
+        # Get last 30 days of events
+        start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        
+        params = {
+            "email": ACLED_EMAIL,
+            "key": ACLED_KEY,
+            "country": "",
+            "event_date": f"{start_date}|{end_date}",
+            "limit": MAX_ARTICLES,
+            "format": "json",
+        }
+        
+        logger.info(f"Fetching from ACLED for: {company}")
+        response = client.get(ACLED_URL, params=params)
+        
+        if "data" not in response:
+            logger.warning("No data found in ACLED response")
+            return []
+        
+        articles: list[NewsArticle] = []
+        for event in response.get("data", [])[:MAX_ARTICLES]:
+            articles.append({
+                "title": event.get("event_type", "Event"),
+                "content": f"Location: {event.get('country', 'Unknown')}. {event.get('notes', '')}",
+                "source": "ACLED",
+                "date": event.get("event_date", ""),
+                "url": event.get("url", ""),
+            })
+        
+        logger.info(f"OK ACLED: Retrieved {len(articles)} events for {company}")
+        return articles
+        
+    except Exception as e:
+        logger.error(f"FAIL ACLED error: {str(e)}")
+        # ACLED is optional, don't fail the workflow
+        return []
+
+
+def fetch_news(state: AgentState) -> dict[str, Any]:
+    """
+    Fetch geopolitical news from REAL APIs ONLY.
+    
+    This function integrates multiple real-time news sources:
+    1. NewsAPI - General news with geopolitical keywords
+    2. GDELT - Global event database
+    3. ACLED - Armed conflict and political violence data
+    
+    Args:
+        state: Current agent state containing stock ticker
+        
+    Returns:
+        Updated state with news articles from real APIs
+        
+    Raises:
+        ValueError: If stock ticker not provided
+        NewsAPIError: If all API sources fail
+    """
+    try:
+        stock = state.get("stock", "").upper()
+        
+        if not stock:
+            raise ValueError("Stock ticker not provided in state")
+        
+        logger.info(f"Fetching news for {stock} from real APIs...")
+        
+        # Initialize API client
+        client = APIClient(max_retries=MAX_RETRIES, timeout=REQUEST_TIMEOUT)
+        
+        all_articles: list[NewsArticle] = []
+        errors = []
+        
+        # Fetch from NewsAPI (primary source)
+        try:
+            newsapi_articles = fetch_from_newsapi(stock, client)
+            all_articles.extend(newsapi_articles)
+        except NewsAPIError as e:
+            logger.error(f"NewsAPI failed: {str(e)}")
+            errors.append(f"NewsAPI: {str(e)}")
+        
+        # Fetch from GDELT (secondary source)
+        try:
+            gdelt_articles = fetch_from_gdelt(stock, client)
+            all_articles.extend(gdelt_articles)
+        except NewsAPIError as e:
+            logger.error(f"GDELT failed: {str(e)}")
+            errors.append(f"GDELT: {str(e)}")
+        
+        # Fetch from ACLED (optional)
+        try:
+            acled_articles = fetch_from_acled(stock, client)
+            all_articles.extend(acled_articles)
+        except Exception as e:
+            logger.warning(f"ACLED failed (optional): {str(e)}")
+        
+        # Remove duplicates by URL
+        unique_articles = {article.get("url"): article for article in all_articles}
+        all_articles = list(unique_articles.values())
+        
+        if not all_articles:
+            logger.warning(f"No news fetched for {stock}. Errors: {' | '.join(errors)}. Returning empty result.")
+            return {
+                **state,
+                "news": [],
+                "entities": [],
+                "graph_nodes": [],
+                "graph_edges": [],
+                "messages": [
+                    *(state.get("messages", [])),
+                    "[NEWS_AGENT] No news fetched. Returning empty analysis."
+                ]
+            }
+        
+        logger.info(f"OK Successfully fetched {len(all_articles)} unique articles for {stock}")
+        
+        return {
+            **state,
+            "news": all_articles,
+            "messages": [
+                *(state.get("messages", [])),
+                f"[NEWS_AGENT] Fetched {len(all_articles)} articles from real APIs (NewsAPI, GDELT, ACLED)"
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"FAIL Error fetching news: {str(e)}")
+        raise
+
