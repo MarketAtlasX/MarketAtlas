@@ -29,9 +29,9 @@ if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "backend"; then
     sleep 1
   done
   echo "[docker] Running DB migrations..."
-  (cd "$ROOT/backend" && alembic upgrade head)
+  (cd "$ROOT/backend" && "$ROOT/venv/bin/alembic" upgrade head)
   echo "[docker] Seeding sample events..."
-  (cd "$ROOT/backend" && python -m app.chatbot.scripts.seed_data)
+  (cd "$ROOT/backend" && "$ROOT/venv/bin/python" -m app.chatbot.scripts.seed_data)
   STARTED=true
 elif [ "$STARTED" = false ]; then
   echo "[docker] Already running."
