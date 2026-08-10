@@ -1,0 +1,36 @@
+from typing import Dict, Any
+
+
+class RecommendationAgent:
+    """Produces BUY/HOLD/SELL signals from impact and market snapshots.
+
+    Heuristic rules:
+    - If composite impact > 0.7 and momentum < 0 => SELL
+    - If composite impact < 0.3 and momentum > 0 => BUY
+    - If volatility > 0.04 prefer HOLD (risky environment)
+    - Otherwise HOLD
+    """
+
+    def __init__(self, hedge_buffer: float = 0.05):
+        self.hedge_buffer = hedge_buffer
+
+    def decide(self, impact: Dict[str, Any], market: Dict[str, Any]) -> Dict[str, str]:
+        if not isinstance(impact, dict) or not isinstance(market, dict):
+            return {"action": "HOLD", "reason": "invalid_input"}
+        score = impact.get("composite_risk", 0.0)
+        momentum = market.get("momentum", 0.0)
+        vol = market.get("volatility", 0.0) if market.get("volatility") is not None else 0.0
+
+        if vol > 0.04:
+            return {"action": "HOLD", "reason": "high_volatility"}
+
+        if score >= 0.7 and momentum < 0:
+            return {"action": "SELL", "reason": "high_impact_negative_momentum"}
+
+        if score < 0.3 and momentum > 0:
+            return {"action": "BUY", "reason": "low_impact_positive_momentum"}
+
+        if 0.3 <= score < 0.7 and momentum < -self.hedge_buffer:
+            return {"action": "HOLD", "reason": "hedge_negative_momentum"}
+
+        return {"action": "HOLD", "reason": "neutral"}

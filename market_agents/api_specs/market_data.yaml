@@ -1,0 +1,25 @@
+openapi: 3.0.0
+info:
+  title: Market Data Service API
+  version: "0.1"
+paths:
+  /snapshot:
+    post:
+      summary: Return market snapshot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                prices:
+                  type: array
+                  items:
+                    type: number
+                volumes:
+                  type: array
+                  items:
+                    type: number
+      responses:
+        '200':
+          description: snapshot

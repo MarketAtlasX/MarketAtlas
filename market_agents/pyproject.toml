@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "market_agents"
+version = "0.1.0"
+description = "AI agents for geopolitical event impact analysis and market signal generation"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "networkx",
+    "requests",
+    "python-dotenv",
+    "yfinance>=0.2.0",
+    "pydantic>=2.0",
+    "httpx",
+    "pybreaker",
+    "slowapi",
+    "prometheus-client",
+    "opentelemetry-api",
+    "opentelemetry-sdk",
+    "opentelemetry-instrumentation-fastapi",
+    "opentelemetry-exporter-otlp-proto-http",
+]
+
+[tool.setuptools.packages.find]
+include = ["*"]
+exclude = ["venv"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json"]
+
+[project.optional-dependencies]
+dev = ["fastapi", "uvicorn[standard]"]
+neo4j = ["neo4j"]
+messaging = ["pika"]

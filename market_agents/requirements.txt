@@ -1,0 +1,2 @@
+# For development: pip install -e .[dev,neo4j,messaging]
+-e .[dev,neo4j,messaging]

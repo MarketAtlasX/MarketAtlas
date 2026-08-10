@@ -1,0 +1,19 @@
+openapi: 3.0.0
+info:
+  title: Impact Service API
+  version: "0.1"
+paths:
+  /extract:
+    post:
+      summary: Extract entities and relations from text
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+      responses:
+        '200':
+          description: extraction

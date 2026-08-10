@@ -1,0 +1,8 @@
+{
+  "cached_files": {
+    "alphavantage_AAPL": "D:\\MY WORK\\MarketAtlas\\market_agents\\ingest\\cache\\alphavantage_AAPL.json",
+    "alphavantage_MSFT": "D:\\MY WORK\\MarketAtlas\\market_agents\\ingest\\cache\\alphavantage_MSFT.json",
+    "fred_UNRATE": "D:\\MY WORK\\MarketAtlas\\market_agents\\ingest\\cache\\fred_UNRATE.json",
+    "eia_TOTAL.STOCKS": "D:\\MY WORK\\MarketAtlas\\market_agents\\ingest\\cache\\eia_TOTAL.STOCKS.json"
+  }
+}

@@ -1,0 +1,22 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.test_tmp/
+.tmp/
+*.py[cod]
+venv/
+*.egg-info/
+
+# runtime artifacts
+*.log
+.coverage
+.mypy_cache/
+.ruff_cache/
+
+# cached API data
+ingest/cache/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
