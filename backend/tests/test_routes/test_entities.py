@@ -12,7 +12,7 @@ async def test_create_entity(client: AsyncClient):
         "country_code": "US",
         "ticker_symbols": "TSTC",
     }
-    response = await client.post("/entities", json=payload)
+    response = await client.post("/api/v1/entities", json=payload)
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == payload["name"]
@@ -26,13 +26,13 @@ async def test_create_duplicate_entity_returns_409(client: AsyncClient, sample_e
         "name": sample_entity["name"],
         "entity_type": "company",
     }
-    response = await client.post("/entities", json=payload)
+    response = await client.post("/api/v1/entities", json=payload)
     assert response.status_code == 409
 
 
 @pytest.mark.asyncio
 async def test_get_entity_by_id(client: AsyncClient, sample_entity: dict):
-    response = await client.get(f"/entities/{sample_entity['id']}")
+    response = await client.get(f"/api/v1/entities/{sample_entity['id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == sample_entity["name"]
@@ -40,13 +40,13 @@ async def test_get_entity_by_id(client: AsyncClient, sample_entity: dict):
 
 @pytest.mark.asyncio
 async def test_get_entity_not_found(client: AsyncClient):
-    response = await client.get("/entities/9999")
+    response = await client.get("/api/v1/entities/9999")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_list_entities(client: AsyncClient, sample_entity: dict):
-    response = await client.get("/entities")
+    response = await client.get("/api/v1/entities")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
@@ -54,7 +54,7 @@ async def test_list_entities(client: AsyncClient, sample_entity: dict):
 
 @pytest.mark.asyncio
 async def test_filter_entities_by_type(client: AsyncClient, sample_entity: dict):
-    response = await client.get("/entities/filter/type/company")
+    response = await client.get("/api/v1/entities/filter/type/company")
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
@@ -62,7 +62,7 @@ async def test_filter_entities_by_type(client: AsyncClient, sample_entity: dict)
 
 @pytest.mark.asyncio
 async def test_search_entity_by_ticker(client: AsyncClient, sample_entity: dict):
-    response = await client.get("/entities/search/ticker/AAPL")
+    response = await client.get("/api/v1/entities/search/ticker/AAPL")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == sample_entity["name"]
