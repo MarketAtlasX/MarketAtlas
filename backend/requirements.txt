@@ -77,8 +77,6 @@ wcwidth==0.7.0
 websockets==15.0.1
 spacy>=3.8.0
 textblob>=0.17.0
-spacy>=3.8.0
-textblob>=0.17.0
 nest-asyncio>=1.6.0
 yfinance==1.4.1
 python-jose[cryptography]>=3.3.0

@@ -86,7 +86,7 @@ for d in "$ROOT/frontend" "$HOME/frontend"; do
   [ -d "$d" ] && FRONTEND_DIR="$d" && break
 done
 if [ -n "$FRONTEND_DIR" ]; then
-  echo "[frontend] Starting on :5173 (from $FRONTEND_DIR)..."
+  echo "[frontend] Starting on :3000 (from $FRONTEND_DIR)..."
   (cd "$FRONTEND_DIR" && npm run dev) &
   PIDS+=($!)
 else
@@ -222,7 +222,7 @@ echo "════════════════════════�
 echo "  MarketAtlas — all services starting in parallel"
 echo "  Backend:   http://localhost:8000"
 echo "  Celery:    worker + beat (events + market data)"
-echo "  Frontend:  http://localhost:5173"
+echo "  Frontend:  http://localhost:3000"
 echo "  Market:    http://localhost:8004  (if found)"
 echo "  World St:  http://localhost:8006  (if found)"
 echo "  Memory:    http://localhost:8010  (if found)"

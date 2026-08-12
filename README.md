@@ -13,7 +13,7 @@ This repository is the **monorepo** for the MarketAtlas ecosystem — all servic
 | Directory | Purpose |
 |-----------|---------|
 | `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration |
-| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 5173) |
+| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 3000) |
 | `market_agents/` | AI agent gateway — ImpactAgent, MarketDataAgent, RecommendationAgent (ports 8001–8004) |
 | `knowledge-graph-agent/` | News scraping, entity extraction, relationship graph builder (port 8008) |
 | `world_state/` | Geopolitical risk state & propagation (port 8006) |
@@ -37,7 +37,7 @@ All services are started and orchestrated by `dev.sh` and talk to each other ove
 │                        VS Code Workspace                          │
 │  ┌──────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐  │
 │  │ backend/ │  │  frontend/   │  │market_agents/│  │kg-agent/│  │
-│  │ :8000    │  │ :5173        │  │ :8004        │  │ :8005   │  │
+│  │ :8000    │  │ :3000        │  │ :8004        │  │ :8008   │  │
 │  └────┬─────┘  └──────────────┘  └──────┬───────┘  └────┬────┘  │
 │       │                                  │               │       │
 └───────┼──────────────────────────────────┼───────────────┼───────┘
@@ -91,11 +91,11 @@ All services are started and orchestrated by `dev.sh` and talk to each other ove
 | Code Quality | Ruff (lint + format), mypy, pre-commit hooks |
 
 ### Frontend (`frontend/`)
-- Vite + React/TypeScript (port 5173)
+- Vite + React/TypeScript (port 3000)
 
 ### Agent Services
 - **market_agents** — Python FastAPI gateway (port 8004)
-- **knowledge-graph-agent** — Python FastAPI news/entity service (port 8005)
+- **knowledge-graph-agent** — Python FastAPI news/entity service (port 8008)
 
 ---
 
@@ -120,7 +120,7 @@ This orchestrates everything:
 2. Runs Alembic migrations
 3. Seeds sample event data
 4. Launches the FastAPI backend on `:8000`
-5. Launches the frontend on `:5173`
+5. Launches the frontend on `:3000`
 6. Launches `market_agents` services (ports 8001–8004)
 7. Launches `world_state`, `memory`, `graph_engine`, `simulator`, and `knowledge-graph-agent` (ports 8005–8010)
 
@@ -276,7 +276,7 @@ backend/
 | `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Celery broker |
 | `CELERY_RESULT_BACKEND` | `redis://localhost:6379/1` | Celery results |
 | `MARKET_AGENTS_URL` | `http://localhost:8004` | AI agents gateway |
-| `KG_AGENT_URL` | `http://localhost:8005` | Knowledge graph agent |
+| `KG_AGENT_URL` | `http://localhost:8008` | Knowledge graph agent |
 | `ENABLE_WORKERS` | `False` | Feature flag for Celery |
 
 ### Background Workers

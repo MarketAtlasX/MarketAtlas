@@ -9,7 +9,7 @@ class SimulatorConfig:
     service_name: str = "MarketAtlas Scenario Simulator"
     version: str = "0.1.0"
     host: str = "0.0.0.0"
-    port: int = 8005
+    port: int = 8007
     log_level: str = "INFO"
 
     monte_carlo_runs: int = 1000
