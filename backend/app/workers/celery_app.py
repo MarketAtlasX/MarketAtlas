@@ -46,11 +46,6 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute="*/15"),
         "kwargs": {},
     },
-    "ingest-gdelt-batch": {
-        "task": "app.workers.live_event_tasks.ingest_gdelt_batch",
-        "schedule": crontab(minute="*/15"),
-        "kwargs": {},
-    },
     "resolve-stale-events": {
         "task": "app.workers.live_event_tasks.resolve_stale_events",
         "schedule": crontab(minute=30),

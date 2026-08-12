@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -9,6 +11,8 @@ from app.models.event import Event
 from app.repositories.entity import EntityRepository
 from app.services.kg_service import analyze_stock_knowledge_graph
 from app.services.memory_client import memory_client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/events/{event_id}", tags=["knowledge-graph"])
 

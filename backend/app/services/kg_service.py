@@ -1,6 +1,6 @@
 """Knowledge Graph agent HTTP client — fetches news, entities, and relationships.
 
-Calls the external knowledge-graph-agent microservice (port 8005) to perform
+Calls the external knowledge-graph-agent microservice (port 8008) to perform
 entity extraction, news retrieval, and knowledge graph construction for
 stocks and countries.
 """

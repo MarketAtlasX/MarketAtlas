@@ -1,6 +1,6 @@
 """Real-time geopolitical news streaming via GDELT DOC 2.0 API.
 
-Polls the GDELT DOC API every 60 seconds for the latest articles, creates
+Polls the GDELT DOC API every 120 seconds for the latest articles, creates
 Event records for new articles, and broadcasts them to WebSocket clients.
 """
 
@@ -29,7 +29,7 @@ POLL_INTERVAL = 120
 
 
 class GDELTStreamService:
-    """Polls GDELT every 60s, creates Event records, and broadcasts them."""
+    """Polls GDELT every 120s, creates Event records, and broadcasts them."""
 
     def __init__(self, broadcaster: EventBroadcaster) -> None:
         self._broadcaster = broadcaster

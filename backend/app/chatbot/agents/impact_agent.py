@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..knowledge.neo4j_client import Neo4jClient
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
@@ -19,8 +20,8 @@ class ImpactAgent:
 
     async def _load_real_data(self):
         try:
-            from app.database import AsyncSessionLocal
-            async with AsyncSessionLocal() as session:
+            from app.database import ExecutorSessionLocal
+            async with ExecutorSessionLocal() as session:
                 from sqlalchemy import select
 
                 from app.models.raw_event import RawEvent
@@ -46,9 +47,10 @@ class ImpactAgent:
         knowledge = retrieve_context(query, limit=5)
         real_data = self._format_signals_and_events()
 
-        system_prompt = """You are a geopolitical impact analyst at MarketAtlas. Assess how geopolitical events affect markets, sectors, and economies.
+        system_prompt = f"""You are a geopolitical impact analyst at MarketAtlas. Assess how geopolitical events affect markets, sectors, and economies.
 Consider direct and indirect consequences, cascading effects, and probability-weighted outcomes.
-Use the live event data provided below."""
+Use the live event data provided below.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

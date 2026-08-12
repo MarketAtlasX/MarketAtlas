@@ -2,14 +2,13 @@ import json
 import logging
 from typing import Any
 
-from ..event_memory.event_store import event_store
 from ..explain.attention_explainer import AttentionExplainer
 from ..llm.provider import get_llm
 from ..pipeline_adapter import (
     run_entity_extraction_pipeline,
-    run_similarity_pipeline,
-    run_historical_analogs_pipeline,
     run_graph_path_pipeline,
+    run_historical_analogs_pipeline,
+    run_similarity_pipeline,
 )
 from ..utils.constants import SECTOR_KEYWORDS
 

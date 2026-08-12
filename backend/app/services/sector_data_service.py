@@ -177,10 +177,10 @@ async def get_sector_snapshot() -> dict[str, Any]:
     Used by the chatbot context builder and other non-route callers.
     Returns an empty snapshot on failure so callers never crash.
     """
-    from app.database import AsyncSessionLocal
+    from app.database import ExecutorSessionLocal
 
     try:
-        async with AsyncSessionLocal() as db:
+        async with ExecutorSessionLocal() as db:
             service = SectorDataService(db)
             snapshot = await service.get_snapshot()
             if snapshot:

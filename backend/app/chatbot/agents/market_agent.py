@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any
 
 from ...services.financial_data_service import FinancialDataService
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -51,8 +52,8 @@ class MarketAgent:
         prices_text = await self._load_market_data(query)
         if not prices_text:
             try:
-                from app.database import AsyncSessionLocal
-                async with AsyncSessionLocal() as session:
+                from app.database import ExecutorSessionLocal
+                async with ExecutorSessionLocal() as session:
                     from sqlalchemy import select
 
                     from app.models.market_price import MarketPrice
@@ -64,15 +65,16 @@ class MarketAgent:
                         for p in prices:
                             ts = p.price_date.strftime("%Y-%m-%d") if p.price_date else "unknown"
                             ticker = p.symbol if hasattr(p, 'symbol') else f"entity_{p.entity_id}"
-                            lines.append(f"- {ticker}: ${p.price:.2f} on {ts}")
+                            lines.append(f"- {ticker}: ${p.close_price:.2f} on {ts}")
                         prices_text = "\n".join(lines)
             except Exception:
                 pass
 
         knowledge = retrieve_context(query, limit=3)
 
-        system_prompt = """You are a market analyst at MarketAtlas. Analyze market data and provide actionable trading insights.
-Use the live market price data provided below. Be precise with numbers and trends."""
+        system_prompt = f"""You are a market analyst at MarketAtlas. Analyze market data and provide a direct, concise answer.
+Use the live market price data provided below. Be precise with numbers and trends.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

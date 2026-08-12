@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -36,7 +37,7 @@ Provide your {role} perspective in 2-3 sentences:"""
 
             response = self.llm.generate(
                 prompt,
-                system_prompt=f"You are a {role} at MarketAtlas. Be analytical and data-driven.",
+                system_prompt=f"You are a {role} at MarketAtlas. Be analytical and data-driven. {CONCISE_INSTRUCTION}",
                 temperature=0.3,
                 history=(context or {}).get('conversation_history'),
             )
@@ -53,7 +54,7 @@ into a final, coherent answer addressing the user's query.
 
         final_response = self.llm.generate(
             synthesis_prompt,
-            system_prompt="You are a Lead Intelligence Officer. Synthesize analysis into clear, actionable intelligence.",
+            system_prompt=f"You are a Lead Intelligence Officer. Synthesize analysis into a clear, concise answer. {CONCISE_INSTRUCTION}",
             temperature=0.3,
             history=(context or {}).get('conversation_history'),
         )

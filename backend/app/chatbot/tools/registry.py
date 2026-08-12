@@ -31,9 +31,9 @@ class Tool:
 async def _tool_live_events() -> dict:
     from sqlalchemy import text
 
-    from app.database import AsyncSessionLocal
+    from app.database import ExecutorSessionLocal
 
-    async with AsyncSessionLocal() as db:
+    async with ExecutorSessionLocal() as db:
         result = await db.execute(
             text(
                 "SELECT title, event_type, severity, source, event_date "
@@ -54,9 +54,9 @@ async def _tool_sector_snapshot() -> dict:
 async def _tool_recent_news(limit: int = 5) -> dict:
     from sqlalchemy import text
 
-    from app.database import AsyncSessionLocal
+    from app.database import ExecutorSessionLocal
 
-    async with AsyncSessionLocal() as db:
+    async with ExecutorSessionLocal() as db:
         result = await db.execute(
             text("SELECT title, source, event_date FROM events ORDER BY event_date DESC LIMIT :n"),
             {"n": min(int(limit), 20)},

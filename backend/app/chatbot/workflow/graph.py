@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 import uuid
 from typing import Any, Literal
 
@@ -19,12 +20,14 @@ from ..agents import (
     RiskAgent,
     SimulationAgent,
 )
+from ..concise import trim_to_limit
 from ..explain.attention_explainer import AttentionExplainer
 from ..explain.graph_explainer import GraphExplainer
 from ..explain.shap_explainer import SHAPExplainer
 from ..memory.short_term import short_term_memory
 from ..models import ChatResponse, IntentType
 from ..rag.retriever import seed_knowledge_base
+
 
 class AgentState(dict):
     query: str
@@ -65,9 +68,9 @@ async def _load_live_context(user_id: str) -> dict:
         try:
             from sqlalchemy import text
 
-            from app.database import AsyncSessionLocal
+            from app.database import ExecutorSessionLocal
 
-            async with AsyncSessionLocal() as db:
+            async with ExecutorSessionLocal() as db:
                 result = await db.execute(
                     text(
                         "SELECT title, event_type, severity, source, event_date "
@@ -104,14 +107,14 @@ async def _load_live_context(user_id: str) -> dict:
         try:
             from sqlalchemy import text
 
-            from app.database import AsyncSessionLocal
+            from app.database import ExecutorSessionLocal
 
             uid = user_id or "0"
             try:
                 uid = int(uid)
             except (TypeError, ValueError):
                 uid = 0
-            async with AsyncSessionLocal() as db:
+            async with ExecutorSessionLocal() as db:
                 result = await db.execute(
                     text(
                         "SELECT id, name, allocation FROM portfolios "
@@ -538,7 +541,12 @@ async def run_chat(query: str, conversation_id: str = None, user_id: str = "defa
     if not conversation_id:
         conversation_id = str(uuid.uuid4())
 
-    await seed_knowledge_base()
+    # Knowledge-base seeding downloads the embedding model on first run, so
+    # run it in the background instead of blocking this request.
+    try:
+        asyncio.get_running_loop().create_task(seed_knowledge_base())
+    except Exception:
+        pass
 
     initial_state = AgentState({
         "query": query,
@@ -555,13 +563,23 @@ async def run_chat(query: str, conversation_id: str = None, user_id: str = "defa
         "_context": {},
     })
 
+    # The LangGraph pipeline runs in a thread-pool worker. Each worker thread
+    # reuses ONE event loop (created lazily, never closed) so asyncpg
+    # connections opened inside are not torn down between calls. Combined with
+    # the NullPool executor engine in app.database, every DB connection is
+    # created and closed within a single loop — no cross-loop reuse.
+    _thread_local = threading.local()
+
+    def _get_worker_loop() -> asyncio.AbstractEventLoop:
+        loop = getattr(_thread_local, "loop", None)
+        if loop is None or loop.is_closed():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            _thread_local.loop = loop
+        return loop
+
     def _run_graph(initial_state):
-        new_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(new_loop)
-        try:
-            return new_loop.run_until_complete(graph.ainvoke(initial_state))
-        finally:
-            new_loop.close()
+        return _get_worker_loop().run_until_complete(graph.ainvoke(initial_state))
 
     loop = asyncio.get_running_loop()
     try:
@@ -589,10 +607,12 @@ async def run_chat(query: str, conversation_id: str = None, user_id: str = "defa
         sources.extend(citations)
         sources = list(dict.fromkeys(sources))
 
+    final_response = trim_to_limit(result.get("final_response", "No response generated."))
+
     return ChatResponse(
         conversation_id=conversation_id,
         query=query,
-        response=result.get("final_response", "No response generated."),
+        response=final_response,
         intent=result.get("intent", IntentType.IMPACT),
         agents_used=result.get("agents_used", []),
         confidence=result.get("confidence", 0.5),

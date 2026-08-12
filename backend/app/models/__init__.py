@@ -20,6 +20,7 @@ from app.models.portfolio import Portfolio, SectorCache, SimulationRun
 from app.models.raw_event import RawEvent
 from app.models.signal import Signal
 from app.models.trade_route import TradeRoute
+from app.models.user import User
 
 __all__ = [
     "Event", "Entity", "EventEntity", "MarketPrice", "Signal",
@@ -28,5 +29,5 @@ __all__ = [
     "LiveEvent", "EventImpact", "EventAffectedAsset",
     "EventNewsArticle", "EventAlert", "UserEventFilter",
     "Portfolio", "SimulationRun", "SectorCache",
-    "Conversation", "ChatMessage",
+    "Conversation", "ChatMessage", "User",
 ]

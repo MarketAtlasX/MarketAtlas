@@ -1,6 +1,6 @@
 """Service to ingest geopolitical events from the Knowledge Graph agent.
 
-Calls the external KG agent microservice (port 8005) to fetch live news
+Calls the external KG agent microservice (port 8008) to fetch live news
 articles for entities, creates structured Event records in the database,
 and auto-triggers the AI analysis pipeline for each new event.
 """

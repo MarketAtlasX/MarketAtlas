@@ -1,5 +1,6 @@
 import logging
 
+from app.workers import _run_async
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -9,8 +10,6 @@ logger = logging.getLogger(__name__)
 def analyze_live_event_task(self, event_id: str, title: str, description: str) -> dict:
     logger.info("Analyzing live event %s: %s", event_id, title)
     try:
-        import asyncio
-
         from app.database import AsyncSessionLocal
         from app.schemas.live_event import EventImpactCreate
         from app.services.live_event_service import LiveEventService
@@ -34,10 +33,7 @@ def analyze_live_event_task(self, event_id: str, title: str, description: str) -
                 except Exception:
                     return None
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        impact_id = loop.run_until_complete(_run())
-        loop.close()
+        impact_id = _run_async(_run())
 
         return {"event_id": event_id, "impact_id": impact_id, "status": "completed"}
     except Exception as exc:
@@ -49,8 +45,6 @@ def analyze_live_event_task(self, event_id: str, title: str, description: str) -
 def ingest_gdelt_batch() -> dict:
     logger.info("Starting GDELT batch ingestion...")
     try:
-        import asyncio
-
         from app.services.event_broadcaster import EventBroadcaster
         from app.services.gdelt_stream_service import GDELTStreamService
 
@@ -60,10 +54,7 @@ def ingest_gdelt_batch() -> dict:
             await service._load_existing_urls()
             return await service.poll_once()
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        count = loop.run_until_complete(_run())
-        loop.close()
+        count = _run_async(_run())
 
         logger.info("GDELT batch ingested %d events", count)
         return {"ingested": count}
@@ -76,8 +67,6 @@ def ingest_gdelt_batch() -> dict:
 def resolve_stale_events() -> dict:
     logger.info("Resolving stale events...")
     try:
-        import asyncio
-
         from app.database import AsyncSessionLocal
 
         async def _run():
@@ -107,10 +96,7 @@ def resolve_stale_events() -> dict:
                 await session.commit()
                 return count
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        count = loop.run_until_complete(_run())
-        loop.close()
+        count = _run_async(_run())
 
         logger.info("Resolved %d stale events", count)
         return {"resolved": count}

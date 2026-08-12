@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -14,15 +15,15 @@ class RecommendationAgent:
 
     async def _load_signals(self) -> str:
         try:
-            from app.database import AsyncSessionLocal
-            async with AsyncSessionLocal() as session:
+            from app.database import ExecutorSessionLocal
+            async with ExecutorSessionLocal() as session:
                 from app.repositories.signal import SignalRepository
                 repo = SignalRepository(session)
                 signals = await repo.get_high_confidence(min_confidence=0.5, limit=10)
                 if signals:
                     lines = ["Recent trading signals:"]
                     for s in signals:
-                        lines.append(f"- {s.signal_type} {s.direction} (confidence: {s.confidence:.2f}): {s.reasoning[:100]}")
+                        lines.append(f"- {s.signal_type} (confidence: {s.confidence:.2f}): {s.reasoning[:100]}")
                     return "\n".join(lines)
         except Exception as e:
             logger.warning(f"Could not load signals: {e}")
@@ -32,9 +33,9 @@ class RecommendationAgent:
         knowledge = retrieve_context(query, limit=3)
         signals_text = await self._load_signals()
 
-        system_prompt = """You are an investment strategist at MarketAtlas. Provide clear, actionable recommendations
-with proper risk assessment and conviction levels. Consider both upside and downside scenarios.
-Use any available signal data to ground your recommendations."""
+        system_prompt = f"""You are an investment strategist at MarketAtlas. Provide a direct, concise recommendation
+(BUY/HOLD/SELL) with conviction and the key driver. Use any available signal data to ground your recommendation.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

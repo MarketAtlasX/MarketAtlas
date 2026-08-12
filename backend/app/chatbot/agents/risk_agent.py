@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from ..concise import trim_to_limit
 from ..llm.provider import get_llm
 from ..models import RiskIndex, RiskRating
 from ..utils.metrics import (
@@ -138,21 +139,14 @@ class RiskAgent:
 
         response_lines = []
         for r in results:
+            rating = r["rating"].value if hasattr(r["rating"], "value") else r["rating"]
             response_lines.append(
-                f"### {r['company_name']} ({r['ticker']}) — Risk Rating: {r['rating']}\n"
-                f"Overall Risk Score: {r['overall_score']}/100\n\n"
-                f"**Risk Factors:**\n" +
-                "\n".join(
-                    f"- {f['name']}: {f['score']}/100 "
-                    f"(raw: {f['value']}, weight: {f['weight']*100:.0f}%) "
-                    f"[{'negative' if f['direction'] == 'negative' else 'positive'} impact]"
-                    for f in r["factors"]
-                ) +
-                f"\n\n{r['summary']}"
+                f"{r['company_name']} ({r['ticker']}) — Risk Rating: {rating} "
+                f"(Score {r['overall_score']}/100). {r['summary']}"
             )
 
         return {
             "agent": "RiskAgent",
-            "response": "\n\n".join(response_lines),
+            "response": trim_to_limit("\n\n".join(response_lines)),
             "risk_indices": results,
         }

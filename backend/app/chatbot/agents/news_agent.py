@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..knowledge.neo4j_client import Neo4jClient
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
@@ -31,8 +32,8 @@ class NewsAgent:
             logger.warning(f"Could not load events from DB: {e}")
 
         try:
-            from app.database import AsyncSessionLocal
-            async with AsyncSessionLocal() as session:
+            from app.database import ExecutorSessionLocal
+            async with ExecutorSessionLocal() as session:
                 from sqlalchemy import select
                 stmt = select(__import__('app.models.raw_event', fromlist=['RawEvent']).RawEvent).order_by(
                     __import__('app.models.raw_event', fromlist=['RawEvent']).RawEvent.fetched_at.desc()
@@ -58,9 +59,10 @@ class NewsAgent:
         knowledge = retrieve_context(query, limit=3)
         events_text = self._format_events()
 
-        system_prompt = """You are a geopolitical news analyst at MarketAtlas. Summarize recent events relevant to the query.
+        system_prompt = f"""You are a geopolitical news analyst at MarketAtlas. Summarize recent events relevant to the query.
 Be factual, precise, and cite sources where possible. Focus on actionable intelligence.
-Use the live event data provided below — it comes from real-time news feeds."""
+Use the live event data provided below — it comes from real-time news feeds.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

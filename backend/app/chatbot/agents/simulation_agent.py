@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -15,8 +16,9 @@ class SimulationAgent:
     async def process(self, query: str, context: dict[str, Any] = None) -> dict[str, Any]:
         knowledge = retrieve_context(query, limit=5)
 
-        system_prompt = """You are a geopolitical scenario analyst at MarketAtlas. Run structured what-if simulations
-considering multiple variables, cascading effects, and probability-weighted outcomes. Be systematic and data-driven."""
+        system_prompt = f"""You are a geopolitical scenario analyst at MarketAtlas. Answer with a direct, concise
+what-if outcome: the most likely consequence, probability, and key market impact. Be systematic and data-driven.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

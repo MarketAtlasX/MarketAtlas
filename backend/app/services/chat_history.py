@@ -10,7 +10,7 @@ from typing import Optional
 
 from sqlalchemy import select
 
-from app.database import AsyncSessionLocal
+from app.database import ExecutorSessionLocal
 from app.models.chat import ChatMessage, Conversation
 
 logger = logging.getLogger(__name__)
@@ -24,15 +24,50 @@ def _resolve_user_id(user_id: str | int) -> int:
         return 0
 
 
+async def _ensure_user(db, uid: int) -> None:
+    """Create a placeholder user when the FK target does not exist.
+
+    Chat endpoints accept an arbitrary user_id with no auth layer, so the
+    users row is usually absent. Inserting a stub (best-effort, never raises)
+    lets conversation/message persistence succeed without an existing user.
+    """
+    if uid <= 0:
+        return
+    try:
+        from sqlalchemy import select
+
+        from app.models.user import User
+
+        exists = await db.execute(select(User.id).where(User.id == uid).limit(1))
+        if exists.scalar_one_or_none() is not None:
+            return
+        db.add(
+            User(
+                id=uid,
+                email=f"chat-user-{uid}@marketatlas.local",
+                hashed_password="!",
+                display_name=f"Chat User {uid}",
+            )
+        )
+        await db.commit()
+    except Exception as exc:
+        logger.warning("Could not ensure user %s exists: %s", uid, exc)
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+
+
 async def get_or_create_conversation(
     conversation_id: str, user_id: str | int, title: str = "Chat"
 ) -> Optional[Conversation]:
     """Fetch an existing conversation or create one for the user."""
     uid = _resolve_user_id(user_id)
-    async with AsyncSessionLocal() as db:
+    async with ExecutorSessionLocal() as db:
         existing = await db.get(Conversation, conversation_id)
         if existing is not None:
             return existing
+        await _ensure_user(db, uid)
         conv = Conversation(id=conversation_id, user_id=uid, title=title)
         db.add(conv)
         try:
@@ -61,7 +96,7 @@ async def persist_turn(
     except Exception:
         logger.exception("Could not ensure conversation %s", conversation_id)
     try:
-        async with AsyncSessionLocal() as db:
+        async with ExecutorSessionLocal() as db:
             msg = ChatMessage(
                 conversation_id=conversation_id,
                 role=role,
@@ -81,7 +116,7 @@ async def get_recent_messages(
 ) -> list[dict[str, str]]:
     """Return the last `limit` messages in chronological order."""
     try:
-        async with AsyncSessionLocal() as db:
+        async with ExecutorSessionLocal() as db:
             result = await db.execute(
                 select(ChatMessage)
                 .where(ChatMessage.conversation_id == conversation_id)
@@ -108,7 +143,7 @@ async def format_history_context(conversation_id: str, max_turns: int = 5) -> st
 
 async def list_conversations(user_id: str | int, limit: int = 50) -> list[Conversation]:
     uid = _resolve_user_id(user_id)
-    async with AsyncSessionLocal() as db:
+    async with ExecutorSessionLocal() as db:
         result = await db.execute(
             select(Conversation)
             .where(Conversation.user_id == uid)

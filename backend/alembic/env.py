@@ -30,6 +30,13 @@ from app.models.trade_route import TradeRoute  # noqa: F401
 from app.models.military_relation import MilitaryRelation  # noqa: F401
 from app.models.port import Port  # noqa: F401
 from app.models.user import User  # noqa: F401
+from app.models.raw_event import RawEvent  # noqa: F401
+from app.models.entity_relationship import EntityRelationship  # noqa: F401
+from app.models.portfolio import Portfolio  # noqa: F401
+from app.models.portfolio import SimulationRun  # noqa: F401
+from app.models.portfolio import SectorCache  # noqa: F401
+from app.models.chat import Conversation  # noqa: F401
+from app.models.chat import ChatMessage  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Alembic configuration

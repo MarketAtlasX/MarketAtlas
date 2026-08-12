@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -15,8 +16,8 @@ class ReportAgent:
 
     async def _load_events(self) -> str:
         try:
-            from app.database import AsyncSessionLocal
-            async with AsyncSessionLocal() as session:
+            from app.database import ExecutorSessionLocal
+            async with ExecutorSessionLocal() as session:
                 from sqlalchemy import select
 
                 from app.models.raw_event import RawEvent
@@ -37,8 +38,9 @@ class ReportAgent:
         knowledge = retrieve_context(query, limit=5)
         events_text = await self._load_events()
 
-        system_prompt = """You are a senior intelligence analyst at MarketAtlas. Generate comprehensive intelligence reports
-with clear structure, actionable insights, and well-supported conclusions. Use the live data provided."""
+        system_prompt = f"""You are a senior intelligence analyst at MarketAtlas. Generate a concise intelligence summary
+of the current situation. Use the live data provided.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

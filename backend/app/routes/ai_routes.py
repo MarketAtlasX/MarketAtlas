@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +18,8 @@ from app.services.ai_service import ai_service
 from app.services.kg_service import analyze_stock_knowledge_graph
 from app.services.memory_client import memory_client
 from app.services.signal_service import SignalService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/events", tags=["analysis"])
 

@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -17,8 +18,8 @@ class GraphAgent:
 
     async def _load_entity_relationships(self, query_entities: list[str]):
         try:
-            from app.database import AsyncSessionLocal
-            async with AsyncSessionLocal() as session:
+            from app.database import ExecutorSessionLocal
+            async with ExecutorSessionLocal() as session:
                 from sqlalchemy import select
 
                 from app.models.entity import Entity as EntityModel
@@ -53,9 +54,10 @@ class GraphAgent:
         knowledge = retrieve_context(query, limit=3)
         relations_text = self._format_relationships()
 
-        system_prompt = """You are a knowledge graph analyst at MarketAtlas. Use entity relationships to explain connections
+        system_prompt = f"""You are a knowledge graph analyst at MarketAtlas. Use entity relationships to explain connections
 between geopolitical events, entities, and market impacts. Think of the world as an interconnected network.
-Use the live entity relationship data provided below."""
+Use the live entity relationship data provided below.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 

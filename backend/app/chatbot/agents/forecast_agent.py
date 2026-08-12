@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from ..concise import CONCISE_INSTRUCTION
 from ..llm.provider import get_llm
 from ..rag.retriever import retrieve_context
 
@@ -14,8 +15,9 @@ class ForecastAgent:
     async def process(self, query: str, context: dict[str, Any] = None) -> dict[str, Any]:
         knowledge = retrieve_context(query, limit=5)
 
-        system_prompt = """You are a geopolitical forecaster at MarketAtlas. Generate probability-weighted forecasts
-with clear scenarios, time horizons, and confidence levels. Be specific and data-driven."""
+        system_prompt = f"""You are a geopolitical forecaster at MarketAtlas. Answer with a direct, concise forecast
+with the most likely scenario, probability, and key market implications. Be specific and data-driven.
+{CONCISE_INSTRUCTION}"""
 
         prompt = f"""Query: {query}
 
