@@ -22,6 +22,43 @@ from pipelines.orchestration.workflow import WorkflowBuilder
 logger = logging.getLogger(__name__)
 
 
+# Best-effort mapping from registered pipeline names to a PipelineType. Kept
+# explicit because most names use prefixes that don't match PipelineType values
+# directly (e.g. "kg_build" -> KNOWLEDGE_GRAPH).
+_TYPE_PREFIXES = [
+    ("ingestion", PipelineType.INGESTION),
+    ("nlp_", PipelineType.NLP),
+    ("kg_", PipelineType.KNOWLEDGE_GRAPH),
+    ("feature_", PipelineType.FEATURE_ENGINEERING),
+    ("signal_", PipelineType.FEATURE_ENGINEERING),
+    ("training", PipelineType.TRAINING),
+    ("model_registry", PipelineType.TRAINING),
+    ("evaluation", PipelineType.TRAINING),
+    ("forecast", PipelineType.FORECASTING),
+    ("backtest", PipelineType.BACKTESTING),
+    ("streaming", PipelineType.STREAMING),
+    ("event_similarity", PipelineType.SIMILARITY),
+    ("explainability", PipelineType.EXPLAINABILITY),
+    ("intel_conflict", PipelineType.CONFLICT_INTEL),
+    ("intel_economic", PipelineType.ECONOMIC_INTEL),
+    ("intel_global_news", PipelineType.GLOBAL_NEWS),
+    ("intel_", PipelineType.ALTERNATIVE_INTEL),
+    ("world_state", PipelineType.WORLD_STATE),
+]
+
+
+def _pipeline_type(name: str) -> PipelineType:
+    """Resolve a PipelineType for a registered pipeline name."""
+    try:
+        return PipelineType(name)
+    except ValueError:
+        pass
+    for prefix, ptype in _TYPE_PREFIXES:
+        if name.startswith(prefix):
+            return ptype
+    return PipelineType.INGESTION
+
+
 class PipelineFactory:
     """Central factory that instantiates, registers, and orchestrates all pipelines."""
 
@@ -75,7 +112,7 @@ class PipelineFactory:
             raise ValueError(f"Pipeline '{name}' not registered")
         ctx = Context(
             pipeline=name,
-            pipeline_type=PipelineType.INGESTION,
+            pipeline_type=_pipeline_type(name),
             params=params,
         )
         ev = event or Event(source="factory", type=name)

@@ -74,7 +74,7 @@ class MemoryEncodingPipeline(Pipeline):
             result_event = await self.execute(event, context)
             outcome = Outcome(
                 status=PipelineStatus.SUCCESS,
-                event=result_event,
+                events=[result_event],
                 metrics={"memory_episode_id": result_event.data.get("memory_episode_id")},
             )
             self.state.succeed(outcome)
@@ -83,7 +83,7 @@ class MemoryEncodingPipeline(Pipeline):
             logger.exception("Memory encoding pipeline failed: %s", e)
             outcome = Outcome(
                 status=PipelineStatus.FAILED,
-                event=event,
+                events=[event],
                 error=str(e),
             )
             self.state.fail(outcome)
