@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowDown } from 'lucide-react'
 import { IntelligenceGraphPanel } from '../../graph'
 import Panel from '../../components/ui/Panel'
@@ -65,6 +66,14 @@ const TONE_COLOR: Record<string, string> = {
   asset: '#2ee6a8',
 }
 
+const ENTITY_TO_NODE: Record<string, string> = {
+  NVDA: 'NVIDIA',
+  AAPL: 'APPLE',
+  TSMC: 'TSMC',
+  APPLE: 'APPLE',
+  NVIDIA: 'NVIDIA',
+}
+
 function MiniGraph({ onEdge }: { onEdge: (e: EdgeDef) => void }) {
   return (
     <svg viewBox="0 0 240 320" className="w-full">
@@ -95,7 +104,14 @@ function MiniGraph({ onEdge }: { onEdge: (e: EdgeDef) => void }) {
 }
 
 export default function GraphPage() {
-  const [selectedEdge, setSelectedEdge] = useState<EdgeDef>(EDGES[1])
+  const [searchParams] = useSearchParams()
+  const entityParam = searchParams.get('entity')
+  const requestedNode = entityParam ? ENTITY_TO_NODE[entityParam.toUpperCase()] ?? entityParam.toUpperCase() : null
+  const [selectedEdge, setSelectedEdge] = useState<EdgeDef>(() => {
+    if (!requestedNode) return EDGES[1]
+    return EDGES.find(e => e.source === requestedNode || e.target === requestedNode) ?? EDGES[1]
+  })
+  const ticker = /^[A-Z]{1,5}$/.test((entityParam ?? '').toUpperCase()) ? entityParam!.toUpperCase() : 'NVDA'
 
   return (
     <div className="h-full flex flex-col p-4 gap-3 overflow-hidden bg-command">
@@ -141,7 +157,7 @@ export default function GraphPage() {
           </div>
           <div className="flex-1 min-h-0">
             <IntelligenceGraphPanel
-              symbol="NVDA"
+              symbol={ticker}
               companyName="NVIDIA Corporation"
               currentPrice={182.4}
               rootEvent={selectedEdge.source}

@@ -24,7 +24,11 @@ import type {
 
 type Tab = 'editor' | 'simulation' | 'report'
 
-export default function SimulationView() {
+interface SimulationViewProps {
+  initialScenarioText?: string
+}
+
+export default function SimulationView({ initialScenarioText = '' }: SimulationViewProps) {
   const [tab, setTab] = useState<Tab>('editor')
   const [currentScenario, setCurrentScenario] = useState<Scenario | null>(null)
   const [currentSim, setCurrentSim] = useState<Simulation | null>(null)
@@ -188,7 +192,7 @@ export default function SimulationView() {
           <div className="space-y-6">
             <PortfolioManager selectedId={portfolio?.id ?? null} onSelect={handleSelectPortfolio} />
             {portfolio ? (
-              <ScenarioEditor onRun={handleRun} />
+              <ScenarioEditor onRun={handleRun} initialText={initialScenarioText} />
             ) : (
               <p className="text-sm text-gray-500">Create or select a portfolio to get started.</p>
             )}

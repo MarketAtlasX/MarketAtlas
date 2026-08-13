@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Search, Play, Clock, Globe2 } from 'lucide-react'
 import Panel from '../../components/ui/Panel'
 import Badge from '../../components/ui/Badge'
@@ -83,21 +83,33 @@ const IMPACT_TONE: Record<string, 'critical' | 'warning' | 'neutral' | 'positive
   Severe: 'critical',
 }
 
+function matchesQuery(a: Analogue, q: string): boolean {
+  const t = q.toLowerCase()
+  return (
+    a.title.toLowerCase().includes(t) ||
+    a.sectors.some(s => s.toLowerCase().includes(t)) ||
+    a.events.some(e => e.toLowerCase().includes(t)) ||
+    a.summary.toLowerCase().includes(t)
+  )
+}
+
 export default function MemoryPage() {
   const navigate = useNavigate()
-  const [query, setQuery] = useState('Taiwan semiconductor disruption')
+  const [searchParams] = useSearchParams()
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? 'Taiwan semiconductor disruption')
   const [selected, setSelected] = useState<Analogue | null>(null)
+
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q == null) return
+    setQuery(q)
+    const top = ANALOGUES.find(a => matchesQuery(a, q))
+    if (top) setSelected(top)
+  }, [searchParams])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return ANALOGUES
-    const q = query.toLowerCase()
-    return ANALOGUES.filter(
-      a =>
-        a.title.toLowerCase().includes(q) ||
-        a.sectors.some(s => s.toLowerCase().includes(q)) ||
-        a.events.some(e => e.toLowerCase().includes(q)) ||
-        a.summary.toLowerCase().includes(q),
-    )
+    return ANALOGUES.filter(a => matchesQuery(a, query))
   }, [query])
 
   return (

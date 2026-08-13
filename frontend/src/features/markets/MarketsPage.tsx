@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ArrowDown, TrendingUp, ChevronRight } from 'lucide-react'
 import { useWorldStore } from '../../stores/WorldStore'
 import ForecastChart, { generateSymbolData } from './ForecastChart'
@@ -7,6 +8,17 @@ import ProgressBar from '../../components/ui/ProgressBar'
 import Badge from '../../components/ui/Badge'
 
 const WATCHLIST = ['NVDA', 'TSMC', 'XOM', 'SHEL', 'AAPL', 'GC']
+
+const SECTOR_TO_SYMBOL: Record<string, string> = {
+  semiconductors: 'NVDA',
+  semiconductor: 'NVDA',
+  chip: 'NVDA',
+  energy: 'XOM',
+  oil: 'XOM',
+  gold: 'GC',
+  technology: 'NVDA',
+  tech: 'NVDA',
+}
 
 const CAUSAL: Record<string, string[]> = {
   NVDA: ['Taiwan', 'TSMC', 'Chip supply', 'AI demand', 'NVIDIA'],
@@ -94,7 +106,19 @@ function CausalChain({ symbol }: { symbol: string }) {
 
 export default function MarketsPage() {
   const { state } = useWorldStore()
-  const [symbol, setSymbol] = useState('NVDA')
+  const [searchParams] = useSearchParams()
+  const requestedSymbol = useMemo(() => {
+    const raw = (searchParams.get('symbol') ?? '').toUpperCase()
+    const sector = (searchParams.get('sector') ?? '').toLowerCase()
+    if (raw && WATCHLIST.includes(raw)) return raw
+    if (sector && SECTOR_TO_SYMBOL[sector]) return SECTOR_TO_SYMBOL[sector]
+    return null
+  }, [searchParams])
+  const [symbol, setSymbol] = useState(requestedSymbol ?? 'NVDA')
+
+  useEffect(() => {
+    if (requestedSymbol) setSymbol(requestedSymbol)
+  }, [requestedSymbol])
 
   const data = useMemo(() => generateSymbolData(symbol), [symbol])
   const price = data.history[data.history.length - 1]

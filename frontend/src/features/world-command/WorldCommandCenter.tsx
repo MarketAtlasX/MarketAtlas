@@ -17,6 +17,13 @@ const GLOBE_MODES: { key: GlobeMode; label: string }[] = [
   { key: 'events', label: 'EVENTS' },
 ]
 
+const GLOBE_PARAMS: Record<string, GlobeMode> = {
+  world: 'world',
+  risk: 'risk',
+  supply: 'supply',
+  events: 'events',
+}
+
 function tabFromParam(p: string | null): ConsoleTab {
   if (p === 'events' || p === 'propagation' || p === 'analysis' || p === 'memory' || p === 'command') return p
   return 'events'
@@ -33,6 +40,11 @@ export default function WorldCommandCenter() {
   useEffect(() => {
     const t = searchParams.get('tab')
     if (t) setConsoleTab(tabFromParam(t))
+  }, [searchParams])
+
+  useEffect(() => {
+    const g = searchParams.get('globe')
+    if (g && g in GLOBE_PARAMS) setMode(GLOBE_PARAMS[g])
   }, [searchParams])
 
   const showAgents = searchParams.get('tab') === 'agents'
