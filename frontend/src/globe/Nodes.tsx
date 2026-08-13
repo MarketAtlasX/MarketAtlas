@@ -15,6 +15,7 @@ interface NodeData {
 interface NodesProps {
   data: NodeData[]
   visible?: boolean
+  onNodeClick?: (data: NodeData) => void
 }
 
 function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
@@ -27,7 +28,7 @@ function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
   )
 }
 
-function NodePulse({ data: d, radius }: { data: NodeData; radius: number }) {
+function NodePulse({ data: d, radius, onNodeClick }: { data: NodeData; radius: number; onNodeClick?: (d: NodeData) => void }) {
   const coreRef = useRef<THREE.Mesh>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
@@ -85,7 +86,12 @@ function NodePulse({ data: d, radius }: { data: NodeData; radius: number }) {
         />
       </mesh>
 
-      <mesh ref={coreRef}>
+      <mesh
+        ref={coreRef}
+        onClick={e => { e.stopPropagation(); onNodeClick?.(d) }}
+        onPointerOver={() => { document.body.style.cursor = 'pointer' }}
+        onPointerOut={() => { document.body.style.cursor = 'auto' }}
+      >
         <sphereGeometry args={[nodeSize, 16, 16]} />
         <meshBasicMaterial color={color} />
       </mesh>
@@ -93,7 +99,7 @@ function NodePulse({ data: d, radius }: { data: NodeData; radius: number }) {
   )
 }
 
-export default function Nodes({ data, visible = true }: NodesProps) {
+export default function Nodes({ data, visible = true, onNodeClick }: NodesProps) {
   const GLOBE_RADIUS = 2.03
 
   if (!visible || data.length === 0) return null
@@ -101,7 +107,7 @@ export default function Nodes({ data, visible = true }: NodesProps) {
   return (
     <group>
       {data.map((d, i) => (
-        <NodePulse key={i} data={d} radius={GLOBE_RADIUS} />
+        <NodePulse key={i} data={d} radius={GLOBE_RADIUS} onNodeClick={onNodeClick} />
       ))}
     </group>
   )
