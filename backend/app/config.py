@@ -100,6 +100,8 @@ class Settings(BaseSettings):
     claude_api_key: str = Field(default="", alias="CLAUDE_API_KEY")
     perplexity_api_key: str = Field(default="", alias="PERPLEXITY_API_KEY")
     perplexity_model: str = Field(default="sonar-pro", alias="PERPLEXITY_MODEL")
+    assistant_realtime_model: str = Field(default="gpt-realtime-2.1", alias="ASSISTANT_REALTIME_MODEL")
+    assistant_realtime_voice: str = Field(default="marin", alias="ASSISTANT_REALTIME_VOICE")
 
     # -------------------------------------------------------------------------
     # Financial Data API

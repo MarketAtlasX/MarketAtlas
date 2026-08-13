@@ -1,6 +1,7 @@
 """API route handlers."""
 from app.routes.ai_routes import router as analysis_router
 from app.routes.analyze import router as analyze_router
+from app.routes.assistant import router as assistant_router
 from app.routes.backtest import router as backtest_router
 from app.routes.country import router as country_router
 from app.routes.dashboard import router as dashboard_router
@@ -41,4 +42,5 @@ __all__ = [
     "simulation_ws_router",
     "backtest_router",
     "live_event_router",
+    "assistant_router",
 ]

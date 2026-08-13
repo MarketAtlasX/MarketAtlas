@@ -18,6 +18,7 @@ from app.middleware.ratelimit import RateLimitMiddleware
 from app.routes import (
     analysis_router,
     analyze_router,
+    assistant_router,
     backtest_router,
     country_router,
     dashboard_router,
@@ -167,6 +168,7 @@ api_v1_router.include_router(backtest_router)
 api_v1_router.include_router(portfolio_router)
 api_v1_router.include_router(simulations_router)
 api_v1_router.include_router(market_data_router)
+api_v1_router.include_router(assistant_router)
 app.include_router(api_v1_router)
 
 # Chat router already has /api/v1/chat prefix — include at root
