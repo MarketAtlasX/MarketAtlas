@@ -18,22 +18,32 @@ async def create_realtime_token() -> RealtimeTokenResponse:
 
     The browser never sees the server-side OPENAI_API_KEY; it receives a
     time-boxed client secret scoped to the realtime session and uses it as a
-    Bearer token against the OpenAI WebRTC endpoint.
+    Bearer token against the OpenAI WebRTC endpoint (`/v1/realtime/calls`).
     """
     if not settings.openai_api_key:
         raise HTTPException(status_code=503, detail="OpenAI API key not configured")
 
+    payload = {
+        "session": {
+            "type": "realtime",
+            "model": settings.assistant_realtime_model,
+            "audio": {
+                "output": {
+                    "voice": settings.assistant_realtime_voice,
+                },
+            },
+        }
+    }
+
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.post(
-            "https://api.openai.com/v1/realtime/sessions",
+            "https://api.openai.com/v1/realtime/client_secrets",
             headers={
                 "Authorization": f"Bearer {settings.openai_api_key}",
                 "Content-Type": "application/json",
+                "OpenAI-Safety-Identifier": "marketatlas-web",
             },
-            json={
-                "model": settings.assistant_realtime_model,
-                "voice": settings.assistant_realtime_voice,
-            },
+            json=payload,
         )
 
     if response.status_code >= 400:
