@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
 import { WorldProvider } from './stores/WorldStore'
+import { AssistantStateProvider } from './assistant/state/AssistantStateContext'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/index.css'
@@ -13,7 +14,9 @@ createRoot(document.getElementById('root')!).render(
       <ErrorBoundary>
         <ThemeProvider>
           <WorldProvider>
-            <App />
+            <AssistantStateProvider>
+              <App />
+            </AssistantStateProvider>
           </WorldProvider>
         </ThemeProvider>
       </ErrorBoundary>

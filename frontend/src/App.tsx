@@ -4,6 +4,7 @@ import MarketsPage from './features/markets/MarketsPage'
 import GraphPage from './features/graph-analysis/GraphPage'
 import SimulatorPage from './features/scenario-simulator/SimulatorPage'
 import MemoryPage from './features/world-memory/MemoryPage'
+import { AtlasPage } from './assistant/AtlasPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/graph" element={<GraphPage />} />
       <Route path="/simulator" element={<SimulatorPage />} />
       <Route path="/memory" element={<MemoryPage />} />
+      <Route path="/atlas" element={<AtlasPage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
