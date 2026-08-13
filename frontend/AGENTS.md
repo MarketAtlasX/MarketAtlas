@@ -1,122 +1,80 @@
 # MarketAtlas Frontend
 
-## Tech Stack
-- **React 19** + TypeScript 6
-- **Vite 8** dev server (port 3000)
-- **Tailwind CSS 4** (dark mode via `.dark` class)
-- **@react-three/fiber** + **three** — 3D interactive globe (custom shaders in `src/shaders/`)
-- **@react-three/drei** — R3F helpers (camera controls, etc.)
-- **react-leaflet** + **Leaflet** — country-level maps
-- **@xyflow/react** (React Flow) — causal/reasoning graph views
-- **d3** — forecast/confidence charts and graph layouts
-- **recharts** — market charts
-- **@react-spring/three**, **gsap** — animations
-- **lucide-react** — icons
-- **Axios** — HTTP client
-- **vitest** — unit tests (only `src/utils/__tests__/geo.test.ts`)
+MarketAtlas is the visual operating system for the intelligence infrastructure: a holographic globe, causal graph, AI command console, scenario simulator and world memory — one living command center.
 
-## Project Structure
+## Tech Stack
+- **React 19** + TypeScript 6, **Vite 8** (dev server port 3000), **react-router-dom v7**
+- **Tailwind CSS 4** — dark-only design system in `src/styles/index.css`
+- **@react-three/fiber + three + drei** — custom holographic globe (`src/features/globe`, engine in `src/globe/`)
+- **@react-three/postprocessing** — restrained bloom (only active intelligence glows)
+- **@xyflow/react** (React Flow), **d3**, **recharts** — graph/market charts (reused from `src/graph`, `src/simulation`)
+- **lucide-react** icons, **gsap** camera animations, **axios**
+- **vitest** — unit tests in `src/utils/__tests__/geo.test.ts`
+
+## Routes
+
+| Route | Feature | File |
+|---|---|---|
+| `/dashboard` | World Command Center (default) | `src/features/world-command/WorldCommandCenter.tsx` |
+| `/markets` | Stock forecasts, confidence, causal chain | `src/features/markets/MarketsPage.tsx` |
+| `/graph` | Causal map + four-graph intelligence system | `src/features/graph-analysis/GraphPage.tsx` |
+| `/simulator` | Scenario simulator (clone-simulate-destroy) | `src/features/scenario-simulator/SimulatorPage.tsx` |
+| `/memory` | World memory / historical analogues | `src/features/world-memory/MemoryPage.tsx` |
+
+`/` redirects to `/dashboard`.
+
+## Design System
+
+Tokens in `src/styles/index.css`:
+
+- Background `#030507`, panels `#081018` with subtle radial gradients (`bg-command`)
+- Primary accent: cyan `#38e8ff` (holographic)
+- States: positive `#2ee6a8`, warning `#f5b941`, critical `#ff4d5e`, neutral `#5f7d99`
+- Rule: **don't glow everything** — only active intelligence gets `glow-*` shadows
+- Utilities: `panel`, `panel-title`, `hud-corners`, `scanline`, `pulse-dot`, `stream-in`, `shimmer-bar`
+
+## Architecture
 
 ```
 src/
-  main.tsx                        # Entry point
-  App.tsx                         # Root state: view mode, country, event, globe mode
-  index.css                       # Tailwind + custom styles
-  api/
-    client.ts                     # Axios client + analysis endpoint
-    endpoints.ts                  # API path constants
-    chatApi.ts                    # Chat REST/streaming + conversation persistence
-    countryApi.ts                 # Country data API (backend + fallback)
-    geopoliticalApi.ts            # Events / market prices / analysis
-    liveEventsApi.ts              # Live event feed types + API
-    memoryApi.ts                  # Episodic memory episodes/lessons
+  main.tsx                    # BrowserRouter + Theme + World providers
+  App.tsx                     # Routes
+  styles/index.css            # design system
+  types/index.ts              # shared live types (LiveEvent, MarketSignal, RiskUpdate, GraphLink, AgentStatus, WorldRisk)
+  stores/WorldStore.tsx       # live world state context (events, signals, risk, graph, agents, forecast)
+  services/
+    websocket/useLiveWorldSocket.ts   # RISK_UPDATE / MARKET_FORECAST / GRAPH_UPDATE consumers
+  features/
+    world-command/            # TopStatusBar, NavigationRail, IntelligencePanel,
+                              #   AgentStatusMatrix, CommandConsole (tabs), CommandInput (AI console)
+    globe/                    # HolographicGlobe (Canvas + bloom), globeData (arcs/nodes/heatmap builder)
+    agents/agents.ts          # agent definitions + status
+    markets/                  # MarketsPage, ForecastChart (SVG band chart)
+    graph-analysis/           # GraphPage (causal map + IntelligenceGraphPanel)
+    scenario-simulator/       # SimulatorPage (wraps SimulationView)
+    world-memory/             # MemoryPage
   components/
-    Header.tsx                    # Top bar + simulator toggle
-    CountryNav.tsx                # Region tabs + country selector
-    GlobeView.tsx                 # 3D interactive globe (mode-driven)
-    GlobeControls.tsx             # Globe/agent mode switching
-    MapView.tsx                   # Country detail view (map + info panels)
-    CountryMap.tsx                # Leaflet map with ports, trade arcs, partners
-    CountryMarkets.tsx            # Market indices & charts
-    MarketCharts.tsx              # Price trends / sector performance
-    SignalDashboard.tsx           # AI signals & risk
-    EventTimeline.tsx             # Geopolitical events
-    LiveEventFeed.tsx             # Real-time live event feed + toolbar
-    EventEvolutionPanel.tsx       # Similar events / historical analogy / lessons
-    ChatBot.tsx                   # Chat assistant panel
-    ...                           # ~24 view/panel/feed components
-  globe/                          # 16 R3F components (GlobeScene, Earth, Atmosphere,
-                                  #   Hologram, Stars, Arcs, Nodes, Heatmap, ...)
-  shaders/                        # holographic.ts custom shaderMaterial
-  graph/                          # Intelligence graph: types, hooks, layouts, panels
-                                  #   (Forecast/Causal/Reasoning/Confidence graphs)
-  simulation/                     # Scenario simulator: editor, timeline, probability
-                                  #   tree, impact graph, agent panel, reports
-  context/
-    ThemeContext.tsx              # Dark/light theme
-  hooks/
-    useWorldState.ts              # Polls world-state service every 30s
-    useWebSocket.ts               # /ws client (signals + events channels)
-    useLiveEvents.ts              # Live event filtering/sorting/WS
-    useEventAlerts.ts             # WS alerts channel
-  data/
-    countries.ts                  # Country interface + 50-country dataset
-    relations.ts                  # Trade routes, military relations, ports
-    graphData.ts                  # Fallback graph datasets
-    worldState.ts                 # Fallback world-state data
-  utils/
-    geo.ts                        # Haversine, bearing, destination helpers
+    ui/                       # Panel, Badge, Tabs, Gauge, ProgressBar, Sparkline, StatusDot
+  globe/                      # 3D engine (Earth, Atmosphere, Hologram, Grid, Stars, Rings,
+                              #   Arcs, Nodes, Labels, Satellites, Heatmap, RiskPropagation)
+  graph/                      # four-graph intelligence system (reused)
+  simulation/                 # scenario simulator (reused)
+  data/                       # offline-first country/event/world-state datasets
+  api/                        # chat/country/geopolitical clients
+  hooks/                      # useClock, useWebSocket, useWorldState
 ```
 
-## View Navigation
-
-App state controls view switching (no URL router):
-
-| State | Effect |
-|---|---|
-| `selectedCountry: Country` | Sets active country |
-| `showMapView: boolean` | Toggles between GlobeView / MapView |
-| `showSimulation: boolean` | Toggles the scenario simulator |
-| `globeMode: string` | Globe data mode (liveEvents, supplyChain, risk, forecast, intelligence, ...) |
-| `agentMode: string` | Agent overlay mode (conflict, energy, supplyChain, market) |
-
-Flow: Click country on globe → camera flies in → after 800ms → MapView opens
-
-## API Integration
-
-Most services follow a `checkBackend()` → fetch → local-fallback pattern:
-
-1. Check backend health on `/api/health` (1s abort)
-2. If backend available, fetch from the proxied API
-3. If backend unavailable, fall back to local `src/data/` modules
-
-### Vite Proxy Routes (dev)
-- `/api` → `http://localhost:8000` (rewritten to `/api/v1/...`)
-- `/api/world-state` → `http://localhost:8006`
-- `/api/graph` → `http://localhost:8005`
-- `/api/simulation/` → `http://localhost:8007`
-- `/ws` → backend websocket
-- `/ws/graph` → `ws://localhost:8005`
-- `/ws/simulation` → `ws://localhost:8000`
-
-### Key Endpoints (Backend)
-- `GET /api/health` — backend health check
-- `GET /api/v1/countries`, `/api/v1/countries/:code`, `/relations/trade`, `/relations/military`, `/ports`
-- `GET /api/v1/events`, `GET /api/v1/entities?limit=1000`
-- `GET /api/v1/market-prices/entity/:id/recent`
-- `POST /api/v1/analyze` — ad-hoc analysis (signal dashboard)
-- `GET /api/v1/dashboard/summary`
-- Chat: `POST /api/v1/chat/send` + WebSocket stream
+## Conventions
+- No code comments; no emojis in code
+- Tailwind + CSS-variable classes; components use `interface XxxProps`
+- Offline-first: every external source has local fallback data (WebSocket/sim keeps the UI alive)
+- WebSocket payloads handled: `RISK_UPDATE`, `MARKET_FORECAST`, `GRAPH_UPDATE`, live event titles
 
 ## Commands
-- `npm run dev` — Start dev server (port 3000)
+- `npm run dev` — dev server (port 3000)
 - `npm run build` — TypeScript check + Vite build
-- `npm run preview` — Preview production build
-- `npx vitest` — Run unit tests
+- `npm run preview` — preview production build
+- `npx vitest` — unit tests
 
-## Conventions
-- No comments in code
-- Tailwind classes for styling (no CSS modules)
-- Components use `interface XxxProps` for typing
-- Dark mode via `dark:` Tailwind variants
-- `checkBackend()`-gated fallbacks for all external data (offline-safe by design)
+## API / Proxy (unchanged)
+`/api` → backend 8000, `/api/world-state` → 8006, `/api/graph` → 8005, `/api/simulation/` → 8007; `/ws`, `/ws/graph`, `/ws/simulation` proxied websockets.
