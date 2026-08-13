@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import { Earth, Atmosphere, Hologram, Stars, Grid, Rings, Arcs, Nodes, Labels, Satellites, Heatmap, RiskPropagation } from '../../globe'
 import { useWorldStore } from '../../stores/WorldStore'
+import { globeFocusBus } from '../../assistant/commands/globeFocusBus'
 import { buildNodes, buildHeatmap, buildArcs, buildRiskPaths, buildEventNodes, buildLabelData, resolveCoords } from './globeData'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events'
@@ -16,28 +17,52 @@ interface HolographicGlobeProps {
   className?: string
 }
 
+function flyCamera(camera: THREE.Camera, lat: number, lng: number, radius = 4.4, duration = 1.4) {
+  const phi = (90 - lat) * (Math.PI / 180)
+  const theta = (lng + 180) * (Math.PI / 180)
+  gsap.to(camera.position, {
+    x: -radius * Math.sin(phi) * Math.cos(theta),
+    y: radius * Math.cos(phi),
+    z: radius * Math.sin(phi) * Math.sin(theta),
+    duration,
+    ease: 'power2.inOut',
+    onUpdate: () => camera.lookAt(0, 0, 0),
+  })
+}
+
 function CameraRig({ focus }: { focus: { lat: number; lng: number; n: number } | null }) {
   const { camera } = useThree()
 
   useEffect(() => {
     if (!focus) return
-    const phi = (90 - focus.lat) * (Math.PI / 180)
-    const theta = (focus.lng + 180) * (Math.PI / 180)
-    const targetRadius = 4.4
-    const targetPos = new THREE.Vector3(
-      -targetRadius * Math.sin(phi) * Math.cos(theta),
-      targetRadius * Math.cos(phi),
-      targetRadius * Math.sin(phi) * Math.sin(theta),
-    )
-    gsap.to(camera.position, {
-      x: targetPos.x,
-      y: targetPos.y,
-      z: targetPos.z,
-      duration: 1.4,
-      ease: 'power2.inOut',
-      onUpdate: () => camera.lookAt(0, 0, 0),
-    })
+    flyCamera(camera, focus.lat, focus.lng)
   }, [focus, camera])
+
+  return null
+}
+
+function GlobeCommandRig() {
+  const { camera } = useThree()
+
+  useEffect(
+    () =>
+      globeFocusBus.subscribe(target => {
+        if (!target) {
+          gsap.to(camera.position, {
+            x: 0,
+            y: 1.5,
+            z: 5,
+            duration: 1.4,
+            ease: 'power2.inOut',
+            onUpdate: () => camera.lookAt(0, 0, 0),
+          })
+          return
+        }
+        const coords = resolveCoords(target.entity)
+        flyCamera(camera, target.lat ?? coords?.lat ?? 20, target.lng ?? coords?.lng ?? 80)
+      }),
+    [camera],
+  )
 
   return null
 }
@@ -84,6 +109,7 @@ function Scene({ mode, focus, onNodeClick }: { mode: GlobeMode; focus: { lat: nu
       />
       <Labels data={labels} visible={mode !== 'events'} />
       <CameraRig focus={focus} />
+      <GlobeCommandRig />
     </>
   )
 }
