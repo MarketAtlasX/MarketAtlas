@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAssistantState } from '../state/AssistantStateContext'
 import { commandBus } from '../commands/commandBus'
 import { RealtimeVoice } from './RealtimeVoice'
+import type { AtlasEvent } from './atlasEvents'
 import { AudioMeter } from './audioMeter'
 import { atlasBrain } from '../brain/atlasBrain'
 import { transcriptBus } from '../brain/transcriptBus'
@@ -21,6 +22,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
   const meterRef = useRef<AudioMeter | null>(null)
   const micRef = useRef<MediaStream | null>(null)
   const cancelSpeechRef = useRef<(() => void) | null>(null)
+  const realtimeTranscriptRef = useRef('')
   const activeRef = useRef(false)
   const [active, setActive] = useState(false)
   const [source, setSource] = useState<'offline' | 'realtime'>('offline')
@@ -112,25 +114,36 @@ export function useVoiceAssistant(): VoiceAssistantApi {
     setState('LISTENING')
   }, [handleUtterance, setState, startMeter])
 
-  const handleRealtimeEvent = useCallback(
-    (event: Record<string, unknown>) => {
+  const handleAtlasEvent = useCallback(
+    (event: AtlasEvent) => {
       switch (event.type) {
-        case 'input_audio_buffer.speech_started':
+        case 'VOICE_STARTED':
           setState('LISTENING')
           break
-        case 'input_audio_buffer.speech_stopped':
+        case 'VOICE_STOPPED':
           setState('THINKING')
           break
-        case 'response.created':
+        case 'THINKING_STARTED':
           setState('THINKING')
           break
-        case 'response.audio.delta':
+        case 'RESPONSE_STARTED':
           setState('SPEAKING')
           break
-        case 'response.done':
+        case 'TRANSCRIPT_DELTA':
+          realtimeTranscriptRef.current += event.text
+          break
+        case 'RESPONSE_FINISHED': {
+          const text = realtimeTranscriptRef.current.trim()
+          realtimeTranscriptRef.current = ''
+          if (text) {
+            transcriptBus.push('atlas', text)
+          }
           setState('IDLE')
           break
-        default:
+        }
+        case 'ERROR':
+          console.error('[ATLAS]', event.message)
+          setState('ERROR')
           break
       }
     },
@@ -147,7 +160,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
     voiceRef.current = voice
 
     try {
-      await voice.connect(handleRealtimeEvent)
+      await voice.connect({ onEvent: handleAtlasEvent })
       setSource('realtime')
       if (voice.microphone) {
         startMeter(voice.microphone)
@@ -157,7 +170,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
       setSource('offline')
       await startOffline()
     }
-  }, [handleRealtimeEvent, setState, startMeter, startOffline])
+  }, [handleAtlasEvent, setState, startMeter, startOffline])
 
   const stop = useCallback(() => {
     activeRef.current = false
@@ -172,6 +185,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
     recognitionRef.current = null
     meterRef.current = null
     micRef.current = null
+    realtimeTranscriptRef.current = ''
     setAmplitude(0)
     setState('IDLE')
   }, [setAmplitude, setState])

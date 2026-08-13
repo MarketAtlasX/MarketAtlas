@@ -1,4 +1,4 @@
-import { Mic, Square } from 'lucide-react'
+import { Mic, MicOff } from 'lucide-react'
 import { useAssistantState } from '../state/AssistantStateContext'
 import { useVoiceAssistant } from '../voice/useVoiceAssistant'
 
@@ -8,7 +8,6 @@ export function VoiceButton() {
 
   const supported = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
   const listening = state === 'LISTENING'
-  const busy = state === 'THINKING' || state === 'SPEAKING'
 
   const toggle = () => {
     if (active) {
@@ -27,18 +26,18 @@ export function VoiceButton() {
       <button
         onClick={toggle}
         disabled={!supported}
-        aria-label="Toggle Atlas voice"
+        aria-label={active ? 'Stop Atlas' : 'Activate Atlas'}
         className={`relative flex h-16 w-16 items-center justify-center rounded-full border transition-all duration-300 ${
           active
             ? 'border-[rgba(46,230,168,0.5)] bg-[rgba(46,230,168,0.08)] text-[var(--positive)] glow-positive'
             : 'border-[rgba(56,232,255,0.35)] bg-[rgba(56,232,255,0.06)] text-[var(--accent)] hover:bg-[rgba(56,232,255,0.12)]'
-        } ${busy ? 'animate-pulse' : ''} disabled:opacity-40 disabled:cursor-not-allowed`}
+        } disabled:opacity-40 disabled:cursor-not-allowed`}
       >
-        {active ? <Square size={20} /> : <Mic size={22} />}
+        {active ? <MicOff size={18} /> : <Mic size={18} />}
       </button>
 
       <span className="text-[9px] font-mono tracking-[0.25em] text-[var(--text-lo)] uppercase">
-        {active ? (listening ? 'Listening' : busy ? 'Working' : 'Live') : supported ? 'Talk to Atlas' : 'Voice unavailable'}
+        {active ? 'Disconnect' : supported ? 'Activate Atlas' : 'Voice unavailable'}
       </span>
     </div>
   )

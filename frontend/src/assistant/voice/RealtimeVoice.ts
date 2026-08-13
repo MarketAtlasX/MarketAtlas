@@ -1,4 +1,8 @@
-export type RealtimeEventHandler = (event: Record<string, unknown>) => void
+import type { AtlasEvent } from './atlasEvents'
+
+export interface RealtimeVoiceOptions {
+  onEvent: (event: AtlasEvent) => void
+}
 
 export class RealtimeVoice {
   private pc?: RTCPeerConnection
@@ -10,7 +14,7 @@ export class RealtimeVoice {
     return this.micStream
   }
 
-  async connect(onEvent: RealtimeEventHandler): Promise<void> {
+  async connect({ onEvent }: RealtimeVoiceOptions): Promise<void> {
     const tokenResponse = await fetch('/api/assistant/realtime-token')
     if (!tokenResponse.ok) {
       throw new Error('Unable to obtain realtime token')
@@ -33,7 +37,13 @@ export class RealtimeVoice {
       }
     }
 
-    this.micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    this.micStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    })
     const track = this.micStream.getAudioTracks()[0]
     this.pc.addTrack(track, this.micStream)
 
@@ -41,7 +51,7 @@ export class RealtimeVoice {
     this.dataChannel.addEventListener('message', event => {
       try {
         const data = JSON.parse(event.data as string) as Record<string, unknown>
-        onEvent(data)
+        this.handleEvent(data, onEvent)
       } catch {
         // ignore malformed frames
       }
@@ -65,6 +75,32 @@ export class RealtimeVoice {
 
     const sdp = await response.text()
     await this.pc.setRemoteDescription({ type: 'answer', sdp })
+  }
+
+  private handleEvent(event: Record<string, unknown>, onEvent: (event: AtlasEvent) => void): void {
+    switch (event.type) {
+      case 'input_audio_buffer.speech_started':
+        onEvent({ type: 'VOICE_STARTED' })
+        break
+      case 'input_audio_buffer.speech_stopped':
+        onEvent({ type: 'VOICE_STOPPED' })
+        break
+      case 'response.created':
+        onEvent({ type: 'RESPONSE_STARTED' })
+        break
+      case 'response.done':
+        onEvent({ type: 'RESPONSE_FINISHED' })
+        break
+      case 'response.audio_transcript.delta':
+      case 'response.output_audio_transcript.delta':
+        onEvent({ type: 'TRANSCRIPT_DELTA', text: String(event.delta ?? '') })
+        break
+      case 'error':
+        onEvent({ type: 'ERROR', message: String((event as { error?: { message?: string } }).error?.message ?? 'realtime error') })
+        break
+      default:
+        break
+    }
   }
 
   disconnect(): void {

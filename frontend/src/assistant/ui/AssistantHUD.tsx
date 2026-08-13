@@ -25,6 +25,9 @@ export function AssistantHUD() {
       <div className="text-sm font-semibold tracking-[0.35em] text-[var(--text-hi)]">
         MARKET<span className="text-[var(--accent)] text-glow">ATLAS</span>
       </div>
+      <div className="text-[8px] font-mono tracking-[0.3em] text-[var(--text-lo)] uppercase">
+        Global Intelligence System
+      </div>
     </div>
   )
 }
