@@ -50,6 +50,8 @@ const ROUTE = /\b(route|routes|corridor|corridors|shipping|sea lane|sea lanes|tr
 const CONFLICT = /\b(conflict|war|tension|tensions|attack|attacks|military|strike|strait|border|boundary|crisis|escalation|invasion|blockade|sanction|missile|naval|fleet|deployment)\b/i
 const RISK = /\b(risk|risky|volatile|volatility|dangerous|threat|threats|hazard|danger|vulnerab)\b/i
 const NETWORK = /\b(network|networks|graph|relationship|relationships|connection|connections|linked|link|ties|alliance|alliances)\b/i
+const SUPPLY = /\b(supply chain|supply chains|supply network|supply map|logistics)\b/i
+const MAP = /\b(map|mapping|overview|atlas|holographic map|world map|heat map|heatmap)\b/i
 const ABSTRACT = /\b(explain|define|what is|what are|how does|how do|why does|why is|who is|meaning of|difference between|calculate|compute|solve|write|code|program|function|python|javascript|typescript|algorithm|formula|equation|mathematics|physics|chemistry|biology|philosophy|theory|relativity|quantum|translate|summarize|fourier|transform)\b/i
 
 function extractEntities(query: string): string[] {
@@ -77,10 +79,19 @@ export function inferVisualization(query: string): VisualizationIntent {
   const hasConflict = CONFLICT.test(q)
   const hasRisk = RISK.test(q)
   const hasNetwork = NETWORK.test(q)
+  const hasSupply = SUPPLY.test(q)
+  const hasMap = MAP.test(q)
   const hasAbstract = ABSTRACT.test(q)
 
   if (hasAbstract && entities.length === 0) {
     return createIntent({ mode: 'abstract', transition: 'disintegrate', camera: 'orbit', palette: 'core', caption: 'Abstract reasoning' })
+  }
+
+  if (hasSupply) {
+    return createIntent({ mode: 'supply', scale: 'global', focus: entities, origin, destination, camera: 'pullback', palette: 'map', transition: 'particle_reform', caption: 'Supply network' })
+  }
+  if (hasMap && entities.length === 0) {
+    return createIntent({ mode: 'map', scale: 'global', camera: 'pullback', palette: 'map', transition: 'particle_reform', caption: 'Holographic world map' })
   }
 
   if (hasRoute && entities.length > 0) {
