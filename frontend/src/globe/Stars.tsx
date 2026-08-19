@@ -19,9 +19,10 @@ export default function Stars() {
       pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
       pos[i * 3 + 2] = radius * Math.cos(phi)
       const b = 0.5 + Math.random() * 0.5
-      cols[i * 3] = b * (0.8 + Math.random() * 0.2)
-      cols[i * 3 + 1] = b * (0.8 + Math.random() * 0.2)
-      cols[i * 3 + 2] = b
+      const warm = Math.random() < 0.14
+      cols[i * 3] = b * (warm ? 1 : 0.8 + Math.random() * 0.2)
+      cols[i * 3 + 1] = b * (warm ? 0.72 : 0.8 + Math.random() * 0.2)
+      cols[i * 3 + 2] = b * (warm ? 0.5 : 1)
     }
     return [pos, cols]
   }, [])
