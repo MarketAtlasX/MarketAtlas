@@ -238,6 +238,9 @@ and the globe assembles a golden particle stream along the corridor.
 Both the backend extractor and the offline frontend fallback resolve intents in the same order:
 **abstract → route → conflict → risk → network → single country → region → globe.**
 
+> Deep dive: see [`docs/intelligence-core.md`](docs/intelligence-core.md) for the
+> full brain → backend → globe pipeline, worked examples, and design decisions.
+
 ---
 
 ## Backend
