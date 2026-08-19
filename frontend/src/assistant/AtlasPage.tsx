@@ -32,8 +32,8 @@ export function AtlasPage() {
           COMMAND CENTER
         </Link>
         <AssistantHUD />
-        <span className="w-32 text-right text-[9px] font-mono tracking-[0.25em] text-[var(--text-lo)] uppercase">
-          Voice Interface
+        <span className="w-40 text-right text-[9px] font-mono tracking-[0.25em] text-[var(--text-lo)] uppercase">
+          General Intelligence
         </span>
       </header>
 
@@ -58,7 +58,7 @@ export function AtlasPage() {
 
           <p className="text-[11px] font-mono text-[var(--text-lo)]">
             {state === 'IDLE' ? (
-              <>Say <span className="text-[var(--accent)]">“Atlas, analyze Taiwan”</span> to begin.</>
+              <>Say <span className="text-[var(--accent)]">“JARVIS, explain general relativity”</span> or <span className="text-[var(--accent)]">“show routes from India to Germany”</span></>
             ) : state === 'LISTENING' ? (
               <span className="text-[var(--positive)]">Listening…</span>
             ) : state === 'SPEAKING' ? (
@@ -88,7 +88,7 @@ export function AtlasPage() {
                   }`}
                 >
                   <span className={`block text-[8px] font-mono tracking-[0.2em] ${line.role === 'user' ? 'text-[var(--positive)]' : 'text-[var(--accent)]'}`}>
-                    {line.role === 'user' ? 'YOU' : 'ATLAS'}
+                    {line.role === 'user' ? 'YOU' : 'JARVIS'}
                   </span>
                   {line.text}
                 </span>

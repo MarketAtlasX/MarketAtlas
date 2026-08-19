@@ -11,7 +11,7 @@ export type AssistantState =
 export type AtlasVisualMode = 'orb' | 'globe' | 'network'
 
 export const ASSISTANT_STATE_LABEL: Record<AssistantState, string> = {
-  IDLE: 'ATLAS ONLINE',
+  IDLE: 'JARVIS ONLINE',
   LISTENING: 'LISTENING',
   THINKING: 'ANALYZING',
   SPEAKING: 'RESPONDING',
