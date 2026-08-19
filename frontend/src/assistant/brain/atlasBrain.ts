@@ -1,102 +1,76 @@
-import { createCommand, type AtlasCommand } from '../commands/commandTypes'
+import { backendOnline, sendChat, type ChatResponse } from '../../api/chatApi'
+import type { VisualizationIntent } from '../../features/globe/visualizationIntent'
+import { createCommand, visualizeCommand, type AtlasCommand } from '../commands/commandTypes'
+import { domainBrain } from './domainBrain'
+import { generalAnswer } from './generalKnowledge'
+import { inferVisualization } from './inferVisualization'
 
 export interface AtlasResponse {
   text: string
   commands: AtlasCommand[]
+  visualization: VisualizationIntent | null
+  source: 'backend' | 'offline'
 }
 
-const INTENTS: { keys: RegExp; build: () => AtlasResponse }[] = [
-  {
-    keys: /\b(taiwan|tsmc|strait|chip|semiconductor)\b/i,
-    build: () => ({
-      text: 'There has been a significant increase in semiconductor supply-chain risk around Taiwan. I am running an impact analysis on TSMC, NVIDIA, Apple and the broader semiconductor sector.',
-      commands: [
-        createCommand('FOCUS_COUNTRY', { country: 'Taiwan', animation: 'cinematic' }),
-        createCommand('HIGHLIGHT_COMPANY', { company: 'TSMC' }),
-        createCommand('SHOW_ROUTE', { from: 'Taiwan', to: 'United States', route_type: 'semiconductor_supply_chain' }),
-        createCommand('SHOW_RISK', { region: 'Taiwan Strait' }),
-        createCommand('OPEN_MARKET', { sector: 'Semiconductors' }),
-      ],
-    }),
-  },
-  {
-    keys: /\b(world risk|risk level|global risk|how risky)\b/i,
-    build: () => ({
-      text: 'Current world risk is elevated at 68 percent, driven primarily by the Taiwan Strait and the Middle East. I am highlighting the highest-risk corridors.',
-      commands: [
-        createCommand('FOCUS_COUNTRY', { country: 'Iran', animation: 'cinematic' }),
-        createCommand('SHOW_RISK', { region: 'Middle East' }),
-        createCommand('SHOW_GRAPH', { graph: 'causal' }),
-      ],
-    }),
-  },
-  {
-    keys: /\b(iran|middle east|oil|brent|energy)\b/i,
-    build: () => ({
-      text: 'Middle East tension is pressuring energy markets. Brent crude is up sharply, and the strongest transmission channel is oil price inflation into global growth.',
-      commands: [
-        createCommand('FOCUS_COUNTRY', { country: 'Iran', animation: 'cinematic' }),
-        createCommand('SHOW_ROUTE', { from: 'Iran', to: 'Europe', route_type: 'energy' }),
-        createCommand('OPEN_MARKET', { sector: 'Energy' }),
-      ],
-    }),
-  },
-  {
-    keys: /\b(nvidia|nvda|market|stock|forecast|apple|tsmc adr)\b/i,
-    build: () => ({
-      text: 'NVIDIA has the highest direct exposure among monitored companies, driven by the Taiwan semiconductor channel. The forecast band is widening with elevated downside risk.',
-      commands: [
-        createCommand('OPEN_MARKET', { symbol: 'NVDA' }),
-        createCommand('HIGHLIGHT_COMPANY', { company: 'NVIDIA' }),
-        createCommand('SHOW_GRAPH', { graph: 'forecast', entity: 'NVDA' }),
-      ],
-    }),
-  },
-  {
-    keys: /\b(graph|causal|reasoning|trace|why)\b/i,
-    build: () => ({
-      text: 'Opening the causal graph. The dominant path runs from Taiwan through TSMC to NVIDIA, then into the broader semiconductor and technology sector.',
-      commands: [createCommand('SHOW_GRAPH', { graph: 'causal', entity: 'NVDA' })],
-    }),
-  },
-  {
-    keys: /\b(simulate|scenario|what if)\b/i,
-    build: () => ({
-      text: 'Opening the scenario simulator. I can model a reduction in Taiwan semiconductor exports and propagate it through the world state.',
-      commands: [createCommand('RUN_SIMULATION', { scenario: 'taiwan_escalation' })],
-    }),
-  },
-  {
-    keys: /\b(memory|similar|before|analogous|analogue)\b/i,
-    build: () => ({
-      text: 'Searching world memory for analogous episodes. The closest match is the 2022 semiconductor supply shock.',
-      commands: [createCommand('SEARCH_MEMORY', { query: 'semiconductor supply shock' })],
-    }),
-  },
-  {
-    keys: /\b(zoom out|zoom|globe|show me the world)\b/i,
-    build: () => ({
-      text: 'Returning to the world view.',
-      commands: [createCommand('ZOOM_GLOBE', { level: 'world' })],
-    }),
-  },
-]
+function focusFromIntent(intent: VisualizationIntent): string | null {
+  return intent.focus?.[0] ?? intent.origin ?? null
+}
 
-const GREETING: RegExp = /\b(hello|hi|hey|good morning|good evening|atlas)\b/i
+function fromBackend(chat: ChatResponse, transcript: string): AtlasResponse {
+  const visualization: VisualizationIntent =
+    chat.visualization ?? inferVisualization(transcript)
 
-export function atlasBrain(transcript: string): AtlasResponse {
-  const match = INTENTS.find(intent => intent.keys.test(transcript))
-  if (match) {
-    return match.build()
+  const commands: AtlasCommand[] = [visualizeCommand(visualization)]
+
+  const focus = focusFromIntent(visualization)
+  if (focus) {
+    commands.unshift(createCommand('FOCUS_COUNTRY', { country: focus }))
   }
-  if (GREETING.test(transcript)) {
+
+  return {
+    text: chat.response,
+    commands,
+    visualization,
+    source: 'backend',
+  }
+}
+
+function offline(transcript: string): AtlasResponse {
+  const domain = domainBrain(transcript)
+  if (domain.commands.length > 0) {
     return {
-      text: 'Good morning. MarketAtlas is online. World risk is elevated. Ask me about Taiwan, the Middle East, markets, or the causal graph.',
-      commands: [],
+      text: domain.text,
+      commands: domain.commands,
+      visualization: null,
+      source: 'offline',
     }
   }
+
+  const answer = generalAnswer(transcript)
+  const visualization = inferVisualization(transcript)
   return {
-    text: 'I am listening. Try asking about world risk, Taiwan, the markets, or the causal graph.',
-    commands: [],
+    text: answer.text,
+    commands: [visualizeCommand(visualization)],
+    visualization,
+    source: 'offline',
   }
 }
+
+export async function atlasBrain(transcript: string): Promise<AtlasResponse> {
+  const online = await backendOnline()
+  if (!online) {
+    return offline(transcript)
+  }
+  try {
+    const chat = await sendChat(transcript)
+    return fromBackend(chat, transcript)
+  } catch {
+    return offline(transcript)
+  }
+}
+
+export function atlasBrainOffline(transcript: string): AtlasResponse {
+  return offline(transcript)
+}
+
+export { inferVisualization }

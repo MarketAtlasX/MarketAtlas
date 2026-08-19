@@ -4,7 +4,7 @@ import { commandBus } from '../commands/commandBus'
 import { RealtimeVoice } from './RealtimeVoice'
 import type { AtlasEvent } from './atlasEvents'
 import { AudioMeter } from './audioMeter'
-import { jarvisBrain, inferVisualization } from '../brain/jarvisBrain'
+import { atlasBrain, inferVisualization } from '../brain/atlasBrain'
 import { transcriptBus } from '../brain/transcriptBus'
 import { getSpeechRecognition, speak, warmUpVoices } from './browserSpeech'
 import { visualizationBus } from '../commands/visualizationBus'
@@ -43,7 +43,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
       setState('THINKING')
       transcriptBus.push('user', transcript)
 
-      void jarvisBrain(transcript).then(response => {
+      void atlasBrain(transcript).then(response => {
         response.commands.forEach(command => commandBus.emit(command))
         if (response.visualization) {
           setMode('globe')
