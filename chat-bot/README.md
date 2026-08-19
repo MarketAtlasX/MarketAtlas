@@ -1,8 +1,8 @@
 # MarketAtlas Chat Bot
 
-> *AI-powered geopolitical trading intelligence backend — 11 specialized agents, 25 REST endpoints, full offline capability.*
+> *AI-powered geopolitical trading intelligence backend — 13 specialized agents (incl. JARVIS general intelligence), 25 REST endpoints, full offline capability.*
 
-A multi-agent conversational AI system that transforms geopolitical events into actionable trading intelligence. Powered by LangGraph orchestration, GeoRAG retrieval, and a explainable AI layer — with every external dependency being fully optional.
+A multi-agent conversational AI system that transforms geopolitical events into actionable trading intelligence — and, through the **JARVIS** intent, answers any general question (science, code, math, history) with the same orchestration. Powered by LangGraph, GeoRAG retrieval, and an explainable AI layer — with every external dependency being fully optional.
 
 ---
 
