@@ -170,3 +170,110 @@ Every `ChatResponse` may carry an optional `visualization` field:
 
 These types live in `app/chatbot/models.py` (`VisualMode`, `VisualizationIntent`)
 and are mirrored on the frontend in `src/api/chatApi.ts`.
+
+---
+
+## API Overview
+
+| Route Group | Prefix | Key Endpoints |
+|------------|--------|---------------|
+| Events | `/events` | CRUD, filter, link/unlink entities |
+| Entities | `/entities` | CRUD, filter by type/country, search |
+| Market Prices | `/market-prices` | CRUD, yfinance fetch, latest/range queries |
+| Signals | `/signals` | CRUD, filter by type/status/confidence |
+| AI Analysis | `/events/{id}/analyze` | Run AI pipeline → generate signals |
+| Free-text | `/analyze` | Ad-hoc sentiment analysis |
+| Knowledge Graph | `/events/{id}/knowledge-graph` | KG enrichment |
+| Countries | `/countries/{id}` | Overview + news dashboard |
+| Dashboard | `/dashboard/summary` | Aggregated platform statistics |
+| Globe | `/globe` | Entity relations for globe visualization |
+| Auth | `/auth` | Authentication endpoints |
+| Backtest | `/backtest` | Backtesting engine |
+| AI Chat | `/api/chat` | Chatbot + WebSocket streaming (JARVIS) |
+| WebSocket | `/ws` | Real-time event streaming |
+| Health | `/health` | Deep health check (DB, Redis) |
+| Metrics | `/metrics` | Prometheus metrics endpoint |
+
+Full API documentation at `http://localhost:8000/docs` (Swagger UI).
+
+---
+
+## Quick Start
+
+```bash
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env              # edit with your PostgreSQL credentials
+
+# Run migrations
+alembic upgrade head
+
+# (Optional) Seed 32 real-world entities
+python seed_real.py
+
+# Start the server
+uvicorn app.main:app --reload --port 8000
+```
+
+### Background Workers
+
+```bash
+# Start Celery worker (separate terminal)
+celery -A app.workers.celery_app worker --loglevel=info
+# Analysis tasks require ENABLE_WORKERS=True
+```
+
+### Testing
+
+```bash
+pytest                      # run all tests
+pytest --cov=app            # with coverage
+pytest tests/test_routes/test_events.py   # single file
+```
+
+---
+
+## Project Structure
+
+```
+backend/
+├── app/
+│   ├── main.py                    # FastAPI app + middleware + lifespan
+│   ├── config.py                  # Pydantic settings (env-based)
+│   ├── database.py                # Async SQLAlchemy engine + session
+│   ├── cache.py                   # Redis caching layer
+│   ├── serializers.py             # Serialization utilities
+│   ├── core/
+│   │   └── enums.py               # StrEnum for all categorical fields
+│   ├── models/                    # SQLAlchemy ORM models
+│   ├── schemas/                   # Pydantic request/response models
+│   ├── repositories/              # Data access layer
+│   ├── services/                  # Business logic (ai_service, kg_service, ...)
+│   ├── routes/                    # API route handlers
+│   ├── middleware/                # Logging, metrics, rate limiting
+│   ├── workers/                   # Celery background tasks
+│   ├── chatbot/                   # JARVIS chatbot subsystem
+│   │   ├── agents/                # 13 agents incl. JarvisAgent + intent_router
+│   │   ├── jarvis/                # visualization.py → VisualizationIntent
+│   │   ├── api/                   # Chat REST + WebSocket routes
+│   │   ├── llm/                   # LLM provider abstraction
+│   │   ├── rag/                   # RAG pipeline (embeddings, vector store)
+│   │   ├── knowledge/             # Neo4j knowledge graph client
+│   │   ├── memory/                # Short/long-term conversation memory
+│   │   └── workflow/              # LangGraph workflow orchestration
+│   ├── backtesting/               # Backtesting engine
+│   └── geopolitical/              # Geopolitical data pipeline
+├── alembic/                       # Database migrations
+├── tests/                         # pytest test suite
+├── scripts/                       # Utility scripts
+├── Dockerfile                     # Production Docker image
+├── docker-compose.yml             # Postgres 16 + Redis 7 + app
+├── pyproject.toml                 # Build config, ruff, mypy, pytest
+└── requirements.txt               # Python dependencies
+```
