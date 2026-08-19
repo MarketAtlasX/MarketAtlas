@@ -41,6 +41,8 @@ export default function FocusRings({ regions, visible = true }: FocusRingsProps)
       data.map(() => ({
         ring: { current: null as THREE.Mesh | null },
         material: { current: null as THREE.MeshBasicMaterial | null },
+        halo: { current: null as THREE.Mesh | null },
+        haloMaterial: { current: null as THREE.MeshBasicMaterial | null },
         glow: { current: null as THREE.Mesh | null },
         glowMaterial: { current: null as THREE.MeshBasicMaterial | null },
       })),
@@ -52,12 +54,19 @@ export default function FocusRings({ regions, visible = true }: FocusRingsProps)
     data.forEach((d, i) => {
       const ring = refs[i].ring.current
       const mat = refs[i].material.current
+      const halo = refs[i].halo.current
+      const haloMat = refs[i].haloMaterial.current
       const glow = refs[i].glow.current
       const glowMat = refs[i].glowMaterial.current
       if (!ring || !mat) return
       const pulse = 1 + Math.sin(t * 2.4 + d.seed) * 0.5 * d.intensity
       ring.scale.setScalar(pulse)
       mat.opacity = Math.max(0, 0.75 * d.intensity - (pulse - 1) * 0.5)
+      if (halo && haloMat) {
+        const haloPulse = 1 + Math.sin(t * 1.7 + d.seed * 1.3) * 0.7 * d.intensity
+        halo.scale.setScalar(haloPulse)
+        haloMat.opacity = Math.max(0, 0.28 * d.intensity - (haloPulse - 1) * 0.2)
+      }
       if (glow && glowMat) {
         const glowPulse = 1 + Math.sin(t * 1.6 + d.seed) * 0.35
         glow.scale.setScalar(glowPulse)
@@ -76,6 +85,17 @@ export default function FocusRings({ regions, visible = true }: FocusRingsProps)
             <ringGeometry args={[0.16, 0.24, 48]} />
             <meshBasicMaterial
               ref={refs[i].material}
+              color={d.color}
+              transparent
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+          <mesh ref={refs[i].halo}>
+            <ringGeometry args={[0.3, 0.34, 48]} />
+            <meshBasicMaterial
+              ref={refs[i].haloMaterial}
               color={d.color}
               transparent
               depthWrite={false}
