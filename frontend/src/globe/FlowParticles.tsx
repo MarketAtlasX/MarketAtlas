@@ -1,19 +1,13 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { RouteFlow } from '../features/globe/SceneDirector'
+import { latLngToDir, type RouteFlow } from '../features/globe/SceneDirector'
 
 const PER_PATH = 90
 const RADIUS = 2.02
 
 function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
-  const phi = (90 - lat) * (Math.PI / 180)
-  const theta = (lng + 180) * (Math.PI / 180)
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta),
-  )
+  return latLngToDir(lat, lng).multiplyScalar(radius)
 }
 
 function arcPoints(startLat: number, startLng: number, endLat: number, endLng: number, radius: number): THREE.Vector3[] {
