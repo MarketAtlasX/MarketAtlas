@@ -1,8 +1,8 @@
-# MarketAtlas — JARVIS Intelligence & the World Core
+# MarketAtlas — ATLAS Intelligence & the World Core
 
 > *How a spoken question becomes a living globe scene — the end-to-end intelligence pipeline of MarketAtlas.*
 
-JARVIS is the voice-first general intelligence at the heart of MarketAtlas. It
+ATLAS is the voice-first general intelligence at the heart of MarketAtlas. It
 hears natural language, decides whether the question is about markets or about
 the world in general, produces an answer with any LLM provider, and — when the
 answer touches geography, trade, risk, or conflict — returns a structured
@@ -19,7 +19,7 @@ This document walks the whole path, layer by layer.
 | **Voice** | `frontend/src/assistant/voice` | OpenAI Realtime WebRTC or browser speech; wakes the brain |
 | **Brain** | `frontend/src/assistant/brain` | Routes to the backend; answers offline if needed |
 | **Backend Workflow** | `backend/app/chatbot/workflow` | LangGraph orchestrates intent routing → agents → response |
-| **Visualization** | `backend/app/chatbot/jarvis` | Query → `VisualizationIntent` (mirrored offline in the frontend) |
+| **Visualization** | `backend/app/chatbot/atlas` | Query → `VisualizationIntent` (mirrored offline in the frontend) |
 | **World Core** | `frontend/src/features/globe`, `frontend/src/globe` | Renders the intent as particles, routes, heat, and camera motion |
 
 ### The Brain Contract
@@ -46,7 +46,7 @@ The type is defined once on the backend in `backend/app/chatbot/models.py`
 
 ## 2. The Frontend Brain
 
-`brain/jarvisBrain.ts` is the entry point for every utterance:
+`brain/atlasBrain.ts` is the entry point for every utterance:
 
 ```
 utterance
@@ -88,7 +88,7 @@ route_intent (LLM classification + heuristics)
    │
    ├─ MARKETATLAS intent ──► specialist agents (News, Market, Impact, Graph, ...)
    │
-   └─ JARVIS intent ──────► execute_jarvis → JarvisAgent → LLM answer
+   └─ ATLAS intent ──────► execute_atlas → AtlasAgent → LLM answer
                              (general reasoning, no market scaffolding)
 
 every path continues to:
@@ -98,11 +98,11 @@ every path continues to:
 
 `intent_router.py` keeps three signals in sync:
 
-1. An **LLM classification prompt** that includes a JARVIS category.
+1. An **LLM classification prompt** that includes a ATLAS category.
 2. A heuristic `_looks_general()` guard for obvious general queries.
 3. A `GENERAL_SIGNALS` list (science/code/math/history/philosophy terms).
 
-`JarvisAgent` (`backend/app/chatbot/agents/jarvis_agent.py`) uses the shared
+`AtlasAgent` (`backend/app/chatbot/agents/atlas_agent.py`) uses the shared
 `get_llm()` provider abstraction, so it works with OpenAI, Gemini, Claude, or
 Ollama — or a deterministic mock when nothing is configured.
 
