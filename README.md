@@ -308,8 +308,10 @@ backend/
 │   ├── routes/                    # API route handlers (15 routers)
 │   ├── middleware/                 # Logging, metrics, rate limiting
 │   ├── workers/                   # Celery background tasks
-│   ├── chatbot/                   # AI chatbot subsystem
-│   │   ├── agents/                # 10 specialized AI agents
+│   ├── chatbot/                   # AI chatbot subsystem (JARVIS)
+│   │   ├── agents/                # 13 AI agents incl. JarvisAgent
+│   │   ├── jarvis/                # Visualization intent extractor
+│   │   │   └── visualization.py   # Query → VisualizationIntent
 │   │   ├── api/                   # Chat REST + WebSocket routes
 │   │   ├── llm/                   # LLM provider abstraction
 │   │   ├── rag/                   # RAG pipeline (embeddings, vector store)
