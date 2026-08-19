@@ -59,11 +59,11 @@ A multi-agent conversational AI system that transforms geopolitical events into 
 
 ---
 
-## 11 AI Agents
+## 13 AI Agents
 
 | Agent | File | What It Does |
 |-------|------|-------------|
-| **Intent Router** | `intent_router.py` | Classifies queries into 8 intents: NEWS, MARKET, IMPACT, RECOMMENDATION, SIMULATION, GRAPH, REPORT, SIMILARITY |
+| **Intent Router** | `intent_router.py` | Classifies queries into 8 intents: NEWS, MARKET, IMPACT, RECOMMENDATION, SIMULATION, GRAPH, REPORT, SIMILARITY — or the general JARVIS intent |
 | **News Agent** | `news_agent.py` | Retrieves relevant news, extracts entities |
 | **Market Agent** | `market_agent.py` | Analyzes market data with SHAP-style feature attribution |
 | **Impact Agent** | `impact_agent.py` | Geopolitical risk scoring with entity extraction |
@@ -74,6 +74,8 @@ A multi-agent conversational AI system that transforms geopolitical events into 
 | **Report Agent** | `report_agent.py` | Structured intelligence report generation |
 | **Debate Agent** | `debate_agent.py` | Multi-analyst debate pipeline for consensus |
 | **Event Similarity Agent** | `event_similarity_agent.py` | 26-event historical similarity engine |
+| **Risk Agent** | `risk_agent.py` | World-state risk interpretation |
+| **JarvisAgent** | `jarvis_agent.py` | General-purpose reasoning for non-market questions; returns a `VisualizationIntent` when the answer touches the world |
 
 ---
 
