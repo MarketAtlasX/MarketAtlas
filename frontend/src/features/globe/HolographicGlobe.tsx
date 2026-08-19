@@ -119,6 +119,9 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
         <div className="mt-1 text-[9px] tracking-widest text-[rgba(95,125,153,0.9)]">
           {mode.toUpperCase()} :: {intent.scale.toUpperCase()}
         </div>
+        <div className="mt-1 text-[8px] tracking-[0.2em] text-[rgba(95,125,153,0.65)]">
+          RISK {state.risk.length} :: EVENTS {state.events.length}
+        </div>
         <div className="mt-1 text-[8px] tracking-[0.25em] text-[rgba(95,125,153,0.55)]">
           DRAG TO ORBIT :: SCROLL TO ZOOM
         </div>
