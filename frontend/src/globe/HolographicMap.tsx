@@ -454,17 +454,45 @@ function MapLabels({ getOpacity }: MapChildProps) {
   )
 }
 
+function cornerBrackets(width: number, depth: number, size: number): THREE.Vector3[][] {
+  const hw = width / 2
+  const hd = depth / 2
+  const corners: [number, number][] = [
+    [-hw, -hd],
+    [hw, -hd],
+    [hw, hd],
+    [-hw, hd],
+  ]
+  return corners.map(([cx, cz]) => [
+    new THREE.Vector3(cx, 0.025, cz),
+    new THREE.Vector3(cx + (cx < 0 ? size : -size), 0.025, cz),
+    new THREE.Vector3(cx + (cx < 0 ? size : -size), 0.025, cz + (cz < 0 ? size : -size)),
+    new THREE.Vector3(cx, 0.025, cz + (cz < 0 ? size : -size)),
+  ])
+}
+
 function MapFrame({ getOpacity }: MapChildProps) {
   const points = useMemo(() => buildMapFrame(MAP_WIDTH, MAP_DEPTH), [])
   const ref = useRef<Line2 | null>(null)
+  const brackets = useMemo(() => cornerBrackets(MAP_WIDTH, MAP_DEPTH, 0.55), [])
+  const bracketRefs = useMemo(() => brackets.map(() => ({ current: null as Line2 | null })), [brackets])
 
   useFrame(({ clock }) => {
     const o = getOpacity()
     if (ref.current) ref.current.material.opacity = o * (0.5 + 0.1 * Math.sin(clock.getElapsedTime() * 0.8))
+    bracketRefs.forEach((r, i) => {
+      const line = r.current
+      if (line) line.material.opacity = o * (0.35 + 0.15 * Math.sin(clock.getElapsedTime() * 1.1 + i * 1.7))
+    })
   })
 
   return (
-    <Line ref={ref} points={points} color="#38e8ff" lineWidth={1.2} transparent opacity={0} />
+    <group>
+      <Line ref={ref} points={points} color="#38e8ff" lineWidth={1.2} transparent opacity={0} />
+      {brackets.map((pts, i) => (
+        <Line key={i} ref={bracketRefs[i]} points={pts} color="#38e8ff" lineWidth={1.4} transparent opacity={0} />
+      ))}
+    </group>
   )
 }
 
