@@ -1,10 +1,10 @@
 # MarketAtlas — Frontend
 
-> *A holographic command center for geopolitical trading intelligence. Live risk globe. Causal reasoning. AI agents. Scenario simulation. World memory — and JARVIS, a voice-first general intelligence that drives the particle world core.*
+> *A holographic command center for geopolitical trading intelligence. Live risk globe. Causal reasoning. AI agents. Scenario simulation. World memory — and ATLAS, a voice-first general intelligence that drives the particle world core.*
 
 Built with React 19, TypeScript 6, Vite 8, Tailwind CSS 4 and react-router-dom v7. MarketAtlas turns global political, economic and conflict events into actionable trading intelligence through a dark holographic interface, a real-time world state store, and a four-graph intelligence system that shows *why* predictions are made — not just *what* they are.
 
-Above the command center floats **JARVIS** — a general intelligence you talk to. It answers anything, and when your question touches the world it drives the globe through structured **visualization intents**: particles reform into countries, golden streams trace trade routes, and hot zones pulse red.
+Above the command center floats **ATLAS** — a general intelligence you talk to. It answers anything, and when your question touches the world it drives the globe through structured **visualization intents**: particles reform into countries, golden streams trace trade routes, and hot zones pulse red.
 
 ---
 
@@ -37,21 +37,21 @@ The globe is the primary interface. Selecting a node focuses the camera and feed
 | `/graph` | Causal mini-map + four-graph intelligence system | `src/features/graph-analysis/GraphPage.tsx` |
 | `/simulator` | Scenario simulator (clone-simulate-destroy) | `src/features/scenario-simulator/SimulatorPage.tsx` |
 | `/memory` | World memory / historical analogues | `src/features/world-memory/MemoryPage.tsx` |
-| `/atlas` | JARVIS — voice-first general intelligence | `src/assistant/AtlasPage.tsx` |
+| `/atlas` | ATLAS — voice-first general intelligence | `src/assistant/AtlasPage.tsx` |
 
 `/` redirects to `/dashboard`.
 
 ## Key Features
 
-### JARVIS — The General Intelligence
+### ATLAS — The General Intelligence
 
-JARVIS is the voice-first assistant that generalizes the whole interface into an
+ATLAS is the voice-first assistant that generalizes the whole interface into an
 intelligence system you talk to. It hears you, reasons, and *shows* the answer.
 
 - **Voice core** — OpenAI Realtime WebRTC (`voice/RealtimeVoice.ts`) with browser
   speech fallback (`voice/browserSpeech.ts`); an audio-reactive holographic orb
   (`orb/AtlasOrb.tsx`) pulses while it speaks.
-- **General brain** — `brain/jarvisBrain.ts` routes to the backend for full LLM
+- **General brain** — `brain/atlasBrain.ts` routes to the backend for full LLM
   depth, or answers offline with curated topics + a safe math evaluator
   (`brain/generalKnowledge.ts`).
 - **Command bus** — structured commands (`VISUALIZE`, `FOCUS_REGION`,
@@ -111,7 +111,7 @@ intelligence system you talk to. It hears you, reasons, and *shows* the answer.
 "Show me routes from India to Germany"
         │
         ▼
-jarvisBrain (backend or offline general brain)
+atlasBrain (backend or offline general brain)
         │
         ▼
 VisualizationIntent { mode: 'route', origin: 'India', destination: 'Germany', ... }
@@ -128,7 +128,7 @@ WorldCore → resolveScene(intent) → SceneConfig
         └── overlays       ← arcs / nodes / labels on demand
 ```
 
-Both the backend (`jarvis/visualization.py`) and the offline frontend brain
+Both the backend (`atlas/visualization.py`) and the offline frontend brain
 (`inferVisualization`) produce the same shape, so the globe reacts instantly even
 with no backend running.
 
@@ -153,8 +153,8 @@ src/
   stores/WorldStore.tsx       # live world state context + simulation ticks
   services/websocket/         # useLiveWorldSocket (RISK_UPDATE / MARKET_FORECAST / GRAPH_UPDATE)
   assistant/
-    AtlasPage.tsx             # JARVIS command center + transcript + orb
-    brain/                    # jarvisBrain, atlasBrain, generalKnowledge, inferVisualization
+    AtlasPage.tsx             # ATLAS command center + transcript + orb
+    brain/                    # atlasBrain, atlasBrain, generalKnowledge, inferVisualization
     commands/                 # commandTypes, commandBus, visualizationBus, globeFocusBus,
                               #   AtlasCommandHandler
     orb/                      # AtlasOrb, OrbParticles, OrbShader (audio-reactive)
@@ -250,4 +250,4 @@ Every endpoint has an offline mock fallback so the command center stays alive wi
 7. **Restrained glow** — only active intelligence emits light
 8. **Clone-Simulate-Destroy** — the scenario simulator never mutates live state
 9. **Intent-driven visualization** — the globe is a canvas that answers questions
-10. **General intelligence** — JARVIS reasons beyond markets, not just about them
+10. **General intelligence** — ATLAS reasons beyond markets, not just about them
