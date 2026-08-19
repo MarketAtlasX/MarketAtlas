@@ -106,6 +106,8 @@ All services are started and orchestrated by `dev.sh` and talk to each other ove
 
 ### Frontend (`frontend/`)
 - Vite + React/TypeScript (port 3000)
+- `@react-three/fiber` + three + drei holographic globe with a custom particle shader core
+- OpenAI Realtime WebRTC voice, GSAP camera choreography, Tailwind 4 design system
 
 ### Agent Services
 - **market_agents** — Python FastAPI gateway (port 8004)
