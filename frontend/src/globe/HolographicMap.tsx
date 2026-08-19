@@ -53,6 +53,7 @@ const surfaceFragmentShader = `
     grid = clamp(grid, 0.0, 1.0);
 
     float scan = smoothstep(0.0, 0.25, abs(fract(uv.y * 3.0 - uTime * 0.05) - 0.5));
+    float bar = smoothstep(0.04, 0.0, abs(fract(uv.x * 2.0 - uTime * 0.09) - 0.5));
     float noise = hash(floor(uv * 120.0) + floor(uTime * 4.0)) * 0.06;
 
     vec2 c = uv - 0.5;
@@ -63,6 +64,7 @@ const surfaceFragmentShader = `
     vec3 base = uBase + uGlow * (0.02 + 0.02 * sin(uTime * 0.8));
     vec3 col = mix(base, uLine, grid * 0.5);
     col += uLine * major * 0.6;
+    col += uLine * bar * 0.22;
     col += noise;
     col *= (0.55 + 0.45 * vig);
 
