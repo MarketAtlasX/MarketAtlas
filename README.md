@@ -187,6 +187,59 @@ python -m backend.app.chatbot.scripts.seed_data
 
 ---
 
+## JARVIS — The General Intelligence Layer
+
+JARVIS is a voice-first assistant that generalizes the MarketAtlas chatbot into a full intelligence system. It hears you (OpenAI Realtime WebRTC or browser speech), reasons about anything, and — when the query touches the world — drives the globe to show you the answer.
+
+```
+Voice / Text Query
+      │
+      ▼
+┌─────────────────────┐   ┌──────────────────────────────────────┐
+│  Frontend Brain      │   │  Backend Workflow (LangGraph)         │
+│  (jarvisBrain)       │──►│  Intent Router → specialist agents    │
+│  offline fallbacks   │   │  JARVIS intent → JarvisAgent (LLM)    │
+└─────────────────────┘   └───────────────┬──────────────────────┘
+      │                                   │
+      ▼                                   ▼
+┌─────────────────────┐          ┌──────────────────────────┐
+│  Visualization      │          │  extract_visualization   │
+│  Intent (offline)   │          │  (backend, LLM-assisted) │
+└─────────────────────┘          └──────────────────────────┘
+      │                                   │
+      └───────────────┬───────────────────┘
+                      ▼
+        VisualizationIntent (structured contract)
+                      ▼
+         World Intelligence Core (particle globe)
+```
+
+### The Visualization Contract
+
+Every answer can carry a **`VisualizationIntent`** — a structured description of *how* the globe should respond:
+
+| Field | Meaning |
+|-------|---------|
+| `mode` | `core`, `globe`, `country`, `region`, `route`, `network`, `risk`, `conflict`, `abstract` |
+| `focus` | Countries/entities to highlight |
+| `origin` / `destination` | Route endpoints (e.g. *India → Germany*) |
+| `scale` | `global`, `regional`, `country` |
+| `camera` | `pullback`, `zoom_in`, `orbit` — semantic zoom |
+| `transition` | `particle_reform`, `disintegrate`, `reassemble` |
+| `palette` | `ultron`, `gold`, `risk`, `core` |
+| `caption` | Human-readable summary of the visualization |
+
+Example: *"Show me the route from India to Germany"* →
+`{ mode: 'route', origin: 'India', destination: 'Germany', camera: 'pullback' }`
+and the globe assembles a golden particle stream along the corridor.
+
+### Recognition Priority
+
+Both the backend extractor and the offline frontend fallback resolve intents in the same order:
+**abstract → route → conflict → risk → network → single country → region → globe.**
+
+---
+
 ## Backend
 
 ### API Overview
