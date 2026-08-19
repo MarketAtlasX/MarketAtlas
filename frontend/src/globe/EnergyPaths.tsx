@@ -2,32 +2,12 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
-import { latLngToDir, type RouteFlow } from '../features/globe/SceneDirector'
+import { arcPoints, latLngToVec3 } from './geo'
+import type { RouteFlow } from '../features/globe/SceneDirector'
 
 const RADIUS = 2.03
 const STREAM_COUNT = 140
 const ARC_SEGMENTS = 90
-
-function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
-  return latLngToDir(lat, lng).multiplyScalar(radius)
-}
-
-function arcPoints(startLat: number, startLng: number, endLat: number, endLng: number, radius: number): THREE.Vector3[] {
-  const start = latLngToVec3(startLat, startLng, radius)
-  const end = latLngToVec3(endLat, endLng, radius)
-  const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
-  const dist = start.distanceTo(end)
-  mid.normalize().multiplyScalar(radius + dist * 0.3)
-
-  const points: THREE.Vector3[] = []
-  for (let i = 0; i <= ARC_SEGMENTS; i++) {
-    const t = i / ARC_SEGMENTS
-    const a = new THREE.Vector3().lerpVectors(start, mid, t)
-    const b = new THREE.Vector3().lerpVectors(mid, end, t)
-    points.push(new THREE.Vector3().lerpVectors(a, b, t))
-  }
-  return points
-}
 
 function toneColor(tone: string | undefined, fallback: string): THREE.Color {
   switch (tone) {
