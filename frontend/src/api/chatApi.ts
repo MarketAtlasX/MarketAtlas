@@ -13,6 +13,8 @@ export type VisualMode =
   | 'risk'
   | 'conflict'
   | 'abstract'
+  | 'map'
+  | 'supply'
 
 export interface VisualizationIntent {
   mode: VisualMode
