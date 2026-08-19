@@ -4,6 +4,8 @@ import { useWorldStore } from '../../stores/WorldStore'
 import { commandBus } from './commandBus'
 import type { AtlasCommand } from './commandTypes'
 import { globeFocusBus } from './globeFocusBus'
+import { visualizationBus } from './visualizationBus'
+import { createIntent, type VisualizationIntent } from '../../features/globe/visualizationIntent'
 
 const COMPANY_TO_SYMBOL: Record<string, string> = {
   TSMC: 'TSMC',
@@ -33,6 +35,12 @@ export function AtlasCommandHandler() {
   const navigate = useNavigate()
   const { selectEntity } = useWorldStore()
 
+  const driveVisual = (intent: VisualizationIntent) => {
+    visualizationBus.drive(intent)
+    if (intent.focus?.[0]) selectEntity(intent.focus[0])
+    navigate('/dashboard')
+  }
+
   useEffect(
     () =>
       commandBus.subscribe((command: AtlasCommand) => {
@@ -44,26 +52,108 @@ export function AtlasCommandHandler() {
             if (!country) break
             selectEntity(country)
             globeFocusBus.fly({ entity: country })
-            navigate('/dashboard')
+            driveVisual(
+              createIntent({
+                mode: 'country',
+                scale: 'country',
+                focus: [country],
+                origin: country,
+                camera: 'zoom_in',
+                caption: `Focus: ${country}`,
+              }),
+            )
             break
           }
           case 'ZOOM_GLOBE':
             selectEntity(null)
             globeFocusBus.reset()
-            navigate('/dashboard')
+            driveVisual(createIntent({ mode: 'globe', scale: 'global', camera: 'pullback', transition: 'particle_reform' }))
             break
           case 'SHOW_ROUTE': {
             const to = String(payload.to ?? '')
+            const from = String(payload.from ?? '')
             if (to) {
               selectEntity(to)
               globeFocusBus.fly({ entity: to })
             }
-            navigate('/dashboard')
+            driveVisual(
+              createIntent({
+                mode: 'route',
+                scale: 'global',
+                focus: [from, to].filter(Boolean),
+                origin: from || null,
+                destination: to || null,
+                camera: 'pullback',
+                transition: 'particle_reform',
+              }),
+            )
             break
           }
           case 'SHOW_RISK':
             selectEntity(null)
-            navigate('/dashboard?globe=risk')
+            driveVisual(createIntent({ mode: 'risk', scale: 'regional', camera: 'zoom_in', transition: 'disintegrate', palette: 'risk' }))
+            break
+          case 'VISUALIZE': {
+            const intent = payload.intent as VisualizationIntent | undefined
+            if (intent) driveVisual(intent)
+            break
+          }
+          case 'FOCUS_REGION': {
+            const region = String(payload.region ?? '')
+            driveVisual(
+              createIntent({
+                mode: 'region',
+                scale: 'regional',
+                focus: region ? [region] : [],
+                camera: 'zoom_in',
+                caption: region ? `Region: ${region}` : 'Regional field',
+              }),
+            )
+            break
+          }
+          case 'SHOW_CONFLICT': {
+            const region = String(payload.region ?? '')
+            selectEntity(null)
+            driveVisual(
+              createIntent({
+                mode: 'conflict',
+                scale: 'regional',
+                focus: region ? [region] : [],
+                camera: 'zoom_in',
+                palette: 'risk',
+                transition: 'particle_reform',
+                caption: region ? `Conflict field: ${region}` : 'Conflict field',
+              }),
+            )
+            break
+          }
+          case 'SHOW_NETWORK': {
+            const entity = String(payload.entity ?? '')
+            driveVisual(
+              createIntent({
+                mode: 'network',
+                scale: 'global',
+                focus: entity ? [entity] : [],
+                camera: 'pullback',
+                transition: 'particle_reform',
+                caption: 'Knowledge web',
+              }),
+            )
+            break
+          }
+          case 'SHOW_ABSTRACT':
+            selectEntity(null)
+            driveVisual(
+              createIntent({
+                mode: 'abstract',
+                scale: 'global',
+                focus: [],
+                camera: 'orbit',
+                transition: 'disintegrate',
+                palette: 'core',
+                caption: 'Abstract reasoning',
+              }),
+            )
             break
           case 'SHOW_GRAPH': {
             const entity = String(payload.entity ?? '')
