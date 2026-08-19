@@ -1,8 +1,8 @@
 # MarketAtlas Chat Bot
 
-> *AI-powered geopolitical trading intelligence backend — 13 specialized agents (incl. JARVIS general intelligence), 25 REST endpoints, full offline capability.*
+> *AI-powered geopolitical trading intelligence backend — 13 specialized agents (incl. ATLAS general intelligence), 25 REST endpoints, full offline capability.*
 
-A multi-agent conversational AI system that transforms geopolitical events into actionable trading intelligence — and, through the **JARVIS** intent, answers any general question (science, code, math, history) with the same orchestration. Powered by LangGraph, GeoRAG retrieval, and an explainable AI layer — with every external dependency being fully optional.
+A multi-agent conversational AI system that transforms geopolitical events into actionable trading intelligence — and, through the **ATLAS** intent, answers any general question (science, code, math, history) with the same orchestration. Powered by LangGraph, GeoRAG retrieval, and an explainable AI layer — with every external dependency being fully optional.
 
 ---
 
@@ -63,7 +63,7 @@ A multi-agent conversational AI system that transforms geopolitical events into 
 
 | Agent | File | What It Does |
 |-------|------|-------------|
-| **Intent Router** | `intent_router.py` | Classifies queries into 8 intents: NEWS, MARKET, IMPACT, RECOMMENDATION, SIMULATION, GRAPH, REPORT, SIMILARITY — or the general JARVIS intent |
+| **Intent Router** | `intent_router.py` | Classifies queries into 8 intents: NEWS, MARKET, IMPACT, RECOMMENDATION, SIMULATION, GRAPH, REPORT, SIMILARITY — or the general ATLAS intent |
 | **News Agent** | `news_agent.py` | Retrieves relevant news, extracts entities |
 | **Market Agent** | `market_agent.py` | Analyzes market data with SHAP-style feature attribution |
 | **Impact Agent** | `impact_agent.py` | Geopolitical risk scoring with entity extraction |
@@ -75,7 +75,7 @@ A multi-agent conversational AI system that transforms geopolitical events into 
 | **Debate Agent** | `debate_agent.py` | Multi-analyst debate pipeline for consensus |
 | **Event Similarity Agent** | `event_similarity_agent.py` | 26-event historical similarity engine |
 | **Risk Agent** | `risk_agent.py` | World-state risk interpretation |
-| **JarvisAgent** | `jarvis_agent.py` | General-purpose reasoning for non-market questions; returns a `VisualizationIntent` when the answer touches the world |
+| **AtlasAgent** | `atlas_agent.py` | General-purpose reasoning for non-market questions; returns a `VisualizationIntent` when the answer touches the world |
 
 ---
 
@@ -95,7 +95,7 @@ Intent Router (14-node StateGraph)
   ├── GRAPH         → Graph Agent + KG → LLM → Response
   ├── REPORT        → Report Agent + Debate Agent → LLM → Response
   ├── SIMILARITY    → Event Similarity Agent → LLM → Response
-  └── JARVIS        → JarvisAgent (general LLM reasoning) → LLM → Response
+  └── ATLAS        → AtlasAgent (general LLM reasoning) → LLM → Response
         │
         ▼
   Explainability Layer (SHAP + Attention + Graph Paths)
@@ -266,7 +266,7 @@ chat-bot/
 ├── main.py                       # FastAPI entry point
 ├── app/
 │   ├── agents/                   # 13 AI agents
-│   │   ├── intent_router.py      # 8-intent classifier + JARVIS general intent
+│   │   ├── intent_router.py      # 8-intent classifier + ATLAS general intent
 │   │   ├── news_agent.py         # News retrieval
 │   │   ├── market_agent.py       # Market analysis + SHAP
 │   │   ├── impact_agent.py       # Geopolitical risk
@@ -278,9 +278,9 @@ chat-bot/
 │   │   ├── debate_agent.py       # Multi-analyst debate
 │   │   ├── event_similarity_agent.py # Historical analogs
 │   │   ├── risk_agent.py         # World-state risk interpretation
-│   │   └── jarvis_agent.py       # General-purpose reasoning
+│   │   └── atlas_agent.py       # General-purpose reasoning
 │   │
-│   ├── jarvis/                   # Visualization intent extraction
+│   ├── atlas/                   # Visualization intent extraction
 │   │   └── visualization.py      # Query → VisualizationIntent
 │   │
 │   ├── api/                      # 25 REST endpoints + WebSocket
