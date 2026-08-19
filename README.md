@@ -1,10 +1,24 @@
 # MarketAtlas
 
-**Geopolitically-aware trading signals powered by AI**
+**Geopolitically-aware trading signals powered by AI — with a general intelligence (JARVIS) that speaks, thinks, and drives a living particle globe.**
 
 MarketAtlas ingests geopolitical and market events, links them to real-world entities (countries, companies, people, commodities, indices), fetches market data from Yahoo Finance, and runs a multi-agent AI pipeline to generate actionable trading signals — **Buy, Sell, Hold, or Short**. Signals can be enriched with knowledge-graph data for deeper geopolitical context.
 
+On top of the trading brain sits **JARVIS** — a voice-first general intelligence. It answers anything (markets, science, code, geopolitics), routes queries to specialist agents, and visualizes its answers in real time on the **World Intelligence Core**: an ULTRON-style particle globe that assembles, disintegrates, flies between countries, and traces trade routes on command.
+
 This repository is the **monorepo** for the MarketAtlas ecosystem — all services and the frontend live here in one repo (migrated from 10 separate repositories, with full commit history preserved).
+
+---
+
+## Highlights
+
+- 🗣️ **JARVIS** — a general-purpose voice assistant (OpenAI Realtime + browser speech fallback) with an offline knowledge brain
+- 🌍 **World Intelligence Core** — a 26k-particle holographic globe driven by query-aware *visualization intents*
+- 🔀 **Semantic camera** — the globe zooms, orbits, and flies between countries based on *what you ask*
+- 🧭 **Trade-route rendering** — animated particle streams along real maritime/land corridors
+- 🔥 **Conflict & risk heat** — clusters and heatmaps surface geopolitical hotspots
+- 🔗 **Causal reasoning** — four-graph intelligence system explains *why* predictions are made
+- 🧪 **Scenario simulator** — clone-simulate-destroy world twin with probability trees
 
 ---
 
