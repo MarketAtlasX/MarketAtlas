@@ -13,7 +13,7 @@ from ..agents import (
     GraphAgent,
     ImpactAgent,
     IntentRouter,
-    JarvisAgent,
+    AtlasAgent,
     MarketAgent,
     NewsAgent,
     RecommendationAgent,
@@ -25,7 +25,7 @@ from ..concise import trim_to_limit
 from ..explain.attention_explainer import AttentionExplainer
 from ..explain.graph_explainer import GraphExplainer
 from ..explain.shap_explainer import SHAPExplainer
-from ..jarvis import extract_visualization
+from ..atlas import extract_visualization
 from ..memory.short_term import short_term_memory
 from ..models import ChatResponse, IntentType
 from ..rag.retriever import seed_knowledge_base
@@ -57,7 +57,7 @@ simulation_agent = SimulationAgent()
 debate_agent = DebateAgent()
 risk_agent = RiskAgent()
 event_similarity_agent = EventSimilarityAgent()
-jarvis_agent = JarvisAgent()
+atlas_agent = AtlasAgent()
 shap_explainer = SHAPExplainer()
 attention_explainer = AttentionExplainer()
 graph_explainer = GraphExplainer()
@@ -183,7 +183,7 @@ async def route_intent(state: AgentState) -> AgentState:
     state["agent_responses"] = {}
     state["sources"] = []
 
-    # JARVIS owns visualization: every query maps to a World Core state so the
+    # ATLAS owns visualization: every query maps to a World Core state so the
     # frontend can react the moment the answer is produced.
     try:
         state["visualization"] = extract_visualization(state["query"], intent=intent)
@@ -194,7 +194,7 @@ async def route_intent(state: AgentState) -> AgentState:
     return state
 
 
-def decide_agents(state: AgentState) -> Literal["debate", "report", "execute_debate", "execute_report", "execute_direct", "execute_news", "execute_market", "execute_impact", "execute_graph", "execute_forecast", "execute_recommendation", "execute_simulation", "execute_similarity", "execute_risk", "execute_jarvis"]:
+def decide_agents(state: AgentState) -> Literal["debate", "report", "execute_debate", "execute_report", "execute_direct", "execute_news", "execute_market", "execute_impact", "execute_graph", "execute_forecast", "execute_recommendation", "execute_simulation", "execute_similarity", "execute_risk", "execute_atlas"]:
     intent = state["intent"]
     routing_map = {
         IntentType.REPORT: "execute_report",
@@ -206,7 +206,7 @@ def decide_agents(state: AgentState) -> Literal["debate", "report", "execute_deb
         IntentType.GRAPH: "execute_graph",
         IntentType.RECOMMENDATION: "execute_recommendation",
         IntentType.RISK: "execute_risk",
-        IntentType.JARVIS: "execute_jarvis",
+        IntentType.ATLAS: "execute_atlas",
     }
     if intent in routing_map:
         return routing_map[intent]
@@ -367,10 +367,10 @@ async def execute_debate(state: AgentState) -> AgentState:
     return state
 
 
-async def execute_jarvis(state: AgentState) -> AgentState:
+async def execute_atlas(state: AgentState) -> AgentState:
     _ensure_context(state)
-    result = await jarvis_agent.process(state["query"], state.get("_context"))
-    state["agent_responses"]["JarvisAgent"] = result["response"]
+    result = await atlas_agent.process(state["query"], state.get("_context"))
+    state["agent_responses"]["AtlasAgent"] = result["response"]
     state["sources"].extend(result.get("sources", []))
     state["final_response"] = result["response"]
     return state
@@ -512,7 +512,7 @@ def build_workflow() -> StateGraph:
     workflow.add_node("execute_risk", execute_risk)
     workflow.add_node("execute_debate", execute_debate)
     workflow.add_node("execute_direct", execute_direct)
-    workflow.add_node("execute_jarvis", execute_jarvis)
+    workflow.add_node("execute_atlas", execute_atlas)
     workflow.add_node("calculate_confidence", calculate_confidence)
     workflow.add_node("store_memory", store_memory)
 
@@ -537,7 +537,7 @@ def build_workflow() -> StateGraph:
             "execute_similarity": "execute_similarity",
             "execute_similarity_pipeline": "execute_similarity_pipeline",
             "execute_risk": "execute_risk",
-            "execute_jarvis": "execute_jarvis",
+            "execute_atlas": "execute_atlas",
         }
     )
 
@@ -545,7 +545,7 @@ def build_workflow() -> StateGraph:
         "execute_news", "execute_market", "execute_impact", "execute_graph",
         "execute_forecast", "execute_recommendation", "execute_simulation",
         "execute_similarity", "execute_similarity_pipeline", "execute_report",
-        "execute_risk", "execute_debate", "execute_direct", "execute_jarvis",
+        "execute_risk", "execute_debate", "execute_direct", "execute_atlas",
     ]
     for node in execution_nodes:
         workflow.add_edge(node, "calculate_confidence")
