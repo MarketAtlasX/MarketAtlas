@@ -40,6 +40,7 @@ function modeToIntent(mode: GlobeMode, selectedEntity: string | null): Visualiza
 export default function HolographicGlobe({ mode = 'world', onSelect, className = '' }: HolographicGlobeProps) {
   const { state } = useWorldStore()
   const [focusIntent, setFocusIntent] = useState<VisualizationIntent | null>(null)
+  const [dragging, setDragging] = useState(false)
 
   const intent = useMemo(() => {
     if (focusIntent) return focusIntent
@@ -78,8 +79,12 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
           dampingFactor={0.06}
           rotateSpeed={0.5}
           zoomSpeed={0.8}
+          autoRotate={!dragging}
+          autoRotateSpeed={0.5}
           minDistance={2.2}
           maxDistance={16}
+          onStart={() => setDragging(true)}
+          onEnd={() => setDragging(false)}
         />
         <EffectComposer multisampling={4}>
           <Bloom intensity={0.75} luminanceThreshold={0.35} luminanceSmoothing={0.85} mipmapBlur radius={0.78} />
