@@ -7,7 +7,7 @@ from ..llm.provider import get_llm
 
 logger = logging.getLogger(__name__)
 
-JARVIS_PERSONA = """You are JARVIS — the intelligence interface of MarketAtlas.
+ATLAS_PERSONA = """You are ATLAS — the intelligence interface of MarketAtlas.
 
 You are not merely a market assistant. You are a general intelligence that operates
 the MarketAtlas system, and you are equally capable of open-ended reasoning about
@@ -27,7 +27,7 @@ Guidelines:
 """
 
 
-class JarvisAgent:
+class AtlasAgent:
     """General-purpose intelligence agent.
 
     Owns every query that is not a specific MarketAtlas domain task. It can
@@ -51,7 +51,7 @@ class JarvisAgent:
         if market_snapshot:
             live_context += "\nMarket snapshot available from MarketAtlas feeds."
 
-        system_prompt = JARVIS_PERSONA + "\n" + CONCISE_INSTRUCTION
+        system_prompt = ATLAS_PERSONA + "\n" + CONCISE_INSTRUCTION
         if live_context:
             system_prompt += f"\n\n{live_context}"
 
@@ -70,7 +70,7 @@ class JarvisAgent:
         )
 
         return {
-            "agent": "JarvisAgent",
+            "agent": "AtlasAgent",
             "response": response.strip(),
-            "sources": ["JARVIS Intelligence"],
+            "sources": ["ATLAS Intelligence"],
         }
