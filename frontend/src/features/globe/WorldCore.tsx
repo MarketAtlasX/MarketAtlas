@@ -59,6 +59,18 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
   const riskPaths = useMemo(() => buildRiskPaths(state.graphLinks), [state.graphLinks])
   const isMap = scene.map
 
+  const eventRings = useMemo(() => {
+    if (!eventMode) return []
+    return state.events.slice(0, 12).map(e => ({
+      lat: e.lat || 20,
+      lng: e.lng || 0,
+      color: e.severity >= 7 ? '#ff4d5e' : e.severity >= 5 ? '#f5b941' : '#38e8ff',
+      intensity: Math.min(1, 0.4 + (e.severity / 10) * 0.6),
+      label: e.country,
+      kind: 'conflict' as const,
+    }))
+  }, [eventMode, state.events])
+
   return (
     <>
       <Stars />
@@ -80,6 +92,7 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
 
       {!isMap && scene.routes.length > 0 && <EnergyPaths flows={scene.routes} />}
       {!isMap && scene.regions.length > 0 && <FocusRings regions={scene.regions} />}
+      {!isMap && eventRings.length > 0 && <FocusRings regions={eventRings} />}
       {!isMap && scene.conflicts.length > 0 && <RegionClusters regions={scene.conflicts} />}
 
       {!isMap && showHeatmap && <Heatmap data={heatmap} />}
