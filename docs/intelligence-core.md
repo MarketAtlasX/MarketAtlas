@@ -178,3 +178,39 @@ A tiny component that owns a GSAP tween on `camera.position` and re-aims
 `camera.lookAt` every tick. It receives the `SceneConfig.camera` target and a
 `runId` — the first run applies instantly, later runs fly smoothly
 (power2.inOut, ~1.6s).
+
+---
+
+## 5. Worked Examples
+
+| Query | Intent | Globe response |
+|-------|--------|----------------|
+| "Show me the route from India to Germany" | `route` · India → Germany | golden particle stream along the corridor, pullback camera |
+| "What is happening in Iran?" | `country` · focus [Iran] | zoom to Iran; particles heat around it |
+| "Show me the trade routes to Asia" | `route` · focus [Asia hubs] | streams fan out to major Asian ports |
+| "What about conflict zones?" | `conflict` · risk palette | red clusters + heatmap, zoom_in, disintegrate |
+| "Show India-China border tensions" | `conflict` · focus [India, China] | both countries highlighted, risk overlay |
+| "Explain general relativity" | `abstract` · orbit | full particle detach, slow orbital camera |
+| "What is 15 * 4 + 2?" | `abstract` | globe answers "62", no camera move |
+| "Show China maritime trade routes" | `route` · origin [China] | streams from China to major hubs |
+
+## 6. Verification
+
+- `npx tsc --noEmit` and `npm run build` pass in `frontend/`.
+- `npx vitest run` — 72 tests, including `inferVisualization.test.ts`
+  (mode mapping) and `generalKnowledge.test.ts` (math + curated topics).
+- Backend modules compile via `python -m py_compile`; the visualization
+  extractor is exercised with a stubbed model in isolated runs.
+
+## 7. Design Decisions
+
+1. **One contract, two implementations** — backend and offline frontend produce
+   the same `VisualizationIntent` shape, so the globe never waits on the network.
+2. **Deterministic priority** — abstract → route → conflict → risk → network →
+   country → region → globe keeps recognition predictable and testable.
+3. **Heuristics over magic** — `_looks_general()` and keyword signals make the
+   classifier work even before the LLM prompt, and stay fast on every query.
+4. **Shaders that never NaN** — the particle shader guards zero-length focus so
+   idle modes render cleanly on every GPU.
+5. **Camera as a consequence** — the camera is derived from the intent, never
+   hand-positioned, so voice and UI clicks share one choreography.
