@@ -14,7 +14,7 @@ class IntentType(str, Enum):
     REPORT = "REPORT"
     SIMILARITY = "SIMILARITY"
     RISK = "RISK"
-    JARVIS = "JARVIS"
+    ATLAS = "ATLAS"
 
 
 class VisualMode(str, Enum):
