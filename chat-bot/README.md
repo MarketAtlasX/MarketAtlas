@@ -94,13 +94,17 @@ Intent Router (14-node StateGraph)
   ├── SIMULATION    → Simulation Agent → LLM → Response
   ├── GRAPH         → Graph Agent + KG → LLM → Response
   ├── REPORT        → Report Agent + Debate Agent → LLM → Response
-  └── SIMILARITY    → Event Similarity Agent → LLM → Response
+  ├── SIMILARITY    → Event Similarity Agent → LLM → Response
+  └── JARVIS        → JarvisAgent (general LLM reasoning) → LLM → Response
         │
         ▼
   Explainability Layer (SHAP + Attention + Graph Paths)
         │
         ▼
   Confidence Calculation
+        │
+        ▼
+  Visualization Extractor → VisualizationIntent (drives the frontend globe)
         │
         ▼
   Memory Store (Short-term + Long-term)
