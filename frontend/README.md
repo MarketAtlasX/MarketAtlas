@@ -37,10 +37,27 @@ The globe is the primary interface. Selecting a node focuses the camera and feed
 | `/graph` | Causal mini-map + four-graph intelligence system | `src/features/graph-analysis/GraphPage.tsx` |
 | `/simulator` | Scenario simulator (clone-simulate-destroy) | `src/features/scenario-simulator/SimulatorPage.tsx` |
 | `/memory` | World memory / historical analogues | `src/features/world-memory/MemoryPage.tsx` |
+| `/atlas` | JARVIS — voice-first general intelligence | `src/assistant/AtlasPage.tsx` |
 
 `/` redirects to `/dashboard`.
 
 ## Key Features
+
+### JARVIS — The General Intelligence
+
+JARVIS is the voice-first assistant that generalizes the whole interface into an
+intelligence system you talk to. It hears you, reasons, and *shows* the answer.
+
+- **Voice core** — OpenAI Realtime WebRTC (`voice/RealtimeVoice.ts`) with browser
+  speech fallback (`voice/browserSpeech.ts`); an audio-reactive holographic orb
+  (`orb/AtlasOrb.tsx`) pulses while it speaks.
+- **General brain** — `brain/jarvisBrain.ts` routes to the backend for full LLM
+  depth, or answers offline with curated topics + a safe math evaluator
+  (`brain/generalKnowledge.ts`).
+- **Command bus** — structured commands (`VISUALIZE`, `FOCUS_REGION`,
+  `SHOW_CONFLICT`, `SHOW_NETWORK`, `SHOW_ABSTRACT`, ...) drive the real UI.
+- **Visualization bus** — `commands/visualizationBus.ts` pushes a
+  `VisualizationIntent` to the globe, so every answer becomes a living scene.
 
 ### Holographic Globe
 - Custom `@react-three/fiber` scene: Earth, atmosphere, hologram, grid, rings, satellites, stars
