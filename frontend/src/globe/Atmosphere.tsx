@@ -45,10 +45,11 @@ export default function Atmosphere() {
 
   const ref = useRef<THREE.Mesh>(null)
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (ref.current) {
       ref.current.rotation.y += delta * 0.05
     }
+    uniforms.intensity.value = 0.5 + 0.1 * Math.sin(clock.getElapsedTime() * 0.5)
   })
 
   return (
