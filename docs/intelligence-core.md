@@ -105,3 +105,76 @@ every path continues to:
 `JarvisAgent` (`backend/app/chatbot/agents/jarvis_agent.py`) uses the shared
 `get_llm()` provider abstraction, so it works with OpenAI, Gemini, Claude, or
 Ollama — or a deterministic mock when nothing is configured.
+
+---
+
+## 4. The World Intelligence Core
+
+The globe is the canvas. `WorldCore` (`frontend/src/features/globe/WorldCore.tsx`)
+turns an intent into a rendered scene:
+
+```
+VisualizationIntent
+      │
+      ▼
+resolveScene(intent) ──► SceneConfig { transition, camera, routes, regions, overlays }
+      │
+      ├── ParticleCore     26k-particle GLSL sphere
+      │                     • detach → disintegrate / reform
+      │                     • focus  → particles heat toward a country
+      │                     • red clusters over high-risk world states
+      ├── FlowParticles     animated golden/blue streams along routes
+      ├── RegionClusters    pulsing dense clusters at focuses
+      ├── Heatmap / Arcs / Nodes / Labels   (mode-dependent overlays)
+      └── CameraDirector    GSAP flight to the semantic framing
+```
+
+### SceneDirector (`frontend/src/features/globe/SceneDirector.ts`)
+
+`resolveScene` reads the intent and decides *everything visual*:
+
+| Mode | Camera | What you see |
+|------|--------|--------------|
+| `globe` | pullback (~6.5) | full particle world, breathing idle |
+| `country` | zoom (~3.1) | particles heat around the focused country |
+| `region` | regional (~4.1) | region clusters + selected overlay |
+| `route` | pullback (~7) | origin → destination particle stream |
+| `network` | pullback | arcs over major hubs |
+| `risk` | zoom_in | red heatmap + disintegrate transition |
+| `conflict` | zoom_in | risk palette + conflict clusters |
+| `abstract` | orbit | full detachment, slow orbital camera |
+
+Routes are built from the intent's origin/destination or fan out from a focus
+entity toward `MAJOR_HUBS`. Risk regions come from `worldStates` with
+`riskScore >= 55`. Palettes (`ultron`, `gold`, `risk`, `core`) recolor the core,
+flows, and clusters in one switch.
+
+### ParticleCore (`frontend/src/globe/ParticleCore.tsx`)
+
+A fibonacci-sphere of ~26,000 particles with a hand-written GLSL shader:
+
+- **Breathing** — per-particle sinusoidal radius wobble.
+- **Swirl** — slow differential rotation by seed.
+- **Detach** — interpolates each particle between its shell position and a
+  scattered cloud (the `disintegrate` / `particle_reform` transitions).
+- **Focus heat** — particles near the focused country are pulled toward it,
+  brighten, and shift toward the heat color.
+- **Risk clusters** — particles aligned with high-risk countries tint red.
+
+The shader guards against zero-length focus vectors, so idle/globe mode never
+produces NaN artifacts.
+
+### FlowParticles & RegionClusters
+
+- `FlowParticles` draws one arc per route (spherical quadratic through an
+  elevated midpoint), and animates a bright "head" traveling along the arc —
+  the classic ULTRON route stream.
+- `RegionClusters` spawns ~700-particle clouds at each focus, pulsing and
+  rotating slowly, colored by intensity.
+
+### CameraDirector
+
+A tiny component that owns a GSAP tween on `camera.position` and re-aims
+`camera.lookAt` every tick. It receives the `SceneConfig.camera` target and a
+`runId` — the first run applies instantly, later runs fly smoothly
+(power2.inOut, ~1.6s).
