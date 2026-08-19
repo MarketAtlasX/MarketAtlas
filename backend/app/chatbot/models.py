@@ -14,6 +14,31 @@ class IntentType(str, Enum):
     REPORT = "REPORT"
     SIMILARITY = "SIMILARITY"
     RISK = "RISK"
+    JARVIS = "JARVIS"
+
+
+class VisualMode(str, Enum):
+    CORE = "core"
+    GLOBE = "globe"
+    COUNTRY = "country"
+    REGION = "region"
+    ROUTE = "route"
+    NETWORK = "network"
+    RISK = "risk"
+    CONFLICT = "conflict"
+    ABSTRACT = "abstract"
+
+
+class VisualizationIntent(BaseModel):
+    mode: VisualMode = VisualMode.GLOBE
+    scale: str = "global"
+    focus: list[str] = []
+    origin: Optional[str] = None
+    destination: Optional[str] = None
+    transition: str = "particle_reform"
+    camera: str = "pullback"
+    palette: str = "ultron"
+    caption: str = ""
 
 
 class RiskRating(str, Enum):
@@ -69,6 +94,7 @@ class ChatResponse(BaseModel):
     sources: list[str] = []
     report: Optional[dict[str, Any]] = None
     explanations: Optional[dict[str, Any]] = None
+    visualization: Optional[VisualizationIntent] = None
 
 
 class GraphEntity(BaseModel):
