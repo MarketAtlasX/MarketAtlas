@@ -28,7 +28,8 @@ function Label({ data: d, radius }: { data: LabelData; radius: number }) {
         anchorX="center"
         anchorY="middle"
         fillOpacity={0.85}
-        outlineWidth={0}
+        outlineWidth={0.006}
+        outlineColor="#051322"
       >
         {d.text}
       </Text>
