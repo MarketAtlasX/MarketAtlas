@@ -137,3 +137,36 @@ The LLM classification prompt includes a JARVIS category, and a heuristic
 Priority order: **abstract → route → conflict → risk → network → country → region → globe.**
 The same logic is mirrored in the frontend (`inferVisualization`) so the globe
 responds instantly even when the backend is offline.
+
+### The VisualizationIntent Contract
+
+Every `ChatResponse` may carry an optional `visualization` field:
+
+```json
+{
+  "mode": "route",
+  "focus": ["India", "Germany"],
+  "origin": "India",
+  "destination": "Germany",
+  "scale": "regional",
+  "camera": "pullback",
+  "transition": "particle_reform",
+  "palette": "ultron",
+  "caption": "Trade route from India to Germany"
+}
+```
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `mode` | enum | `core`, `globe`, `country`, `region`, `route`, `network`, `risk`, `conflict`, `abstract` |
+| `focus` | string[] | Countries/entities to highlight |
+| `origin` | string | Route start (route/network modes) |
+| `destination` | string | Route end (route/network modes) |
+| `scale` | enum | `global`, `regional`, `country` |
+| `camera` | enum | `pullback`, `zoom_in`, `orbit` |
+| `transition` | enum | `particle_reform`, `disintegrate`, `reassemble` |
+| `palette` | enum | `ultron`, `gold`, `risk`, `core` |
+| `caption` | string | Human-readable summary |
+
+These types live in `app/chatbot/models.py` (`VisualMode`, `VisualizationIntent`)
+and are mirrored on the frontend in `src/api/chatApi.ts`.
