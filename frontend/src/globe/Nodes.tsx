@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { latLngToDir } from '../features/globe/SceneDirector'
 
 interface NodeData {
   lat: number
@@ -18,22 +19,12 @@ interface NodesProps {
   onNodeClick?: (data: NodeData) => void
 }
 
-function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
-  const phi = (90 - lat) * (Math.PI / 180)
-  const theta = (lng + 180) * (Math.PI / 180)
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta),
-  )
-}
-
 function NodePulse({ data: d, radius, onNodeClick }: { data: NodeData; radius: number; onNodeClick?: (d: NodeData) => void }) {
   const coreRef = useRef<THREE.Mesh>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
 
-  const pos = useMemo(() => latLngToVec3(d.lat, d.lng, radius), [d.lat, d.lng, radius])
+  const pos = useMemo(() => latLngToDir(d.lat, d.lng).multiplyScalar(radius), [d.lat, d.lng, radius])
   const color = useMemo(() => new THREE.Color(d.color || '#00d4ff'), [d.color])
   const pulseCol = useMemo(() => new THREE.Color(d.pulseColor || d.color || '#00d4ff'), [d.pulseColor, d.color])
   const nodeSize = d.radius || 0.08
