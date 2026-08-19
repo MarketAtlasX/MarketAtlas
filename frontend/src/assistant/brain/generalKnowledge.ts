@@ -116,7 +116,7 @@ export function generalAnswer(transcript: string): GeneralAnswer {
 
   if (GREETING.test(trimmed)) {
     return {
-      text: 'Good to hear you. JARVIS is online. I can analyze markets and geopolitics through MarketAtlas, or reason about anything else — science, code, history, mathematics. What do you need?',
+      text: 'Good to hear you. ATLAS is online. I can analyze markets and geopolitics through MarketAtlas, or reason about anything else — science, code, history, mathematics. What do you need?',
       confidence: 0.9,
     }
   }
