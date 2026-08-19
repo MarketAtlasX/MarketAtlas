@@ -27,9 +27,12 @@ export default function Stars() {
     return [pos, cols]
   }, [])
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (ref.current) {
       ref.current.rotation.y += delta * 0.005
+      const t = clock.getElapsedTime()
+      ref.current.position.x = Math.sin(t * 0.025) * 0.6
+      ref.current.position.y = Math.sin(t * 0.02) * 0.4
     }
   })
 
