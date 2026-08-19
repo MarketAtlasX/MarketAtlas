@@ -136,6 +136,16 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
           </div>
         </div>
       )}
+      <div className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none">
+        <div className="relative h-20 w-20 opacity-25">
+          <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[var(--accent)]" />
+          <div className="absolute top-1/2 left-0 w-full h-px -translate-y-1/2 bg-[var(--accent)]" />
+          <div className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 border-t border-l border-[var(--accent)]" />
+          <div className="absolute left-1/2 bottom-0 h-2 w-2 -translate-x-1/2 border-b border-l border-[var(--accent)]" />
+          <div className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 border-t border-r border-[var(--accent)]" />
+          <div className="absolute left-0 top-1/2 h-2 w-2 -translate-y-1/2 border-t border-l border-[var(--accent)]" />
+        </div>
+      </div>
     </div>
   )
 }
