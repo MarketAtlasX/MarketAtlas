@@ -14,6 +14,7 @@ const ringData: RingData[] = [
   { radius: 2.8, color: '#44ffdd', opacity: 0.7, speed: 0.02, tilt: 0.1 },
   { radius: 3.2, color: '#8888ff', opacity: 0.45, speed: -0.018, tilt: 0.2 },
   { radius: 3.7, color: '#00ffcc', opacity: 0.4, speed: 0.025, tilt: 0.15 },
+  { radius: 4.15, color: '#3366ff', opacity: 0.18, speed: 0.012, tilt: 0.25 },
 ]
 
 function Ring({ data }: { data: RingData }) {
