@@ -26,8 +26,8 @@ This repository is the **monorepo** for the MarketAtlas ecosystem — all servic
 
 | Directory | Purpose |
 |-----------|---------|
-| `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration |
-| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 3000) |
+| `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration, and the JARVIS chatbot subsystem |
+| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 3000) with the JARVIS voice assistant and particle World Core globe |
 | `market_agents/` | AI agent gateway — ImpactAgent, MarketDataAgent, RecommendationAgent (ports 8001–8004) |
 | `knowledge-graph-agent/` | News scraping, entity extraction, relationship graph builder (port 8008) |
 | `world_state/` | Geopolitical risk state & propagation (port 8006) |
