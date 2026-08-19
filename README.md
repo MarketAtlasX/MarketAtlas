@@ -1,10 +1,10 @@
 # MarketAtlas
 
-**Geopolitically-aware trading signals powered by AI — with a general intelligence (JARVIS) that speaks, thinks, and drives a living particle globe.**
+**Geopolitically-aware trading signals powered by AI — with a general intelligence (ATLAS) that speaks, thinks, and drives a living particle globe.**
 
 MarketAtlas ingests geopolitical and market events, links them to real-world entities (countries, companies, people, commodities, indices), fetches market data from Yahoo Finance, and runs a multi-agent AI pipeline to generate actionable trading signals — **Buy, Sell, Hold, or Short**. Signals can be enriched with knowledge-graph data for deeper geopolitical context.
 
-On top of the trading brain sits **JARVIS** — a voice-first general intelligence. It answers anything (markets, science, code, geopolitics), routes queries to specialist agents, and visualizes its answers in real time on the **World Intelligence Core**: an ULTRON-style particle globe that assembles, disintegrates, flies between countries, and traces trade routes on command.
+On top of the trading brain sits **ATLAS** — a voice-first general intelligence. It answers anything (markets, science, code, geopolitics), routes queries to specialist agents, and visualizes its answers in real time on the **World Intelligence Core**: an ULTRON-style particle globe that assembles, disintegrates, flies between countries, and traces trade routes on command.
 
 This repository is the **monorepo** for the MarketAtlas ecosystem — all services and the frontend live here in one repo (migrated from 10 separate repositories, with full commit history preserved).
 
@@ -12,7 +12,7 @@ This repository is the **monorepo** for the MarketAtlas ecosystem — all servic
 
 ## Highlights
 
-- 🗣️ **JARVIS** — a general-purpose voice assistant (OpenAI Realtime + browser speech fallback) with an offline knowledge brain
+- 🗣️ **ATLAS** — a general-purpose voice assistant (OpenAI Realtime + browser speech fallback) with an offline knowledge brain
 - 🌍 **World Intelligence Core** — a 26k-particle holographic globe driven by query-aware *visualization intents*
 - 🔀 **Semantic camera** — the globe zooms, orbits, and flies between countries based on *what you ask*
 - 🧭 **Trade-route rendering** — animated particle streams along real maritime/land corridors
@@ -26,8 +26,8 @@ This repository is the **monorepo** for the MarketAtlas ecosystem — all servic
 
 | Directory | Purpose |
 |-----------|---------|
-| `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration, and the JARVIS chatbot subsystem |
-| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 3000) with the JARVIS voice assistant and particle World Core globe |
+| `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration, and the ATLAS chatbot subsystem |
+| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 3000) with the ATLAS voice assistant and particle World Core globe |
 | `market_agents/` | AI agent gateway — ImpactAgent, MarketDataAgent, RecommendationAgent (ports 8001–8004) |
 | `knowledge-graph-agent/` | News scraping, entity extraction, relationship graph builder (port 8008) |
 | `world_state/` | Geopolitical risk state & propagation (port 8006) |
@@ -187,9 +187,9 @@ python -m backend.app.chatbot.scripts.seed_data
 
 ---
 
-## JARVIS — The General Intelligence Layer
+## ATLAS — The General Intelligence Layer
 
-JARVIS is a voice-first assistant that generalizes the MarketAtlas chatbot into a full intelligence system. It hears you (OpenAI Realtime WebRTC or browser speech), reasons about anything, and — when the query touches the world — drives the globe to show you the answer.
+ATLAS is a voice-first assistant that generalizes the MarketAtlas chatbot into a full intelligence system. It hears you (OpenAI Realtime WebRTC or browser speech), reasons about anything, and — when the query touches the world — drives the globe to show you the answer.
 
 ```
 Voice / Text Query
@@ -197,8 +197,8 @@ Voice / Text Query
       ▼
 ┌─────────────────────┐   ┌──────────────────────────────────────┐
 │  Frontend Brain      │   │  Backend Workflow (LangGraph)         │
-│  (jarvisBrain)       │──►│  Intent Router → specialist agents    │
-│  offline fallbacks   │   │  JARVIS intent → JarvisAgent (LLM)    │
+│  (atlasBrain)       │──►│  Intent Router → specialist agents    │
+│  offline fallbacks   │   │  ATLAS intent → AtlasAgent (LLM)    │
 └─────────────────────┘   └───────────────┬──────────────────────┘
       │                                   │
       ▼                                   ▼
@@ -311,9 +311,9 @@ backend/
 │   ├── routes/                    # API route handlers (15 routers)
 │   ├── middleware/                 # Logging, metrics, rate limiting
 │   ├── workers/                   # Celery background tasks
-│   ├── chatbot/                   # AI chatbot subsystem (JARVIS)
-│   │   ├── agents/                # 13 AI agents incl. JarvisAgent
-│   │   ├── jarvis/                # Visualization intent extractor
+│   ├── chatbot/                   # AI chatbot subsystem (ATLAS)
+│   │   ├── agents/                # 13 AI agents incl. AtlasAgent
+│   │   ├── atlas/                # Visualization intent extractor
 │   │   │   └── visualization.py   # Query → VisualizationIntent
 │   │   ├── api/                   # Chat REST + WebSocket routes
 │   │   ├── llm/                   # LLM provider abstraction
