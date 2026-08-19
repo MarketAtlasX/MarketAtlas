@@ -31,7 +31,7 @@ const PARTICLE_COUNT_PER_PATH = 20
 function RiskPathParticles({ path, radius }: { path: RiskPath; radius: number }) {
   const ref = useRef<THREE.Points>(null)
 
-  const { positions, colors } = useMemo(() => {
+  const { positions } = useMemo(() => {
     const start = latLngToVec3(path.startLat, path.startLng, radius)
     const end = latLngToVec3(path.endLat, path.endLng, radius)
     const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
@@ -39,61 +39,49 @@ function RiskPathParticles({ path, radius }: { path: RiskPath; radius: number })
     mid.normalize().multiplyScalar(radius + dist * 0.25)
 
     const pos = new Float32Array(PARTICLE_COUNT_PER_PATH * 3)
-    const col = new Float32Array(PARTICLE_COUNT_PER_PATH * 3)
-    const c = new THREE.Color(path.color || '#ff4444')
-
     for (let i = 0; i < PARTICLE_COUNT_PER_PATH; i++) {
-      const t = i / PARTICLE_COUNT_PER_PATH
+      const t = i / (PARTICLE_COUNT_PER_PATH - 1)
       const a = new THREE.Vector3().lerpVectors(start, mid, t)
       const b = new THREE.Vector3().lerpVectors(mid, end, t)
       const p = new THREE.Vector3().lerpVectors(a, b, t)
       pos[i * 3] = p.x
       pos[i * 3 + 1] = p.y
       pos[i * 3 + 2] = p.z
-      const alpha = path.intensity
-      col[i * 3] = c.r * alpha
-      col[i * 3 + 1] = c.g * alpha
-      col[i * 3 + 2] = c.b * alpha
     }
-
-    return { positions: pos, colors: col }
+    return { positions: pos }
   }, [path, radius])
 
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      const t = clock.getElapsedTime() * 0.3
-      const sizes = ref.current.geometry.attributes.size as THREE.BufferAttribute
-      if (sizes) {
-        const array = sizes.array as Float32Array
-        for (let i = 0; i < PARTICLE_COUNT_PER_PATH; i++) {
-          const phase = (i / PARTICLE_COUNT_PER_PATH + t) % 1.0
-          array[i] = phase < 0.1 ? 0.08 : 0.02
-        }
-        sizes.needsUpdate = true
-      }
-    }
-  })
+  const colorsRef = useMemo(() => new Float32Array(PARTICLE_COUNT_PER_PATH * 3), [])
+  const base = useMemo(() => new THREE.Color(path.color || '#ff4444'), [path])
 
-  const sizeArray = useMemo(() => {
-    const arr = new Float32Array(PARTICLE_COUNT_PER_PATH)
+  useFrame(({ clock }) => {
+    if (!ref.current) return
+    const t = clock.getElapsedTime() * 0.35
+    const attr = ref.current.geometry.attributes.color as THREE.BufferAttribute
+    const arr = attr.array as Float32Array
     for (let i = 0; i < PARTICLE_COUNT_PER_PATH; i++) {
-      arr[i] = 0.02
+      const phase = (i / PARTICLE_COUNT_PER_PATH + t) % 1.0
+      const head = Math.exp(-Math.pow((phase - 0.5) * 6, 2))
+      const brightness = path.intensity * (0.25 + head * 1.4)
+      arr[i * 3] = base.r * brightness
+      arr[i * 3 + 1] = base.g * brightness
+      arr[i * 3 + 2] = base.b * brightness
     }
-    return arr
-  }, [])
+    attr.needsUpdate = true
+    void colorsRef
+  })
 
   return (
     <points ref={ref}>
       <bufferGeometry>
         <bufferAttribute args={[positions, 3]} attach="attributes-position" count={PARTICLE_COUNT_PER_PATH} />
-        <bufferAttribute args={[colors, 3]} attach="attributes-color" count={PARTICLE_COUNT_PER_PATH} />
-        <bufferAttribute args={[sizeArray, 1]} attach="attributes-size" count={PARTICLE_COUNT_PER_PATH} />
+        <bufferAttribute args={[colorsRef, 3]} attach="attributes-color" count={PARTICLE_COUNT_PER_PATH} />
       </bufferGeometry>
       <pointsMaterial
         size={0.06}
         vertexColors
         transparent
-        opacity={0.8}
+        opacity={0.85}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
         sizeAttenuation
