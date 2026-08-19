@@ -249,3 +249,5 @@ Every endpoint has an offline mock fallback so the command center stays alive wi
 6. **Explainable AI** — the four-graph system shows *why* predictions are made
 7. **Restrained glow** — only active intelligence emits light
 8. **Clone-Simulate-Destroy** — the scenario simulator never mutates live state
+9. **Intent-driven visualization** — the globe is a canvas that answers questions
+10. **General intelligence** — JARVIS reasons beyond markets, not just about them
