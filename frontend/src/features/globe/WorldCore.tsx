@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Stars } from '../../globe'
 import ParticleCore from '../../globe/ParticleCore'
-import FlowParticles from '../../globe/FlowParticles'
+import EnergyPaths from '../../globe/EnergyPaths'
+import FocusRings from '../../globe/FocusRings'
+import HolographicMap from '../../globe/HolographicMap'
 import RegionClusters from '../../globe/RegionClusters'
 import Atmosphere from '../../globe/Atmosphere'
 import Rings from '../../globe/Rings'
@@ -10,13 +12,14 @@ import Grid from '../../globe/Grid'
 import Nodes from '../../globe/Nodes'
 import Labels from '../../globe/Labels'
 import Heatmap from '../../globe/Heatmap'
+import RiskPropagation from '../../globe/RiskPropagation'
 import Arcs from '../../globe/Arcs'
 import CameraDirector from './CameraDirector'
 import { resolveScene } from './SceneDirector'
 import { DEFAULT_INTENT, type VisualizationIntent } from './visualizationIntent'
 import { visualizationBus } from '../../assistant/commands/visualizationBus'
 import { useWorldStore } from '../../stores/WorldStore'
-import { buildNodes, buildHeatmap, buildArcs, buildLabelData, buildEventNodes, resolveCoords } from './globeData'
+import { buildNodes, buildHeatmap, buildArcs, buildLabelData, buildEventNodes, buildRiskPaths, resolveCoords } from './globeData'
 
 export interface WorldCoreProps {
   intent?: VisualizationIntent
@@ -53,6 +56,8 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
 
   const showHeatmap = intent.mode === 'risk' || intent.mode === 'conflict'
   const showGraphLinks = intent.mode === 'network' || intent.mode === 'route'
+  const riskPaths = useMemo(() => buildRiskPaths(state.graphLinks), [state.graphLinks])
+  const isMap = scene.map
 
   return (
     <>
@@ -61,18 +66,26 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
       <directionalLight position={[-6, -3, -4]} intensity={0.5} color="#4488ff" />
       <ambientLight intensity={0.3} color="#445566" />
 
-      <ParticleCore transition={scene.transition} radius={2} />
-      <Atmosphere />
-      <Grid />
-      <Rings />
-      <Satellites />
+      {!isMap && (
+        <>
+          <ParticleCore transition={scene.transition} radius={2} />
+          <Atmosphere />
+          <Grid />
+          <Rings />
+          <Satellites />
+        </>
+      )}
 
-      {scene.routes.length > 0 && <FlowParticles flows={scene.routes} />}
-      {scene.regions.length > 0 && <RegionClusters regions={scene.regions} />}
+      {isMap && <HolographicMap visible routes={scene.routes} regions={scene.regions} />}
 
-      {showHeatmap && <Heatmap data={heatmap} />}
-      {showGraphLinks && arcs.length > 0 && <Arcs data={arcs} />}
-      {scene.showOverlays && (
+      {!isMap && scene.routes.length > 0 && <EnergyPaths flows={scene.routes} />}
+      {!isMap && scene.regions.length > 0 && <FocusRings regions={scene.regions} />}
+      {!isMap && scene.conflicts.length > 0 && <RegionClusters regions={scene.conflicts} />}
+
+      {!isMap && showHeatmap && <Heatmap data={heatmap} />}
+      {!isMap && showHeatmap && riskPaths.length > 0 && <RiskPropagation paths={riskPaths} />}
+      {!isMap && showGraphLinks && arcs.length > 0 && <Arcs data={arcs} />}
+      {!isMap && scene.showOverlays && (
         <Nodes
           data={nodes}
           onNodeClick={d => {
@@ -83,7 +96,7 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
           }}
         />
       )}
-      {scene.showOverlays && intent.mode !== 'abstract' && intent.mode !== 'core' && <Labels data={labels} />}
+      {!isMap && scene.showOverlays && intent.mode !== 'abstract' && intent.mode !== 'core' && <Labels data={labels} />}
 
       <CameraDirector scene={scene} runId={runId} />
     </>
