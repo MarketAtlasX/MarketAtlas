@@ -52,3 +52,88 @@ External events (GDELT, news, market feeds)
         ▼
    Celery workers ──► yfinance / market_agents / world_state / graph_engine
 ```
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Language | Python 3.12+ |
+| Framework | FastAPI |
+| ASGI Server | Uvicorn |
+| Database | PostgreSQL 16 (async via `asyncpg`) |
+| ORM | SQLAlchemy 2.0 (async) |
+| Migrations | Alembic |
+| Validation | Pydantic v2 + Pydantic Settings |
+| Market Data | `yfinance` (Yahoo Finance) with `pandas`/`numpy` |
+| AI/ML | LangGraph, LangChain, spaCy, sentence-transformers, Qdrant |
+| Task Queue | Celery (Redis broker) |
+| Caching | Redis (async via `redis-py`) |
+| Knowledge Graph | Neo4j client |
+| HTTP Client | `httpx` |
+| Observability | Prometheus metrics, structured logging (Loguru) |
+| Rate Limiting | In-memory token bucket (200 req/min) |
+| Testing | pytest + pytest-asyncio + httpx |
+| Containerization | Docker multi-stage build (Python 3.12-slim) |
+| Code Quality | Ruff (lint + format), mypy, pre-commit hooks |
+
+---
+
+## The Chatbot Subsystem (JARVIS)
+
+JARVIS is the general intelligence layer. The chatbot subsystem classifies, reasons, and visualizes:
+
+### Agent Ecosystem (13 agents)
+
+| Agent | File | What It Does |
+|-------|------|-------------|
+| **Intent Router** | `intent_router.py` | Classifies queries into MARKETATLAS intents or the general JARVIS intent |
+| **News Agent** | `news_agent.py` | Retrieves relevant news, extracts entities |
+| **Market Agent** | `market_agent.py` | Analyzes market data with SHAP-style attribution |
+| **Impact Agent** | `impact_agent.py` | Geopolitical risk scoring with entity extraction |
+| **Graph Agent** | `graph_agent.py` | Knowledge-graph queries via BFS pathfinding |
+| **Forecast Agent** | `forecast_agent.py` | Probability-weighted multi-scenario forecasts |
+| **Recommendation Agent** | `recommendation_agent.py` | BUY/HOLD/SELL with confidence scoring |
+| **Simulation Agent** | `simulation_agent.py` | What-if geopolitical scenario simulation |
+| **Report Agent** | `report_agent.py` | Structured intelligence report generation |
+| **Debate Agent** | `debate_agent.py` | Multi-analyst debate pipeline for consensus |
+| **Event Similarity Agent** | `event_similarity_agent.py` | Historical-event similarity engine |
+| **Risk Agent** | `risk_agent.py` | World-state risk interpretation |
+| **JarvisAgent** | `jarvis_agent.py` | General-purpose reasoning for non-market questions |
+
+### Intent Routing
+
+`intent_router.py` decides between two worlds:
+
+```
+Query
+  │
+  ├─ MarketAtlas signal?  (market, geo, trade, conflict keywords)
+  │     └─► specialist agents (News / Market / Impact / Graph / ...)
+  │
+  └─ General reasoning?   (science, math, code, philosophy, ...)
+        └─► IntentType.JARVIS → JarvisAgent → LLM → natural answer
+```
+
+The LLM classification prompt includes a JARVIS category, and a heuristic
+`_looks_general()` guard catches obvious general queries even without the LLM.
+
+### Visualization Extraction
+
+`jarvis/visualization.py` turns any query into a `VisualizationIntent`:
+
+```
+"Show me the route from India to Germany"
+        └─► mode: route | origin: India | destination: Germany
+
+"Explain general relativity"
+        └─► mode: abstract | camera: orbit
+
+"What is happening in Iran?"
+        └─► mode: country | focus: [Iran] | camera: zoom_in
+```
+
+Priority order: **abstract → route → conflict → risk → network → country → region → globe.**
+The same logic is mirrored in the frontend (`inferVisualization`) so the globe
+responds instantly even when the backend is offline.
