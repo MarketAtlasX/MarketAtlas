@@ -53,6 +53,10 @@ function toneColor(tone: string | undefined, fallback: string): THREE.Color {
 function EnergyStream({ flow }: { flow: RouteFlow }) {
   const pointsRef = useRef<THREE.Points>(null)
   const materialRef = useRef<THREE.PointsMaterial>(null)
+  const originRef = useRef<THREE.Mesh>(null)
+  const originMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const destRef = useRef<THREE.Mesh>(null)
+  const destMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const speed = useRef(0.06 + Math.random() * 0.05)
 
   const base = useMemo(
@@ -95,6 +99,9 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
     [flow.startLat, flow.startLng, flow.endLat, flow.endLng],
   )
 
+  const originPos = useMemo(() => base[0].clone(), [base])
+  const destPos = useMemo(() => base[base.length - 1].clone(), [base])
+
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
     if (!pointsRef.current || !materialRef.current) return
@@ -123,6 +130,15 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
     sizeAttr.needsUpdate = true
 
     materialRef.current.opacity = 0.65 + 0.25 * Math.sin(t * 1.2) * heat
+
+    if (originMatRef.current && destMatRef.current) {
+      originMatRef.current.opacity = 0.5 + 0.5 * Math.sin(t * 2.4) * heat
+      destMatRef.current.opacity = 0.5 + 0.5 * Math.sin(t * 2.4 + Math.PI) * heat
+    }
+    if (originRef.current && destRef.current) {
+      originRef.current.scale.setScalar(1 + 0.4 * Math.sin(t * 2.4))
+      destRef.current.scale.setScalar(1 + 0.4 * Math.sin(t * 2.4 + Math.PI))
+    }
   })
 
   return (
@@ -151,6 +167,14 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
           sizeAttenuation
         />
       </points>
+      <mesh ref={originRef} position={originPos}>
+        <sphereGeometry args={[0.05, 12, 12]} />
+        <meshBasicMaterial ref={originMatRef} color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh ref={destRef} position={destPos}>
+        <sphereGeometry args={[0.05, 12, 12]} />
+        <meshBasicMaterial ref={destMatRef} color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
     </group>
   )
 }
