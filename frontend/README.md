@@ -120,28 +120,38 @@ Tokens in `src/styles/index.css`:
 ```
 src/
   main.tsx                    # BrowserRouter + Theme + World providers
-  App.tsx                     # Routes
+  App.tsx                     # Routes (incl. /atlas) + global AtlasCommandHandler
   styles/index.css            # holographic design system
   types/index.ts              # shared live types (LiveEvent, MarketSignal, RiskUpdate, ...)
   stores/WorldStore.tsx       # live world state context + simulation ticks
   services/websocket/         # useLiveWorldSocket (RISK_UPDATE / MARKET_FORECAST / GRAPH_UPDATE)
+  assistant/
+    AtlasPage.tsx             # JARVIS command center + transcript + orb
+    brain/                    # jarvisBrain, atlasBrain, generalKnowledge, inferVisualization
+    commands/                 # commandTypes, commandBus, visualizationBus, globeFocusBus,
+                              #   AtlasCommandHandler
+    orb/                      # AtlasOrb, OrbParticles, OrbShader (audio-reactive)
+    state/                    # assistantState machine + context
+    voice/                    # RealtimeVoice (WebRTC), browserSpeech, useVoiceAssistant
   features/
     world-command/            # TopStatusBar, NavigationRail, IntelligencePanel,
                               #   AgentStatusMatrix, CommandConsole, CommandInput,
                               #   tabs (LiveEvents / Propagation / AIAnalysis / Memory)
-    globe/                    # HolographicGlobe (Canvas + bloom), globeData builders
+    globe/                    # WorldCore, HolographicGlobe, SceneDirector, CameraDirector,
+                              #   visualizationIntent, globeData builders
     agents/                   # agent definitions + status helpers
     markets/                  # MarketsPage, ForecastChart (SVG band chart)
     graph-analysis/           # GraphPage (causal map + IntelligenceGraphPanel)
     scenario-simulator/       # SimulatorPage (wraps SimulationView)
     world-memory/             # MemoryPage (searchable analogue archive)
   components/ui/              # Panel, Badge, Tabs, Gauge, ProgressBar, Sparkline, StatusDot
-  globe/                      # 3D engine (Earth, Atmosphere, Hologram, Grid, Stars,
-                              #   Rings, Arcs, Nodes, Labels, Satellites, Heatmap, RiskPropagation)
+  globe/                      # 3D engine (ParticleCore, FlowParticles, RegionClusters,
+                              #   Earth, Atmosphere, Hologram, Grid, Stars, Rings, Arcs,
+                              #   Nodes, Labels, Satellites, Heatmap, RiskPropagation)
   graph/                      # four-graph intelligence system (reused)
   simulation/                 # scenario simulator (reused)
   data/                       # offline-first country/event/world-state datasets
-  api/                        # chat/country/geopolitical clients
+  api/                        # chat/country/geopolitical clients (chatApi.ts types)
   hooks/                      # useClock, useWebSocket, useWorldState
   __tests__/                  # vitest unit + component tests
 ```
