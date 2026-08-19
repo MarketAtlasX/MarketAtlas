@@ -1,10 +1,10 @@
 # MarketAtlas — Backend
 
-> *The intelligence core of MarketAtlas — FastAPI, Celery, PostgreSQL, Redis, and a LangGraph-orchestrated AI agent network that turns geopolitical events into trading signals and powers the JARVIS general intelligence.*
+> *The intelligence core of MarketAtlas — FastAPI, Celery, PostgreSQL, Redis, and a LangGraph-orchestrated AI agent network that turns geopolitical events into trading signals and powers the ATLAS general intelligence.*
 
 The backend is the primary service of the MarketAtlas monorepo. It ingests geopolitical and market events, links them to real-world entities, fetches live market data from Yahoo Finance, and runs a multi-agent AI pipeline to produce **Buy / Sell / Hold / Short** trading signals — enriched with knowledge-graph context, explainable reasoning, and world-state risk.
 
-It also hosts the **chatbot subsystem** that powers **JARVIS**, the voice-first general intelligence. JARVIS classifies every query as either a MarketAtlas domain intent or a general-reasoning intent, routes it to the right specialist agent (or to the general-purpose `JarvisAgent`), and — when the query touches the world — returns a structured **`VisualizationIntent`** so the frontend globe can show the answer.
+It also hosts the **chatbot subsystem** that powers **ATLAS**, the voice-first general intelligence. ATLAS classifies every query as either a MarketAtlas domain intent or a general-reasoning intent, routes it to the right specialist agent (or to the general-purpose `AtlasAgent`), and — when the query touches the world — returns a structured **`VisualizationIntent`** so the frontend globe can show the answer.
 
 ---
 
@@ -35,15 +35,15 @@ External events (GDELT, news, market feeds)
 │  Routes → Services → Repositories → PostgreSQL / Redis      │
 │                                                             │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │  Chatbot Subsystem (JARVIS)                             │ │
+│  │  Chatbot Subsystem (ATLAS)                             │ │
 │  │  ┌───────────┐   ┌──────────────┐   ┌───────────────┐  │ │
 │  │  │Intent     │──►│ Specialist    │──►│ LLM providers  │  │ │
 │  │  │Router     │   │ Agents (12)   │   │ (OpenAI/Gemini │  │ │
-│  │  │           │   │ + JarvisAgent │   │  /Claude/Ollama)│ │ │
+│  │  │           │   │ + AtlasAgent │   │  /Claude/Ollama)│ │ │
 │  │  └───────────┘   └──────┬───────┘   └───────────────┘  │ │
 │  │                         │                               │ │
 │  │  ┌──────────────────────▼────────────────────────────┐  │ │
-│  │  │ Visualization extractor (jarvis/visualization.py)  │  │ │
+│  │  │ Visualization extractor (atlas/visualization.py)  │  │ │
 │  │  │ Query → VisualizationIntent (mode, focus, routes)  │  │ │
 │  │  └────────────────────────────────────────────────────┘  │ │
 │  └────────────────────────────────────────────────────────┘ │
@@ -80,15 +80,15 @@ External events (GDELT, news, market feeds)
 
 ---
 
-## The Chatbot Subsystem (JARVIS)
+## The Chatbot Subsystem (ATLAS)
 
-JARVIS is the general intelligence layer. The chatbot subsystem classifies, reasons, and visualizes:
+ATLAS is the general intelligence layer. The chatbot subsystem classifies, reasons, and visualizes:
 
 ### Agent Ecosystem (13 agents)
 
 | Agent | File | What It Does |
 |-------|------|-------------|
-| **Intent Router** | `intent_router.py` | Classifies queries into MARKETATLAS intents or the general JARVIS intent |
+| **Intent Router** | `intent_router.py` | Classifies queries into MARKETATLAS intents or the general ATLAS intent |
 | **News Agent** | `news_agent.py` | Retrieves relevant news, extracts entities |
 | **Market Agent** | `market_agent.py` | Analyzes market data with SHAP-style attribution |
 | **Impact Agent** | `impact_agent.py` | Geopolitical risk scoring with entity extraction |
@@ -100,7 +100,7 @@ JARVIS is the general intelligence layer. The chatbot subsystem classifies, reas
 | **Debate Agent** | `debate_agent.py` | Multi-analyst debate pipeline for consensus |
 | **Event Similarity Agent** | `event_similarity_agent.py` | Historical-event similarity engine |
 | **Risk Agent** | `risk_agent.py` | World-state risk interpretation |
-| **JarvisAgent** | `jarvis_agent.py` | General-purpose reasoning for non-market questions |
+| **AtlasAgent** | `atlas_agent.py` | General-purpose reasoning for non-market questions |
 
 ### Intent Routing
 
@@ -113,15 +113,15 @@ Query
   │     └─► specialist agents (News / Market / Impact / Graph / ...)
   │
   └─ General reasoning?   (science, math, code, philosophy, ...)
-        └─► IntentType.JARVIS → JarvisAgent → LLM → natural answer
+        └─► IntentType.ATLAS → AtlasAgent → LLM → natural answer
 ```
 
-The LLM classification prompt includes a JARVIS category, and a heuristic
+The LLM classification prompt includes a ATLAS category, and a heuristic
 `_looks_general()` guard catches obvious general queries even without the LLM.
 
 ### Visualization Extraction
 
-`jarvis/visualization.py` turns any query into a `VisualizationIntent`:
+`atlas/visualization.py` turns any query into a `VisualizationIntent`:
 
 ```
 "Show me the route from India to Germany"
@@ -189,7 +189,7 @@ and are mirrored on the frontend in `src/api/chatApi.ts`.
 | Globe | `/globe` | Entity relations for globe visualization |
 | Auth | `/auth` | Authentication endpoints |
 | Backtest | `/backtest` | Backtesting engine |
-| AI Chat | `/api/chat` | Chatbot + WebSocket streaming (JARVIS) |
+| AI Chat | `/api/chat` | Chatbot + WebSocket streaming (ATLAS) |
 | WebSocket | `/ws` | Real-time event streaming |
 | Health | `/health` | Deep health check (DB, Redis) |
 | Metrics | `/metrics` | Prometheus metrics endpoint |
@@ -258,9 +258,9 @@ backend/
 │   ├── routes/                    # API route handlers
 │   ├── middleware/                # Logging, metrics, rate limiting
 │   ├── workers/                   # Celery background tasks
-│   ├── chatbot/                   # JARVIS chatbot subsystem
-│   │   ├── agents/                # 13 agents incl. JarvisAgent + intent_router
-│   │   ├── jarvis/                # visualization.py → VisualizationIntent
+│   ├── chatbot/                   # ATLAS chatbot subsystem
+│   │   ├── agents/                # 13 agents incl. AtlasAgent + intent_router
+│   │   ├── atlas/                # visualization.py → VisualizationIntent
 │   │   ├── api/                   # Chat REST + WebSocket routes
 │   │   ├── llm/                   # LLM provider abstraction
 │   │   ├── rag/                   # RAG pipeline (embeddings, vector store)
