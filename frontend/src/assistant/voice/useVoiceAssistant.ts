@@ -4,9 +4,10 @@ import { commandBus } from '../commands/commandBus'
 import { RealtimeVoice } from './RealtimeVoice'
 import type { AtlasEvent } from './atlasEvents'
 import { AudioMeter } from './audioMeter'
-import { atlasBrain } from '../brain/atlasBrain'
+import { jarvisBrain, inferVisualization } from '../brain/jarvisBrain'
 import { transcriptBus } from '../brain/transcriptBus'
 import { getSpeechRecognition, speak, warmUpVoices } from './browserSpeech'
+import { visualizationBus } from '../commands/visualizationBus'
 
 export interface VoiceAssistantApi {
   active: boolean
@@ -42,24 +43,25 @@ export function useVoiceAssistant(): VoiceAssistantApi {
       setState('THINKING')
       transcriptBus.push('user', transcript)
 
-      const response = atlasBrain(transcript)
-      response.commands.forEach(command => commandBus.emit(command))
-      if (response.commands.length > 0) {
-        setMode('globe')
-      }
+      void jarvisBrain(transcript).then(response => {
+        response.commands.forEach(command => commandBus.emit(command))
+        if (response.visualization) {
+          setMode('globe')
+        }
 
-      window.setTimeout(() => {
-        cancelSpeechRef.current = speak(response.text, {
-          onStart: () => {
-            setState('SPEAKING')
-            transcriptBus.push('atlas', response.text)
-          },
-          onEnd: () => {
-            setState('IDLE')
-            cancelSpeechRef.current = null
-          },
-        })
-      }, 500)
+        window.setTimeout(() => {
+          cancelSpeechRef.current = speak(response.text, {
+            onStart: () => {
+              setState('SPEAKING')
+              transcriptBus.push('atlas', response.text)
+            },
+            onEnd: () => {
+              setState('IDLE')
+              cancelSpeechRef.current = null
+            },
+          })
+        }, 500)
+      })
     },
     [setMode, setState],
   )
@@ -137,6 +139,9 @@ export function useVoiceAssistant(): VoiceAssistantApi {
           realtimeTranscriptRef.current = ''
           if (text) {
             transcriptBus.push('atlas', text)
+            const intent = inferVisualization(text)
+            visualizationBus.drive(intent)
+            setMode('globe')
           }
           setState('IDLE')
           break
@@ -147,7 +152,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
           break
       }
     },
-    [setState],
+    [setMode, setState],
   )
 
   const start = useCallback(async () => {
