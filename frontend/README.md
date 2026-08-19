@@ -105,6 +105,33 @@ intelligence system you talk to. It hears you, reasons, and *shows* the answer.
 ### Scenario Simulator (reused from `src/simulation`)
 - Clone-simulate-destroy world twin with scenario editor, timeline, probability tree, agent reports, world map, portfolio impact, confidence panel and full report viewer.
 
+## How a Question Becomes a Scene
+
+```
+"Show me routes from India to Germany"
+        │
+        ▼
+jarvisBrain (backend or offline general brain)
+        │
+        ▼
+VisualizationIntent { mode: 'route', origin: 'India', destination: 'Germany', ... }
+        │
+        ▼
+visualizationBus.drive(intent)
+        │
+        ▼
+WorldCore → resolveScene(intent) → SceneConfig
+        │
+        ├── ParticleCore   ← particle_reform / disintegrate transition
+        ├── FlowParticles  ← golden stream India → Germany
+        ├── CameraDirector ← GSAP fly to pullback framing
+        └── overlays       ← arcs / nodes / labels on demand
+```
+
+Both the backend (`jarvis/visualization.py`) and the offline frontend brain
+(`inferVisualization`) produce the same shape, so the globe reacts instantly even
+with no backend running.
+
 ## Design System
 
 Tokens in `src/styles/index.css`:
