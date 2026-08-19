@@ -1,3 +1,5 @@
+import type { VisualizationIntent } from '../../features/globe/visualizationIntent'
+
 export type AtlasCommandType =
   | 'FOCUS_COUNTRY'
   | 'ZOOM_GLOBE'
@@ -8,6 +10,11 @@ export type AtlasCommandType =
   | 'RUN_SIMULATION'
   | 'SEARCH_MEMORY'
   | 'HIGHLIGHT_COMPANY'
+  | 'VISUALIZE'
+  | 'FOCUS_REGION'
+  | 'SHOW_CONFLICT'
+  | 'SHOW_NETWORK'
+  | 'SHOW_ABSTRACT'
 
 export interface AtlasCommand {
   id: string
@@ -23,4 +30,8 @@ export function createCommand(type: AtlasCommandType, payload: Record<string, un
     payload,
     timestamp: Date.now(),
   }
+}
+
+export function visualizeCommand(intent: VisualizationIntent): AtlasCommand {
+  return createCommand('VISUALIZE', { intent })
 }
