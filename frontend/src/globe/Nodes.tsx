@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { latLngToDir } from '../features/globe/SceneDirector'
@@ -23,6 +23,7 @@ function NodePulse({ data: d, radius, onNodeClick }: { data: NodeData; radius: n
   const coreRef = useRef<THREE.Mesh>(null)
   const ringRef = useRef<THREE.Mesh>(null)
   const glowRef = useRef<THREE.Mesh>(null)
+  const [hovered, setHovered] = useState(false)
 
   const pos = useMemo(() => latLngToDir(d.lat, d.lng).multiplyScalar(radius), [d.lat, d.lng, radius])
   const color = useMemo(() => new THREE.Color(d.color || '#00d4ff'), [d.color])
@@ -34,7 +35,7 @@ function NodePulse({ data: d, radius, onNodeClick }: { data: NodeData; radius: n
     const t = clock.getElapsedTime() * speed
 
     if (coreRef.current) {
-      const breathe = 1 + Math.sin(t * 1.5) * 0.15
+      const breathe = (1 + Math.sin(t * 1.5) * 0.15) * (hovered ? 1.45 : 1)
       coreRef.current.scale.setScalar(breathe)
     }
 
@@ -80,8 +81,8 @@ function NodePulse({ data: d, radius, onNodeClick }: { data: NodeData; radius: n
       <mesh
         ref={coreRef}
         onClick={e => { e.stopPropagation(); onNodeClick?.(d) }}
-        onPointerOver={() => { document.body.style.cursor = 'pointer' }}
-        onPointerOut={() => { document.body.style.cursor = 'auto' }}
+        onPointerOver={() => { document.body.style.cursor = 'pointer'; setHovered(true) }}
+        onPointerOut={() => { document.body.style.cursor = 'auto'; setHovered(false) }}
       >
         <sphereGeometry args={[nodeSize, 16, 16]} />
         <meshBasicMaterial color={color} />
