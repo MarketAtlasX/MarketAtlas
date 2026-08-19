@@ -1,19 +1,9 @@
 import { useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { RegionFocus } from '../features/globe/SceneDirector'
+import { latLngToDir, type RegionFocus } from '../features/globe/SceneDirector'
 
 const RADIUS = 2.07
-
-function latLngToDir(lat: number, lng: number): THREE.Vector3 {
-  const phi = (90 - lat) * (Math.PI / 180)
-  const theta = (lng + 180) * (Math.PI / 180)
-  return new THREE.Vector3(
-    -Math.sin(phi) * Math.cos(theta),
-    Math.cos(phi),
-    Math.sin(phi) * Math.sin(theta),
-  )
-}
 
 export interface FocusRingsProps {
   regions: RegionFocus[]
