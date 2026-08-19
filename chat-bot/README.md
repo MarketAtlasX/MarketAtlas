@@ -265,8 +265,8 @@ pytest tests/ -v
 chat-bot/
 ├── main.py                       # FastAPI entry point
 ├── app/
-│   ├── agents/                   # 11 AI agents
-│   │   ├── intent_router.py      # 8-intent classifier
+│   ├── agents/                   # 13 AI agents
+│   │   ├── intent_router.py      # 8-intent classifier + JARVIS general intent
 │   │   ├── news_agent.py         # News retrieval
 │   │   ├── market_agent.py       # Market analysis + SHAP
 │   │   ├── impact_agent.py       # Geopolitical risk
@@ -276,7 +276,12 @@ chat-bot/
 │   │   ├── simulation_agent.py   # What-if scenarios
 │   │   ├── report_agent.py       # Intelligence reports
 │   │   ├── debate_agent.py       # Multi-analyst debate
-│   │   └── event_similarity_agent.py # Historical analogs
+│   │   ├── event_similarity_agent.py # Historical analogs
+│   │   ├── risk_agent.py         # World-state risk interpretation
+│   │   └── jarvis_agent.py       # General-purpose reasoning
+│   │
+│   ├── jarvis/                   # Visualization intent extraction
+│   │   └── visualization.py      # Query → VisualizationIntent
 │   │
 │   ├── api/                      # 25 REST endpoints + WebSocket
 │   ├── event_memory/             # 26-event similarity engine
