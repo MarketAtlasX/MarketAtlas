@@ -73,6 +73,31 @@ const surfaceFragmentShader = `
   }
 `
 
+function MapFloor({ getOpacity }: MapChildProps) {
+  const material = useRef<THREE.MeshBasicMaterial>(null)
+
+  useFrame(({ clock }) => {
+    if (!material.current) return
+    const o = getOpacity()
+    material.current.opacity = o * (0.06 + 0.02 * Math.sin(clock.getElapsedTime() * 0.6))
+  })
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+      <planeGeometry args={[MAP_WIDTH + 0.6, MAP_DEPTH + 0.6]} />
+      <meshBasicMaterial
+        ref={material}
+        color="#0a3d5c"
+        transparent
+        opacity={0}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
+
 function MapSurface({ getOpacity }: MapChildProps) {
   const uniforms = useMemo(
     () => ({
@@ -518,6 +543,7 @@ export default function HolographicMap({ visible = false, routes = [], regions =
 
   return (
     <group ref={groupRef} position={[0, -5, 0]}>
+      <MapFloor getOpacity={getOpacity} />
       <MapSurface getOpacity={getOpacity} />
       <MapCountryParticles getOpacity={getOpacity} />
       <HubArcs getOpacity={getOpacity} />
