@@ -90,6 +90,7 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
       <div className="absolute bottom-14 left-4 z-10 pointer-events-none select-none font-mono">
         <div key={caption} className="stream-in text-[11px] tracking-[0.3em] text-[var(--accent)] drop-shadow">
           {caption}
+          <span className="blink-caret ml-1 inline-block h-3 w-[7px] translate-y-[1px] bg-[var(--accent)]" />
         </div>
         <div className="mt-1 text-[9px] tracking-widest text-[rgba(95,125,153,0.9)]">
           {mode.toUpperCase()} :: {intent.scale.toUpperCase()}
