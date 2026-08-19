@@ -21,7 +21,7 @@ describe('generalAnswer', () => {
 
   it('handles greetings', () => {
     const a = generalAnswer('Hello')
-    expect(a.text).toContain('JARVIS')
+    expect(a.text).toContain('ATLAS')
     expect(a.confidence).toBeGreaterThanOrEqual(0.8)
   })
 
