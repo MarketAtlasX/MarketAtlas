@@ -58,7 +58,7 @@ export function AtlasPage() {
 
           <p className="text-[11px] font-mono text-[var(--text-lo)]">
             {state === 'IDLE' ? (
-              <>Say <span className="text-[var(--accent)]">“JARVIS, explain general relativity”</span> or <span className="text-[var(--accent)]">“show routes from India to Germany”</span></>
+              <>Say <span className="text-[var(--accent)]">“ATLAS, explain general relativity”</span> or <span className="text-[var(--accent)]">“show routes from India to Germany”</span></>
             ) : state === 'LISTENING' ? (
               <span className="text-[var(--positive)]">Listening…</span>
             ) : state === 'SPEAKING' ? (
@@ -88,7 +88,7 @@ export function AtlasPage() {
                   }`}
                 >
                   <span className={`block text-[8px] font-mono tracking-[0.2em] ${line.role === 'user' ? 'text-[var(--positive)]' : 'text-[var(--accent)]'}`}>
-                    {line.role === 'user' ? 'YOU' : 'JARVIS'}
+                    {line.role === 'user' ? 'YOU' : 'ATLAS'}
                   </span>
                   {line.text}
                 </span>
