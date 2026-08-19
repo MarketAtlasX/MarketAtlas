@@ -14,6 +14,7 @@ const GLOBE_MODES: { key: GlobeMode; label: string }[] = [
   { key: 'world', label: 'WORLD' },
   { key: 'risk', label: 'RISK' },
   { key: 'supply', label: 'SUPPLY' },
+  { key: 'map', label: 'MAP' },
   { key: 'events', label: 'EVENTS' },
 ]
 
@@ -21,6 +22,7 @@ const GLOBE_PARAMS: Record<string, GlobeMode> = {
   world: 'world',
   risk: 'risk',
   supply: 'supply',
+  map: 'map',
   events: 'events',
 }
 
