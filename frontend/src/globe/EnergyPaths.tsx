@@ -2,20 +2,14 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
-import type { RouteFlow } from '../features/globe/SceneDirector'
+import { latLngToDir, type RouteFlow } from '../features/globe/SceneDirector'
 
 const RADIUS = 2.03
 const STREAM_COUNT = 140
 const ARC_SEGMENTS = 90
 
 function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
-  const phi = (90 - lat) * (Math.PI / 180)
-  const theta = (lng + 180) * (Math.PI / 180)
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta),
-  )
+  return latLngToDir(lat, lng).multiplyScalar(radius)
 }
 
 function arcPoints(startLat: number, startLng: number, endLat: number, endLng: number, radius: number): THREE.Vector3[] {
