@@ -23,11 +23,16 @@ const satellites: Satellite[] = [
 
 function SatelliteMesh({ data }: { data: Satellite }) {
   const ref = useRef<THREE.Group>(null)
+  const beaconRef = useRef<THREE.Mesh>(null)
   const startLng = data.lng
 
-  useFrame((_, delta) => {
+  useFrame(({ clock }, delta) => {
     if (ref.current) {
       ref.current.rotation.y += delta * data.speed
+    }
+    if (beaconRef.current) {
+      const pulse = 1 + Math.sin(clock.getElapsedTime() * 2.6 + data.lng) * 0.35
+      beaconRef.current.scale.setScalar(pulse)
     }
   })
 
@@ -37,12 +42,12 @@ function SatelliteMesh({ data }: { data: Satellite }) {
         <sphereGeometry args={[0.04, 8, 8]} />
         <meshBasicMaterial color="#00ddff" />
       </mesh>
-      <mesh>
-        <sphereGeometry args={[0.06, 8, 8]} />
+      <mesh ref={beaconRef}>
+        <sphereGeometry args={[0.07, 8, 8]} />
         <meshBasicMaterial
-          color="#0088ff"
+          color="#00ddff"
           transparent
-          opacity={0.3}
+          opacity={0.25}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
