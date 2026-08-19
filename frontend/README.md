@@ -59,8 +59,21 @@ intelligence system you talk to. It hears you, reasons, and *shows* the answer.
 - **Visualization bus** — `commands/visualizationBus.ts` pushes a
   `VisualizationIntent` to the globe, so every answer becomes a living scene.
 
-### Holographic Globe
-- Custom `@react-three/fiber` scene: Earth, atmosphere, hologram, grid, rings, satellites, stars
+### Holographic Globe → World Intelligence Core
+- **ParticleCore** (`src/globe/ParticleCore.tsx`) — 26k fibonacci-sphere particles
+  in an ULTRON palette (gold / blue / red risk clusters), driven by a custom
+  GLSL shader: breathing, swirl, detach, and focus-heat.
+- **WorldCore** (`src/features/globe/WorldCore.tsx`) — the orchestrator. Subscribes
+  to the visualization bus, resolves a scene from the intent, and renders the
+  particle core, route flows, region clusters, heatmaps, graph arcs, nodes, labels,
+  atmosphere, rings, satellites, and stars.
+- **SceneDirector** (`src/features/globe/SceneDirector.ts`) — maps a
+  `VisualizationIntent` to a `SceneConfig`: camera target, routes, regions,
+  overlays, and particle transition.
+- **FlowParticles** — animated golden/blue particle streams along trade routes.
+- **RegionClusters** — pulsing dense clusters at country/region/conflict focuses.
+- **Semantic camera** — `CameraDirector` flies the camera (GSAP) to the mode's
+  framing: pullback for routes/networks, orbit for abstract ideas, zoom for countries.
 - Four modes — **world** (arcs + heatmap), **risk** (propagation paths), **supply** (arcs), **events** (pulsing event nodes)
 - Restrained bloom via `@react-three/postprocessing` — only active intelligence glows
 - Clickable nodes with GSAP camera fly-to and hover feedback
