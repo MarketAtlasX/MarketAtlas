@@ -17,6 +17,28 @@ class IntentRouter:
     def __init__(self):
         self.llm = get_llm()
 
+    GENERAL_SIGNALS = re.compile(
+        r"\b(define|explain|what is|what are|how does|how do|why does|why is|"
+        r"who is|meaning of|difference between|calculate|compute|solve|"
+        r"write|code|program|function|python|javascript|typescript|algorithm|"
+        r"formula|equation|mathematics|physics|chemistry|biology|history of|"
+        r"origin of|theory|relativity|quantum|philosophy|translate|summarize|"
+        r"compare and contrast|steps? to|recipe|tutorial|guide)\b",
+        re.IGNORECASE,
+    )
+
+    GEO_KEYWORDS = re.compile(
+        r"\b(oil|energy|sanction|tariff|trade|conflict|war|tension|military|"
+        r"stock|market|price|risk|country|region|border|strait|supply chain|"
+        r"inflation|gdp|economy|geopolitic|navy|fleet|blockade|treaty|alliance)\b",
+        re.IGNORECASE,
+    )
+
+    def _looks_general(self, query_lower: str) -> bool:
+        if self.GENERAL_SIGNALS.search(query_lower) and not self.GEO_KEYWORDS.search(query_lower):
+            return True
+        return False
+
     def classify(self, query: str, conversation_history: str = "") -> tuple[IntentType, float]:
         query_lower = query.lower()
 
@@ -38,6 +60,11 @@ class IntentRouter:
             if score > 0:
                 scores[intent] = score
 
+        # Generalized intelligence boundary: if the query is clearly a general
+        # reasoning task with no market/geopolitical signal, JARVIS owns it.
+        if self._looks_general(query_lower) and not scores:
+            return IntentType.JARVIS, 0.82
+
         if not scores:
             context_hint = ""
             if conversation_history and PRONOUN_PATTERN.search(query):
@@ -48,6 +75,10 @@ class IntentRouter:
             prompt = f"""Classify this user query into exactly one category. Return ONLY the category name.
 
 Categories:
+- JARVIS: General intelligence — anything that is NOT specifically a MarketAtlas
+  geopolitical/market task. Math, coding, science, general knowledge,
+  explanations of concepts, writing, translation, history, philosophy,
+  "what is X" without a market angle, open-ended reasoning.
 - NEWS: Current events, news, updates, developments
 - MARKET: Market data, prices, trading, stocks, movements
 - IMPACT: Geopolitical impact analysis, consequences, effects
@@ -68,7 +99,7 @@ Category:"""
             for intent in IntentType:
                 if intent.value in result:
                     return intent, 0.7
-            return IntentType.IMPACT, 0.5
+            return IntentType.JARVIS, 0.5
 
         best_intent = max(scores, key=scores.get)
         confidence = min(0.5 + (scores[best_intent] * 0.15), 0.95)
@@ -85,5 +116,6 @@ Category:"""
             IntentType.REPORT: ["ReportAgent", "ImpactAgent", "MarketAgent", "GraphAgent", "NewsAgent"],
             IntentType.SIMILARITY: ["EventSimilarityAgent", "ImpactAgent"],
             IntentType.RISK: ["RiskAgent", "MarketAgent"],
+            IntentType.JARVIS: ["JarvisAgent"],
         }
-        return routing.get(intent, ["ImpactAgent"])
+        return routing.get(intent, ["JarvisAgent"])
