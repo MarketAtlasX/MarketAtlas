@@ -28,4 +28,6 @@ export const INTENT_CAPTION: Record<string, string> = {
   risk: 'RISK HEATFIELD',
   conflict: 'CONFLICT FIELD',
   abstract: 'ABSTRACT REASONING',
+  map: 'HOLOGRAPHIC WORLD MAP',
+  supply: 'SUPPLY NETWORK',
 }
