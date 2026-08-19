@@ -3,6 +3,29 @@ export interface ChatMessage {
   content: string
 }
 
+export type VisualMode =
+  | 'core'
+  | 'globe'
+  | 'country'
+  | 'region'
+  | 'route'
+  | 'network'
+  | 'risk'
+  | 'conflict'
+  | 'abstract'
+
+export interface VisualizationIntent {
+  mode: VisualMode
+  scale: string
+  focus: string[]
+  origin?: string | null
+  destination?: string | null
+  transition: string
+  camera: string
+  palette: string
+  caption: string
+}
+
 export interface ChatResponse {
   conversation_id: string
   query: string
@@ -11,6 +34,7 @@ export interface ChatResponse {
   agents_used: string[]
   confidence: number
   sources: string[]
+  visualization?: VisualizationIntent | null
 }
 
 export interface IntelligenceReport {
@@ -38,6 +62,18 @@ let backendAvailable: boolean | null = null
 
 const CONVERSATION_KEY = 'marketatlas_conversation_id'
 
+export async function backendOnline(): Promise<boolean> {
+  if (backendAvailable === true) return true
+  try {
+    const res = await fetch('/api/health', { signal: AbortSignal.timeout(2000) })
+    backendAvailable = res.ok
+    return backendAvailable
+  } catch {
+    backendAvailable = null
+    return false
+  }
+}
+
 function getConversationId(): string {
   let id = localStorage.getItem(CONVERSATION_KEY)
   if (!id) {
@@ -53,20 +89,8 @@ export function resetConversation(): void {
   localStorage.removeItem(CONVERSATION_KEY)
 }
 
-async function checkBackend(): Promise<boolean> {
-  if (backendAvailable === true) return true
-  try {
-    const res = await fetch('/api/health', { signal: AbortSignal.timeout(2000) })
-    backendAvailable = res.ok
-    return backendAvailable
-  } catch {
-    backendAvailable = null
-    return false
-  }
-}
-
 export async function sendChat(query: string): Promise<ChatResponse> {
-  const online = await checkBackend()
+  const online = await backendOnline()
   if (!online) {
     return mockChatResponse(query)
   }
