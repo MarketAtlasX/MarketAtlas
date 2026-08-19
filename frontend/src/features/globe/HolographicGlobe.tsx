@@ -9,6 +9,23 @@ import { useWorldStore } from '../../stores/WorldStore'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
+const LEGEND: Partial<Record<GlobeMode, { color: string; label: string }[]>> = {
+  risk: [
+    { color: '#ff3b30', label: 'CRITICAL' },
+    { color: '#ff7a2e', label: 'ELEVATED' },
+    { color: '#38e8ff', label: 'STABLE' },
+  ],
+  map: [
+    { color: '#38e8ff', label: 'COUNTRY' },
+    { color: '#ffd54a', label: 'HUB' },
+    { color: '#ff4d5e', label: 'HOT RISK' },
+  ],
+  supply: [
+    { color: '#38e8ff', label: 'SUPPLY LINK' },
+    { color: '#ffd54a', label: 'CORRIDOR' },
+  ],
+}
+
 interface HolographicGlobeProps {
   mode?: GlobeMode
   onSelect?: (entity: string, lat: number, lng: number) => void
@@ -104,6 +121,21 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
           DRAG TO ORBIT :: SCROLL TO ZOOM
         </div>
       </div>
+      {LEGEND[mode] && (
+        <div className="absolute bottom-14 right-4 z-10 pointer-events-none select-none font-mono">
+          <div className="flex flex-col gap-1">
+            {LEGEND[mode]?.map(entry => (
+              <div key={entry.label} className="flex items-center gap-2 text-[9px] tracking-[0.2em] text-[rgba(95,125,153,0.9)]">
+                <span
+                  className="h-[6px] w-[6px] rounded-full"
+                  style={{ backgroundColor: entry.color, boxShadow: `0 0 6px ${entry.color}` }}
+                />
+                {entry.label}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
