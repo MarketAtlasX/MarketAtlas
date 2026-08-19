@@ -1,8 +1,10 @@
 # MarketAtlas — Frontend
 
-> *A holographic command center for geopolitical trading intelligence. Live risk globe. Causal reasoning. AI agents. Scenario simulation. World memory — one living dashboard.*
+> *A holographic command center for geopolitical trading intelligence. Live risk globe. Causal reasoning. AI agents. Scenario simulation. World memory — and JARVIS, a voice-first general intelligence that drives the particle world core.*
 
 Built with React 19, TypeScript 6, Vite 8, Tailwind CSS 4 and react-router-dom v7. MarketAtlas turns global political, economic and conflict events into actionable trading intelligence through a dark holographic interface, a real-time world state store, and a four-graph intelligence system that shows *why* predictions are made — not just *what* they are.
+
+Above the command center floats **JARVIS** — a general intelligence you talk to. It answers anything, and when your question touches the world it drives the globe through structured **visualization intents**: particles reform into countries, golden streams trace trade routes, and hot zones pulse red.
 
 ---
 
