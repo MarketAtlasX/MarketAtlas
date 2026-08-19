@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Text } from '@react-three/drei'
 import * as THREE from 'three'
+import { latLngToDir } from '../features/globe/SceneDirector'
 
 interface LabelData {
   lat: number
@@ -16,18 +17,8 @@ interface LabelsProps {
   visible?: boolean
 }
 
-function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
-  const phi = (90 - lat) * (Math.PI / 180)
-  const theta = (lng + 180) * (Math.PI / 180)
-  return new THREE.Vector3(
-    -radius * Math.sin(phi) * Math.cos(theta),
-    radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta),
-  )
-}
-
 function Label({ data: d, radius }: { data: LabelData; radius: number }) {
-  const pos = useMemo(() => latLngToVec3(d.lat, d.lng, radius), [d.lat, d.lng, radius])
+  const pos = useMemo(() => latLngToDir(d.lat, d.lng).multiplyScalar(radius), [d.lat, d.lng, radius])
 
   return (
     <group position={pos}>
