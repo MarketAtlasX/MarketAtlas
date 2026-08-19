@@ -61,9 +61,9 @@ class IntentRouter:
                 scores[intent] = score
 
         # Generalized intelligence boundary: if the query is clearly a general
-        # reasoning task with no market/geopolitical signal, JARVIS owns it.
+        # reasoning task with no market/geopolitical signal, ATLAS owns it.
         if self._looks_general(query_lower) and not scores:
-            return IntentType.JARVIS, 0.82
+            return IntentType.ATLAS, 0.82
 
         if not scores:
             context_hint = ""
@@ -75,7 +75,7 @@ class IntentRouter:
             prompt = f"""Classify this user query into exactly one category. Return ONLY the category name.
 
 Categories:
-- JARVIS: General intelligence — anything that is NOT specifically a MarketAtlas
+- ATLAS: General intelligence — anything that is NOT specifically a MarketAtlas
   geopolitical/market task. Math, coding, science, general knowledge,
   explanations of concepts, writing, translation, history, philosophy,
   "what is X" without a market angle, open-ended reasoning.
@@ -99,7 +99,7 @@ Category:"""
             for intent in IntentType:
                 if intent.value in result:
                     return intent, 0.7
-            return IntentType.JARVIS, 0.5
+            return IntentType.ATLAS, 0.5
 
         best_intent = max(scores, key=scores.get)
         confidence = min(0.5 + (scores[best_intent] * 0.15), 0.95)
@@ -116,6 +116,6 @@ Category:"""
             IntentType.REPORT: ["ReportAgent", "ImpactAgent", "MarketAgent", "GraphAgent", "NewsAgent"],
             IntentType.SIMILARITY: ["EventSimilarityAgent", "ImpactAgent"],
             IntentType.RISK: ["RiskAgent", "MarketAgent"],
-            IntentType.JARVIS: ["JarvisAgent"],
+            IntentType.ATLAS: ["AtlasAgent"],
         }
-        return routing.get(intent, ["JarvisAgent"])
+        return routing.get(intent, ["AtlasAgent"])
