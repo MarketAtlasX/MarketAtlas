@@ -334,7 +334,7 @@ def extract_visualization(query: str, intent: IntentType = None) -> Visualizatio
             caption="Regional field — multiple nodes active.",
         )
 
-    if intent == IntentType.JARVIS:
+    if intent == IntentType.ATLAS:
         return VisualizationIntent(
             mode=VisualMode.ABSTRACT,
             scale="global",
