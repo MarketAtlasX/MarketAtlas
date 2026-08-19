@@ -6,6 +6,7 @@ import { BlendFunction } from 'postprocessing'
 import WorldCore, { createIntent, type VisualizationIntent } from './WorldCore'
 import { INTENT_CAPTION } from './visualizationIntent'
 import { useWorldStore } from '../../stores/WorldStore'
+import { formatCommandTime, useClock } from '../../hooks/useClock'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
@@ -58,6 +59,7 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
   const { state } = useWorldStore()
   const [focusIntent, setFocusIntent] = useState<VisualizationIntent | null>(null)
   const [dragging, setDragging] = useState(false)
+  const now = useClock()
 
   const intent = useMemo(() => {
     if (focusIntent) return focusIntent
@@ -136,6 +138,9 @@ export default function HolographicGlobe({ mode = 'world', onSelect, className =
           </div>
         </div>
       )}
+      <div className="absolute top-4 right-4 z-10 pointer-events-none select-none font-mono text-[9px] tracking-[0.25em] text-[rgba(95,125,153,0.8)]">
+        {formatCommandTime(now)}
+      </div>
       <div className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none">
         <div className="relative h-20 w-20 opacity-25">
           <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[var(--accent)]" />
