@@ -3,8 +3,15 @@
 import functools
 import logging
 
-import spacy
-from textblob import TextBlob
+try:
+    import spacy
+except ImportError:
+    spacy = None
+
+try:
+    from textblob import TextBlob
+except ImportError:
+    TextBlob = None
 
 from app.geopolitical.models import ExtractedEntity, NewsArticle
 
@@ -13,12 +20,14 @@ logger = logging.getLogger(__name__)
 
 @functools.lru_cache(maxsize=1)
 def get_nlp():
+    if spacy is None:
+        return None
     try:
         nlp = spacy.load("en_core_web_sm")
         logger.info("spaCy model loaded successfully")
         return nlp
-    except OSError:
-        logger.warning("spaCy model not found. Run: python -m spacy download en_core_web_sm")
+    except Exception:
+        logger.warning("spaCy model not found. Using fallback regex entity extractor.")
         return None
 
 
