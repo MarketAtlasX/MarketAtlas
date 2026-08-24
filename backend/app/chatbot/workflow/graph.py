@@ -9,8 +9,11 @@ from langgraph.graph import END, StateGraph
 from ..agents import (
     DebateAgent,
     EventSimilarityAgent,
+    FinalPredictionAgent,
     ForecastAgent,
+    GeopoliticalAgent,
     GraphAgent,
+    HistoricalAgent,
     ImpactAgent,
     IntentRouter,
     AtlasAgent,
@@ -57,6 +60,9 @@ simulation_agent = SimulationAgent()
 debate_agent = DebateAgent()
 risk_agent = RiskAgent()
 event_similarity_agent = EventSimilarityAgent()
+historical_agent = HistoricalAgent()
+geopolitical_agent = GeopoliticalAgent()
+final_prediction_agent = FinalPredictionAgent()
 atlas_agent = AtlasAgent()
 shap_explainer = SHAPExplainer()
 attention_explainer = AttentionExplainer()
@@ -194,7 +200,7 @@ async def route_intent(state: AgentState) -> AgentState:
     return state
 
 
-def decide_agents(state: AgentState) -> Literal["debate", "report", "execute_debate", "execute_report", "execute_direct", "execute_news", "execute_market", "execute_impact", "execute_graph", "execute_forecast", "execute_recommendation", "execute_simulation", "execute_similarity", "execute_risk", "execute_atlas"]:
+def decide_agents(state: AgentState) -> Literal["debate", "report", "execute_debate", "execute_report", "execute_direct", "execute_news", "execute_market", "execute_impact", "execute_graph", "execute_forecast", "execute_recommendation", "execute_simulation", "execute_similarity", "execute_risk", "execute_atlas", "execute_prediction"]:
     intent = state["intent"]
     routing_map = {
         IntentType.REPORT: "execute_report",
@@ -206,6 +212,7 @@ def decide_agents(state: AgentState) -> Literal["debate", "report", "execute_deb
         IntentType.GRAPH: "execute_graph",
         IntentType.RECOMMENDATION: "execute_recommendation",
         IntentType.RISK: "execute_risk",
+        IntentType.PREDICTION: "execute_prediction",
         IntentType.ATLAS: "execute_atlas",
     }
     if intent in routing_map:
@@ -376,6 +383,46 @@ async def execute_atlas(state: AgentState) -> AgentState:
     return state
 
 
+async def execute_prediction(state: AgentState) -> AgentState:
+    _ensure_context(state)
+    query = state["query"]
+    ctx = state.get("_context", {})
+
+    hist_task = historical_agent.process(query, ctx)
+    geo_task = geopolitical_agent.process(query, ctx)
+    hist_res, geo_res = await asyncio.gather(hist_task, geo_task, return_exceptions=False)
+
+    pred_res = await final_prediction_agent.process(
+        target=query,
+        historical_output=hist_res,
+        geopolitical_output=geo_res,
+        context=ctx,
+    )
+
+    state["agent_responses"]["HistoricalAgent"] = hist_res.analysis
+    state["agent_responses"]["GeopoliticalAgent"] = geo_res.analysis
+    state["agent_responses"]["FinalPredictionAgent"] = pred_res.prediction
+    state["_context"]["prediction"] = pred_res.model_dump(mode="json")
+    
+    scenario_lines = [
+        f"- **{s.scenario_name.value} Case ({s.probability * 100:.0f}%)**: {s.expected_outcome}"
+        for s in pred_res.alternative_scenarios[:4]
+    ]
+    scenarios_str = "\n".join(scenario_lines)
+    
+    state["final_response"] = (
+        f"**Prediction:** {pred_res.prediction}\n\n"
+        f"**Directional Outlook:** {pred_res.direction.value} | **Confidence:** {pred_res.confidence * 100:.0f}%\n\n"
+        f"**Reasoning:** {pred_res.reasoning_summary}\n\n"
+        f"**Probability-Weighted Scenarios:**\n{scenarios_str}"
+    )
+
+    if pred_res.evidence:
+        for ev in pred_res.evidence:
+            state["sources"].append(f"[{ev.agent}] {ev.source}: {ev.evidence}")
+    return state
+
+
 async def execute_direct(state: AgentState) -> AgentState:
     _ensure_context(state)
     for agent_name in state["agents_used"]:
@@ -513,6 +560,7 @@ def build_workflow() -> StateGraph:
     workflow.add_node("execute_debate", execute_debate)
     workflow.add_node("execute_direct", execute_direct)
     workflow.add_node("execute_atlas", execute_atlas)
+    workflow.add_node("execute_prediction", execute_prediction)
     workflow.add_node("calculate_confidence", calculate_confidence)
     workflow.add_node("store_memory", store_memory)
 
@@ -538,6 +586,7 @@ def build_workflow() -> StateGraph:
             "execute_similarity_pipeline": "execute_similarity_pipeline",
             "execute_risk": "execute_risk",
             "execute_atlas": "execute_atlas",
+            "execute_prediction": "execute_prediction",
         }
     )
 
@@ -546,6 +595,7 @@ def build_workflow() -> StateGraph:
         "execute_forecast", "execute_recommendation", "execute_simulation",
         "execute_similarity", "execute_similarity_pipeline", "execute_report",
         "execute_risk", "execute_debate", "execute_direct", "execute_atlas",
+        "execute_prediction",
     ]
     for node in execution_nodes:
         workflow.add_edge(node, "calculate_confidence")
@@ -639,6 +689,7 @@ async def run_chat(query: str, conversation_id: str = None, user_id: str = "defa
         agents_used=result.get("agents_used", []),
         confidence=result.get("confidence", 0.5),
         sources=sources,
+        prediction=result.get("_context", {}).get("prediction"),
         explanations=result.get("_context", {}).get("explanations"),
         visualization=result.get("visualization"),
     )
