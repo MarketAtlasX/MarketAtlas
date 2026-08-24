@@ -4,7 +4,7 @@ import { commandBus } from '../commands/commandBus'
 import { RealtimeVoice } from './RealtimeVoice'
 import type { AtlasEvent } from './atlasEvents'
 import { AudioMeter } from './audioMeter'
-import { atlasBrain, inferVisualization } from '../brain/atlasBrain'
+import { atlasBrain, atlasBrainOffline, inferVisualization } from '../brain/atlasBrain'
 import { transcriptBus } from '../brain/transcriptBus'
 import { getSpeechRecognition, speak, warmUpVoices } from './browserSpeech'
 import { visualizationBus } from '../commands/visualizationBus'
@@ -74,6 +74,12 @@ export function useVoiceAssistant(): VoiceAssistantApi {
 
     const recognition = getSpeechRecognition()
     if (!recognition) {
+      micRef.current?.getTracks().forEach(track => track.stop())
+      micRef.current = null
+      meterRef.current?.stop()
+      meterRef.current = null
+      activeRef.current = false
+      setActive(false)
       setState('IDLE')
       return
     }
@@ -101,7 +107,13 @@ export function useVoiceAssistant(): VoiceAssistantApi {
         setState('IDLE')
       }
     }
-    recognition.onerror = () => {
+    recognition.onerror = event => {
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        activeRef.current = false
+        setActive(false)
+        setState('ERROR')
+        return
+      }
       if (activeRef.current) {
         try {
           recognition.start()
@@ -139,9 +151,12 @@ export function useVoiceAssistant(): VoiceAssistantApi {
           realtimeTranscriptRef.current = ''
           if (text) {
             transcriptBus.push('atlas', text)
-            const intent = inferVisualization(text)
-            visualizationBus.drive(intent)
-            setMode('globe')
+            const response = atlasBrainOffline(text)
+            response.commands.forEach(command => commandBus.emit(command))
+            if (response.visualization) {
+              visualizationBus.drive(response.visualization)
+              setMode('globe')
+            }
           }
           setState('IDLE')
           break
@@ -172,8 +187,16 @@ export function useVoiceAssistant(): VoiceAssistantApi {
       }
       setState('LISTENING')
     } catch {
+      voice.disconnect()
+      voiceRef.current = null
       setSource('offline')
-      await startOffline()
+      try {
+        await startOffline()
+      } catch {
+        activeRef.current = false
+        setActive(false)
+        setState('ERROR')
+      }
     }
   }, [handleAtlasEvent, setState, startMeter, startOffline])
 
