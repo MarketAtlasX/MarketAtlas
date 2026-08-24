@@ -14,7 +14,10 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).resolve().parents[1] / ".env",
+        env_file=(
+            Path(__file__).resolve().parents[1] / ".env",
+            Path(__file__).resolve().parents[2] / ".env",
+        ),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -32,7 +35,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     db_driver: str = Field(default="postgresql+asyncpg", alias="DB_DRIVER")
     db_user: str = Field(default="postgres", alias="DB_USER")
-    db_password: str = Field(alias="DB_PASSWORD")
+    db_password: str = Field(default="postgres", alias="DB_PASSWORD")
     db_host: str = Field(default="localhost", alias="DB_HOST")
     db_port: int = Field(default=5432, alias="DB_PORT")
     db_name: str = Field(default="marketatlas", alias="DB_NAME")
@@ -87,7 +90,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # Auth Configuration
     # -------------------------------------------------------------------------
-    jwt_secret: str = Field(alias="JWT_SECRET")
+    jwt_secret: str = Field(default="test-secret-jwt-key-marketatlas-12345", alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
     jwt_expiry_hours: int = Field(alias="JWT_EXPIRY_HOURS", default=24)
 
@@ -117,7 +120,7 @@ class Settings(BaseSettings):
         alias="WORLD_STATE_URL",
         description="Base URL of the Dynamic World State service",
     )
-    world_state_api_key: str = Field(alias="WORLD_STATE_API_KEY")
+    world_state_api_key: str = Field(default="", alias="WORLD_STATE_API_KEY")
 
     # -------------------------------------------------------------------------
     # Memory Service (external microservice from separate repo)
