@@ -18,15 +18,18 @@ class EventStore:
         sector_filter: Optional[list[str]] = None,
         event_type_filter: Optional[list[str]] = None,
     ) -> SimilarityResponse:
+        result = {"similar_events": [], "aggregated_outcomes": {}}
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import nest_asyncio  # type: ignore[import-untyped]
-                nest_asyncio.apply()
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and not loop.is_running():
                 result = loop.run_until_complete(
                     run_similarity_pipeline(query=query, content=query, top_k=top_k)
                 )
-            else:
+            elif not loop:
                 result = asyncio.run(
                     run_similarity_pipeline(query=query, content=query, top_k=top_k)
                 )
