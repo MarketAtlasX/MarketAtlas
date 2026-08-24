@@ -243,6 +243,8 @@ class GraphRetriever(BaseRetriever):
                     },
                 )
             )
+        return results[:limit]
+
     def get_graph_summary(self) -> dict:
         entities = list(DEFAULT_GRAPH_DATA.keys())
         total_relations = sum(len(v["relationships"]) for v in DEFAULT_GRAPH_DATA.values() if isinstance(v, dict))

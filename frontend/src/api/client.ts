@@ -60,6 +60,40 @@ export interface AnalysisResult {
   recommendation: Recommendation
 }
 
+export interface PredictionScenario {
+  scenario_name: 'Base' | 'Bull' | 'Bear' | 'Tail-Risk'
+  probability: number
+  time_horizon: string
+  expected_outcome: string
+  trigger_conditions: string[]
+  market_implications: string
+}
+
+export interface PredictionResult {
+  prediction_id: string
+  target: string
+  ticker: string | null
+  entity_id: number | null
+  prediction: string
+  direction: 'BULLISH' | 'BEARISH' | 'NEUTRAL' | 'VOLATILE' | 'UNCERTAIN'
+  confidence: number
+  time_horizon: string
+  supporting_factors: string[]
+  contradictory_factors: string[]
+  risk_factors: string[]
+  alternative_scenarios: PredictionScenario[]
+  assumptions: string[]
+  uncertainties: string[]
+  reasoning_summary: string
+  evidence: Array<{ source: string; evidence: string; impact: string; confidence: number }>
+  created_at: string
+}
+
+export async function getPrediction(symbol: string): Promise<PredictionResult> {
+  const { data } = await api.get<PredictionResult>(`/predict/ticker/${encodeURIComponent(symbol)}`)
+  return data
+}
+
 const stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'JPM', 'V', 'NVDA', 'META', 'SPY']
 
 function rand(min: number, max: number) { return +(min + Math.random() * (max - min)).toFixed(4) }

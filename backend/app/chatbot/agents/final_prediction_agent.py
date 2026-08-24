@@ -294,6 +294,10 @@ Return ONLY valid JSON:"""
             calc_conf = min(calc_conf, 0.65)
         if geopolitical_output and geopolitical_output.status == AgentStatus.DEGRADED:
             calc_conf = min(calc_conf, 0.65)
+        if historical_output and historical_output.status == AgentStatus.FAILED:
+            calc_conf = min(calc_conf, 0.75)
+        if geopolitical_output and geopolitical_output.status == AgentStatus.FAILED:
+            calc_conf = min(calc_conf, 0.75)
         if not historical_output or not geopolitical_output:
             calc_conf = min(calc_conf, 0.55)
 
