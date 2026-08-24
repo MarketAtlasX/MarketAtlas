@@ -192,18 +192,25 @@ export function buildEventNodes(liveEvents: LiveEvent[]): any[] {
 }
 
 export function buildLabelData(): any[] {
+  const hubs = ['United States', 'China', 'Germany', 'Japan', 'India', 'Brazil', 'Saudi Arabia', 'United Kingdom', 'South Korea', 'Taiwan']
   const hot = worldStates
     .filter(ws => ws.riskScore >= 55)
     .slice(0, 10)
-    .map(ws => ({
-      lat: resolveCoords(ws.name)?.lat ?? 20,
-      lng: resolveCoords(ws.name)?.lng ?? 0,
-      text: ws.name,
-      size: ws.riskScore >= 70 ? 0.16 : 0.13,
-      color: ws.riskScore >= 70 ? '#ff4d5e' : '#9adcf0',
-      altitude: 2.12,
-    }))
-  return hot
+    .map(ws => ws.name)
+  const names = Array.from(new Set([...hubs, ...hot]))
+  return names.flatMap(name => {
+    const coords = resolveCoords(name)
+    if (!coords) return []
+    const risk = worldStates.find(ws => ws.name === name)?.riskScore ?? 0
+    return [{
+      lat: coords.lat,
+      lng: coords.lng,
+      text: name,
+      size: risk >= 70 ? 0.34 : hubs.includes(name) ? 0.3 : 0.26,
+      color: risk >= 70 ? '#ffb0b6' : hubs.includes(name) ? '#f1f5f2' : '#b8d8d2',
+      altitude: 0.035,
+    }]
+  })
 }
 
 export function seedLiveEvents(): LiveEvent[] {

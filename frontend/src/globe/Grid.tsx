@@ -35,8 +35,8 @@ const fragmentShader = `
 export default function Grid() {
   const uniforms = useMemo(
     () => ({
-      opacity: { value: 0.1 },
-      color: { value: new THREE.Color('#00bbff') },
+      opacity: { value: 0.08 },
+      color: { value: new THREE.Color('#6fc4bd') },
     }),
     [],
   )

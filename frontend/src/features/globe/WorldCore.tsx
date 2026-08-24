@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Stars } from '../../globe'
-import ParticleCore from '../../globe/ParticleCore'
+import { Earth } from '../../globe'
 import EnergyPaths from '../../globe/EnergyPaths'
 import FocusRings from '../../globe/FocusRings'
 import HolographicMap from '../../globe/HolographicMap'
 import RegionClusters from '../../globe/RegionClusters'
 import Atmosphere from '../../globe/Atmosphere'
-import Rings from '../../globe/Rings'
-import Satellites from '../../globe/Satellites'
-import Grid from '../../globe/Grid'
 import Nodes from '../../globe/Nodes'
 import Labels from '../../globe/Labels'
 import Heatmap from '../../globe/Heatmap'
@@ -61,18 +57,14 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
 
   return (
     <>
-      <Stars />
-      <directionalLight position={[8, 6, 8]} intensity={3.0} color="#ffffff" />
-      <directionalLight position={[-6, -3, -4]} intensity={0.5} color="#4488ff" />
-      <ambientLight intensity={0.3} color="#445566" />
+      <directionalLight position={[6, 4, 8]} intensity={1.8} color="#ffffff" />
+      <directionalLight position={[-6, -2, -4]} intensity={0.35} color="#6688aa" />
+      <ambientLight intensity={0.55} color="#71808a" />
 
       {!isMap && (
         <>
-          <ParticleCore transition={scene.transition} radius={2} />
+          <Earth />
           <Atmosphere />
-          <Grid />
-          <Rings />
-          <Satellites />
         </>
       )}
 

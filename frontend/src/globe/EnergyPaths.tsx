@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import type { RouteFlow } from '../features/globe/SceneDirector'
 
 const RADIUS = 2.03
-const STREAM_COUNT = 140
+const STREAM_COUNT = 56
 const ARC_SEGMENTS = 90
 
 function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
@@ -122,7 +122,7 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
     }
     sizeAttr.needsUpdate = true
 
-    materialRef.current.opacity = 0.65 + 0.25 * Math.sin(t * 1.2) * heat
+    materialRef.current.opacity = 0.58 + heat * 0.12
   })
 
   return (
@@ -130,9 +130,9 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
       <Line
         points={arcLine}
         color={color}
-        lineWidth={Math.max(1, heat * 3)}
+        lineWidth={Math.max(1, heat * 2)}
         transparent
-        opacity={0.32 + heat * 0.35}
+        opacity={0.42 + heat * 0.2}
       />
       <points ref={pointsRef}>
         <bufferGeometry>
