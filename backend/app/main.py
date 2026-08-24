@@ -32,6 +32,7 @@ from app.routes import (
     market_price_router,
     memory_router,
     portfolio_router,
+    prediction_router,
     signal_router,
     simulation_ws_router,
     simulations_router,
@@ -154,6 +155,7 @@ api_v1_router.include_router(event_router)
 api_v1_router.include_router(entity_router)
 api_v1_router.include_router(market_price_router)
 api_v1_router.include_router(signal_router)
+api_v1_router.include_router(prediction_router)
 api_v1_router.include_router(analysis_router)   # ai_routes with /events prefix
 api_v1_router.include_router(kg_router)          # kg_routes with /events prefix
 api_v1_router.include_router(analyze_router)     # /analyze, /analyze/v2
