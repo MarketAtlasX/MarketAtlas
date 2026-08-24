@@ -14,6 +14,7 @@ class IntentType(str, Enum):
     REPORT = "REPORT"
     SIMILARITY = "SIMILARITY"
     RISK = "RISK"
+    PREDICTION = "PREDICTION"
     ATLAS = "ATLAS"
 
 
@@ -93,6 +94,7 @@ class ChatResponse(BaseModel):
     confidence: float
     sources: list[str] = []
     report: Optional[dict[str, Any]] = None
+    prediction: Optional[dict[str, Any]] = None
     explanations: Optional[dict[str, Any]] = None
     visualization: Optional[VisualizationIntent] = None
 
