@@ -12,6 +12,22 @@ from app.schemas.live_event import (
 )
 from app.schemas.market_price import MarketPriceCreate, MarketPriceRead
 from app.schemas.pagination import PaginationParams
+from app.schemas.prediction import (
+    AgentStatus,
+    AlternativeScenario,
+    EvidenceItem,
+    FinalPredictionOutput,
+    GeopoliticalAgentOutput,
+    GeopoliticalFactor,
+    GeopoliticalFactorCategory,
+    HistoricalAgentOutput,
+    HistoricalPattern,
+    PredictionDirection,
+    PredictionRequest,
+    PredictionResponse,
+    ScenarioType,
+    SourceType,
+)
 from app.schemas.signal import SignalCreate, SignalRead, SignalUpdate
 
 __all__ = [
@@ -46,4 +62,18 @@ __all__ = [
     "EventAlertRead",
     "UserEventFilterCreate",
     "UserEventFilterRead",
+    "PredictionRequest",
+    "PredictionResponse",
+    "HistoricalAgentOutput",
+    "GeopoliticalAgentOutput",
+    "FinalPredictionOutput",
+    "HistoricalPattern",
+    "GeopoliticalFactor",
+    "GeopoliticalFactorCategory",
+    "AlternativeScenario",
+    "EvidenceItem",
+    "PredictionDirection",
+    "SourceType",
+    "AgentStatus",
+    "ScenarioType",
 ]
