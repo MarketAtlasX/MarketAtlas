@@ -11,7 +11,7 @@ export const DEFAULT_INTENT: VisualizationIntent = {
   transition: 'particle_reform',
   camera: 'pullback',
   palette: 'ultron',
-  caption: 'Global particle core online.',
+  caption: 'Global risk surface online.',
 }
 
 export function createIntent(partial: Partial<VisualizationIntent>): VisualizationIntent {
@@ -20,7 +20,7 @@ export function createIntent(partial: Partial<VisualizationIntent>): Visualizati
 
 export const INTENT_CAPTION: Record<string, string> = {
   core: 'INTELLIGENCE CORE',
-  globe: 'GLOBAL PARTICLE CORE',
+  globe: 'GLOBAL RISK SURFACE',
   country: 'COUNTRY FOCUS',
   region: 'REGIONAL FIELD',
   route: 'ROUTE NETWORK',

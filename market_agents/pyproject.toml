@@ -32,6 +32,6 @@ exclude = ["venv"]
 "*" = ["*.json"]
 
 [project.optional-dependencies]
-dev = ["fastapi", "uvicorn[standard]"]
+dev = ["fastapi", "uvicorn[standard]", "pytest>=8.0.0"]
 neo4j = ["neo4j"]
 messaging = ["pika"]

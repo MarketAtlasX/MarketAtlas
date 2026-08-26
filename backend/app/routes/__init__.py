@@ -15,6 +15,7 @@ from app.routes.market_data import router as market_data_router
 from app.routes.market_price import router as market_price_router
 from app.routes.memory import router as memory_router
 from app.routes.portfolio import router as portfolio_router
+from app.routes.prediction import router as prediction_router
 from app.routes.signal import router as signal_router
 from app.routes.simulation_ws import ws_router as simulation_ws_router
 from app.routes.simulations import router as simulations_router
@@ -27,6 +28,7 @@ __all__ = [
     "market_price_router",
     "portfolio_router",
     "signal_router",
+    "prediction_router",
     "simulations_router",
     "market_data_router",
     "analysis_router",

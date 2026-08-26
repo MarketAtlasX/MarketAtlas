@@ -1,19 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Stars } from '../../globe'
 import ParticleCore from '../../globe/ParticleCore'
-import EnergyPaths from '../../globe/EnergyPaths'
-import FocusRings from '../../globe/FocusRings'
-import HolographicMap from '../../globe/HolographicMap'
-import RegionClusters from '../../globe/RegionClusters'
 import Atmosphere from '../../globe/Atmosphere'
+import Stars from '../../globe/Stars'
 import Rings from '../../globe/Rings'
 import Satellites from '../../globe/Satellites'
-import Grid from '../../globe/Grid'
 import Nodes from '../../globe/Nodes'
 import Labels from '../../globe/Labels'
 import Heatmap from '../../globe/Heatmap'
 import RiskPropagation from '../../globe/RiskPropagation'
 import Arcs from '../../globe/Arcs'
+import EnergyPaths from '../../globe/EnergyPaths'
+import FocusRings from '../../globe/FocusRings'
+import RegionClusters from '../../globe/RegionClusters'
+import HolographicMap from '../../globe/HolographicMap'
 import CameraDirector from './CameraDirector'
 import { resolveScene } from './SceneDirector'
 import { DEFAULT_INTENT, type VisualizationIntent } from './visualizationIntent'
@@ -59,30 +58,17 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
   const riskPaths = useMemo(() => buildRiskPaths(state.graphLinks), [state.graphLinks])
   const isMap = scene.map
 
-  const eventRings = useMemo(() => {
-    if (!eventMode) return []
-    return state.events.slice(0, 12).map(e => ({
-      lat: e.lat || 20,
-      lng: e.lng || 0,
-      color: e.severity >= 7 ? '#ff4d5e' : e.severity >= 5 ? '#f5b941' : '#38e8ff',
-      intensity: Math.min(1, 0.4 + (e.severity / 10) * 0.6),
-      label: e.country,
-      kind: 'conflict' as const,
-    }))
-  }, [eventMode, state.events])
-
   return (
     <>
-      <Stars />
-      <directionalLight position={[8, 6, 8]} intensity={3.0} color="#ffffff" />
-      <directionalLight position={[-6, -3, -4]} intensity={0.5} color="#4488ff" />
-      <ambientLight intensity={0.3} color="#445566" />
+      <directionalLight position={[6, 4, 8]} intensity={1.8} color="#38e8ff" />
+      <directionalLight position={[-6, -2, -4]} intensity={0.6} color="#ff4d5e" />
+      <ambientLight intensity={0.6} color="#143a4d" />
 
       {!isMap && (
         <>
           <ParticleCore transition={scene.transition} radius={2} />
           <Atmosphere />
-          <Grid />
+          <Stars />
           <Rings />
           <Satellites />
         </>
@@ -92,7 +78,6 @@ export default function WorldCore({ intent: intentProp, eventMode = false, onNod
 
       {!isMap && scene.routes.length > 0 && <EnergyPaths flows={scene.routes} />}
       {!isMap && scene.regions.length > 0 && <FocusRings regions={scene.regions} />}
-      {!isMap && eventRings.length > 0 && <FocusRings regions={eventRings} />}
       {!isMap && scene.conflicts.length > 0 && <RegionClusters regions={scene.conflicts} />}
 
       {!isMap && showHeatmap && <Heatmap data={heatmap} />}

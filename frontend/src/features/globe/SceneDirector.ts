@@ -402,6 +402,7 @@ export function resolveScene(intent: VisualizationIntent): SceneConfig {
     case 'globe':
     default: {
       detach = 0
+      routes.push(...buildTradeFlows().filter(flow => (flow.intensity ?? 0) >= 0.55))
       cameraPos = [0, 1.5, 6.5]
       showOverlays = true
       break

@@ -1,15 +1,25 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { latLngToDir, type RegionFocus } from '../features/globe/SceneDirector'
+import type { RegionFocus } from '../features/globe/SceneDirector'
 
 const CLUSTER_SIZE = 700
 const RADIUS = 2.02
 
+function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
+  const phi = (90 - lat) * (Math.PI / 180)
+  const theta = (lng + 180) * (Math.PI / 180)
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta),
+  )
+}
+
 function Cluster({ region }: { region: RegionFocus }) {
   const ref = useRef<THREE.Points>(null)
 
-  const center = useMemo(() => latLngToDir(region.lat, region.lng).normalize(), [region.lat, region.lng])
+  const center = useMemo(() => latLngToVec3(region.lat, region.lng, RADIUS).normalize(), [region.lat, region.lng])
 
   const { positions, colors } = useMemo(() => {
     const pos = new Float32Array(CLUSTER_SIZE * 3)

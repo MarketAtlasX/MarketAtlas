@@ -1,16 +1,42 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { arcPoints } from './geo'
 import type { RouteFlow } from '../features/globe/SceneDirector'
 
 const PER_PATH = 90
 const RADIUS = 2.02
 
+function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
+  const phi = (90 - lat) * (Math.PI / 180)
+  const theta = (lng + 180) * (Math.PI / 180)
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta),
+  )
+}
+
+function arcPoints(startLat: number, startLng: number, endLat: number, endLng: number, radius: number): THREE.Vector3[] {
+  const start = latLngToVec3(startLat, startLng, radius)
+  const end = latLngToVec3(endLat, endLng, radius)
+  const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
+  const dist = start.distanceTo(end)
+  mid.normalize().multiplyScalar(radius + dist * 0.28)
+
+  const points: THREE.Vector3[] = []
+  for (let i = 0; i <= PER_PATH; i++) {
+    const t = i / PER_PATH
+    const a = new THREE.Vector3().lerpVectors(start, mid, t)
+    const b = new THREE.Vector3().lerpVectors(mid, end, t)
+    points.push(new THREE.Vector3().lerpVectors(a, b, t))
+  }
+  return points
+}
+
 function FlowStream({ flow }: { flow: RouteFlow }) {
   const ref = useRef<THREE.Points>(null)
   const basePoints = useMemo(
-    () => arcPoints(flow.startLat, flow.startLng, flow.endLat, flow.endLng, RADIUS, PER_PATH),
+    () => arcPoints(flow.startLat, flow.startLng, flow.endLat, flow.endLng, RADIUS),
     [flow.startLat, flow.startLng, flow.endLat, flow.endLng],
   )
 

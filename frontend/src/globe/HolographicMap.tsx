@@ -53,7 +53,6 @@ const surfaceFragmentShader = `
     grid = clamp(grid, 0.0, 1.0);
 
     float scan = smoothstep(0.0, 0.25, abs(fract(uv.y * 3.0 - uTime * 0.05) - 0.5));
-    float bar = smoothstep(0.04, 0.0, abs(fract(uv.x * 2.0 - uTime * 0.09) - 0.5));
     float noise = hash(floor(uv * 120.0) + floor(uTime * 4.0)) * 0.06;
 
     vec2 c = uv - 0.5;
@@ -64,7 +63,6 @@ const surfaceFragmentShader = `
     vec3 base = uBase + uGlow * (0.02 + 0.02 * sin(uTime * 0.8));
     vec3 col = mix(base, uLine, grid * 0.5);
     col += uLine * major * 0.6;
-    col += uLine * bar * 0.22;
     col += noise;
     col *= (0.55 + 0.45 * vig);
 
@@ -72,31 +70,6 @@ const surfaceFragmentShader = `
     gl_FragColor = vec4(col, alpha);
   }
 `
-
-function MapFloor({ getOpacity }: MapChildProps) {
-  const material = useRef<THREE.MeshBasicMaterial>(null)
-
-  useFrame(({ clock }) => {
-    if (!material.current) return
-    const o = getOpacity()
-    material.current.opacity = o * (0.06 + 0.02 * Math.sin(clock.getElapsedTime() * 0.6))
-  })
-
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-      <planeGeometry args={[MAP_WIDTH + 0.6, MAP_DEPTH + 0.6]} />
-      <meshBasicMaterial
-        ref={material}
-        color="#0a3d5c"
-        transparent
-        opacity={0}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  )
-}
 
 function MapSurface({ getOpacity }: MapChildProps) {
   const uniforms = useMemo(
@@ -479,45 +452,17 @@ function MapLabels({ getOpacity }: MapChildProps) {
   )
 }
 
-function cornerBrackets(width: number, depth: number, size: number): THREE.Vector3[][] {
-  const hw = width / 2
-  const hd = depth / 2
-  const corners: [number, number][] = [
-    [-hw, -hd],
-    [hw, -hd],
-    [hw, hd],
-    [-hw, hd],
-  ]
-  return corners.map(([cx, cz]) => [
-    new THREE.Vector3(cx, 0.025, cz),
-    new THREE.Vector3(cx + (cx < 0 ? size : -size), 0.025, cz),
-    new THREE.Vector3(cx + (cx < 0 ? size : -size), 0.025, cz + (cz < 0 ? size : -size)),
-    new THREE.Vector3(cx, 0.025, cz + (cz < 0 ? size : -size)),
-  ])
-}
-
 function MapFrame({ getOpacity }: MapChildProps) {
   const points = useMemo(() => buildMapFrame(MAP_WIDTH, MAP_DEPTH), [])
   const ref = useRef<Line2 | null>(null)
-  const brackets = useMemo(() => cornerBrackets(MAP_WIDTH, MAP_DEPTH, 0.55), [])
-  const bracketRefs = useMemo(() => brackets.map(() => ({ current: null as Line2 | null })), [brackets])
 
   useFrame(({ clock }) => {
     const o = getOpacity()
     if (ref.current) ref.current.material.opacity = o * (0.5 + 0.1 * Math.sin(clock.getElapsedTime() * 0.8))
-    bracketRefs.forEach((r, i) => {
-      const line = r.current
-      if (line) line.material.opacity = o * (0.35 + 0.15 * Math.sin(clock.getElapsedTime() * 1.1 + i * 1.7))
-    })
   })
 
   return (
-    <group>
-      <Line ref={ref} points={points} color="#38e8ff" lineWidth={1.2} transparent opacity={0} />
-      {brackets.map((pts, i) => (
-        <Line key={i} ref={bracketRefs[i]} points={pts} color="#38e8ff" lineWidth={1.4} transparent opacity={0} />
-      ))}
-    </group>
+    <Line ref={ref} points={points} color="#38e8ff" lineWidth={1.2} transparent opacity={0} />
   )
 }
 
@@ -543,7 +488,6 @@ export default function HolographicMap({ visible = false, routes = [], regions =
 
   return (
     <group ref={groupRef} position={[0, -5, 0]}>
-      <MapFloor getOpacity={getOpacity} />
       <MapSurface getOpacity={getOpacity} />
       <MapCountryParticles getOpacity={getOpacity} />
       <HubArcs getOpacity={getOpacity} />

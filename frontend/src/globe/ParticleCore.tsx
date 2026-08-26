@@ -79,17 +79,50 @@ function buildSurfaceParticles(count: number): SurfaceArrays {
 
   const clusters = riskClusterDirs()
   const c = new THREE.Color()
+
+  // Build country cluster directions from worldStates for continent mapping
+  const countryDirs = worldStates
+    .map(ws => {
+      const coords = resolveCoords(ws.name)
+      if (!coords) return null
+      const phi = (90 - coords.lat) * (Math.PI / 180)
+      const theta = (coords.lng + 180) * (Math.PI / 180)
+      return {
+        x: -Math.sin(phi) * Math.cos(theta),
+        y: Math.cos(phi),
+        z: Math.sin(phi) * Math.sin(theta),
+        risk: ws.riskScore,
+      }
+    })
+    .filter(Boolean) as { x: number; y: number; z: number; risk: number }[]
+
   const goldenRatio = Math.PI * (3 - Math.sqrt(5))
   const inv = 1 / (count - 1)
 
   for (let i = 0; i < count; i++) {
-    const y = 1 - i * inv * 2
-    const radius = Math.sqrt(Math.max(0, 1 - y * y))
-    const theta = goldenRatio * i
-    const x = Math.cos(theta) * radius
-    const z = Math.sin(theta) * radius
+    let x: number, y: number, z: number
 
-    const jitter = 1 + (Math.random() - 0.5) * 0.04
+    // 40% of particles are clustered around country locations to form distinct continents
+    if (i < count * 0.45 && countryDirs.length > 0) {
+      const country = countryDirs[i % countryDirs.length]
+      const spread = 0.08 + Math.random() * 0.18
+      const rx = country.x + (Math.random() - 0.5) * spread
+      const ry = country.y + (Math.random() - 0.5) * spread
+      const rz = country.z + (Math.random() - 0.5) * spread
+      const len = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1
+      x = rx / len
+      y = ry / len
+      z = rz / len
+    } else {
+      // 55% Fibonacci sphere distribution for global orb coverage
+      y = 1 - i * inv * 2
+      const radius = Math.sqrt(Math.max(0, 1 - y * y))
+      const theta = goldenRatio * i
+      x = Math.cos(theta) * radius
+      z = Math.sin(theta) * radius
+    }
+
+    const jitter = 1 + (Math.random() - 0.5) * 0.03
     positions[i * 3] = x * jitter
     positions[i * 3 + 1] = y * jitter
     positions[i * 3 + 2] = z * jitter
@@ -106,11 +139,21 @@ function buildSurfaceParticles(count: number): SurfaceArrays {
     }
 
     pickColor(Math.random(), distToRisk, c)
+
+    // Highlight country clusters with gold, cyan, or red
+    if (i < count * 0.45) {
+      const country = countryDirs[i % countryDirs.length]
+      if (country.risk >= 70) c.copy(PALETTE.red)
+      else if (country.risk >= 55) c.copy(PALETTE.amber)
+      else if (Math.random() < 0.3) c.copy(PALETTE.gold)
+      else c.copy(PALETTE.cyan)
+    }
+
     colors[i * 3] = c.r
     colors[i * 3 + 1] = c.g
     colors[i * 3 + 2] = c.b
 
-    sizes[i] = 0.035 + Math.random() * 0.045
+    sizes[i] = 0.04 + Math.random() * 0.05
   }
 
   return { positions, colors, seeds, sizes, freqs, turbs }

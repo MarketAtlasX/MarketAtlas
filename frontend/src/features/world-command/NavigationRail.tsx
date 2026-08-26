@@ -28,7 +28,7 @@ export default function NavigationRail() {
   const analyzing = state.agents.filter(a => a.state === 'analyzing').length
 
   return (
-    <nav className="w-14 lg:w-16 shrink-0 flex flex-col items-center gap-1.5 py-3 border-r border-[var(--line)] bg-[rgba(4,8,12,0.85)] backdrop-blur-md">
+    <nav className="w-16 shrink-0 flex flex-col items-center gap-1 py-3 border-r border-[var(--line)] bg-[var(--bg-raised)]">
       {items.map(item => {
         const inner = (
           <>
@@ -46,7 +46,7 @@ export default function NavigationRail() {
         )
 
         const cls =
-          'w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-lg border border-transparent transition-colors text-[var(--text-lo)] hover:text-[var(--text-hi)] hover:bg-[rgba(56,232,255,0.06)] hover:border-[rgba(56,232,255,0.2)]'
+          'w-14 h-11 flex flex-col items-center justify-center gap-1 border border-transparent transition-colors text-[var(--text-lo)] hover:text-[var(--text-hi)] hover:bg-[rgba(97,199,182,0.08)] hover:border-[rgba(97,199,182,0.2)]'
 
         if (item.action) {
           return (
@@ -60,7 +60,7 @@ export default function NavigationRail() {
             key={item.label}
             to={item.to!}
             className={({ isActive }) =>
-              `${cls} ${isActive ? 'text-[var(--accent)] border-[rgba(56,232,255,0.25)] bg-[rgba(56,232,255,0.08)]' : ''}`
+              `${cls} ${isActive ? 'text-[var(--accent)] border-[rgba(97,199,182,0.28)] bg-[rgba(97,199,182,0.1)]' : ''}`
             }
           >
             {inner}

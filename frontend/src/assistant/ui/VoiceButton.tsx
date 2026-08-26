@@ -37,7 +37,7 @@ export function VoiceButton() {
       </button>
 
       <span className="text-[9px] font-mono tracking-[0.25em] text-[var(--text-lo)] uppercase">
-        {active ? 'Disconnect' : supported ? 'Activate ATLAS' : 'Voice unavailable'}
+        {active ? 'Disconnect' : state === 'ERROR' ? 'Retry ATLAS' : supported ? 'Activate ATLAS' : 'Voice unavailable'}
       </span>
     </div>
   )

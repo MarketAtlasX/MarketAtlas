@@ -40,7 +40,7 @@ export default defineConfig({
         ws: true,
       },
       '/ws/simulation': {
-        target: 'ws://localhost:8000',
+        target: 'ws://localhost:8007',
         ws: true,
       },
       '/ws': {

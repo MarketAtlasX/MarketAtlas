@@ -2,12 +2,38 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
-import { arcPoints, latLngToVec3 } from './geo'
 import type { RouteFlow } from '../features/globe/SceneDirector'
 
 const RADIUS = 2.03
-const STREAM_COUNT = 140
+const STREAM_COUNT = 56
 const ARC_SEGMENTS = 90
+
+function latLngToVec3(lat: number, lng: number, radius: number): THREE.Vector3 {
+  const phi = (90 - lat) * (Math.PI / 180)
+  const theta = (lng + 180) * (Math.PI / 180)
+  return new THREE.Vector3(
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta),
+  )
+}
+
+function arcPoints(startLat: number, startLng: number, endLat: number, endLng: number, radius: number): THREE.Vector3[] {
+  const start = latLngToVec3(startLat, startLng, radius)
+  const end = latLngToVec3(endLat, endLng, radius)
+  const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5)
+  const dist = start.distanceTo(end)
+  mid.normalize().multiplyScalar(radius + dist * 0.3)
+
+  const points: THREE.Vector3[] = []
+  for (let i = 0; i <= ARC_SEGMENTS; i++) {
+    const t = i / ARC_SEGMENTS
+    const a = new THREE.Vector3().lerpVectors(start, mid, t)
+    const b = new THREE.Vector3().lerpVectors(mid, end, t)
+    points.push(new THREE.Vector3().lerpVectors(a, b, t))
+  }
+  return points
+}
 
 function toneColor(tone: string | undefined, fallback: string): THREE.Color {
   switch (tone) {
@@ -27,10 +53,6 @@ function toneColor(tone: string | undefined, fallback: string): THREE.Color {
 function EnergyStream({ flow }: { flow: RouteFlow }) {
   const pointsRef = useRef<THREE.Points>(null)
   const materialRef = useRef<THREE.PointsMaterial>(null)
-  const originRef = useRef<THREE.Mesh>(null)
-  const originMatRef = useRef<THREE.MeshBasicMaterial>(null)
-  const destRef = useRef<THREE.Mesh>(null)
-  const destMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const speed = useRef(0.06 + Math.random() * 0.05)
 
   const base = useMemo(
@@ -73,9 +95,6 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
     [flow.startLat, flow.startLng, flow.endLat, flow.endLng],
   )
 
-  const originPos = useMemo(() => base[0].clone(), [base])
-  const destPos = useMemo(() => base[base.length - 1].clone(), [base])
-
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
     if (!pointsRef.current || !materialRef.current) return
@@ -103,16 +122,7 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
     }
     sizeAttr.needsUpdate = true
 
-    materialRef.current.opacity = 0.65 + 0.25 * Math.sin(t * 1.2) * heat
-
-    if (originMatRef.current && destMatRef.current) {
-      originMatRef.current.opacity = 0.5 + 0.5 * Math.sin(t * 2.4) * heat
-      destMatRef.current.opacity = 0.5 + 0.5 * Math.sin(t * 2.4 + Math.PI) * heat
-    }
-    if (originRef.current && destRef.current) {
-      originRef.current.scale.setScalar(1 + 0.4 * Math.sin(t * 2.4))
-      destRef.current.scale.setScalar(1 + 0.4 * Math.sin(t * 2.4 + Math.PI))
-    }
+    materialRef.current.opacity = 0.58 + heat * 0.12
   })
 
   return (
@@ -120,9 +130,9 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
       <Line
         points={arcLine}
         color={color}
-        lineWidth={Math.max(1, heat * 3)}
+        lineWidth={Math.max(1, heat * 2)}
         transparent
-        opacity={0.32 + heat * 0.35}
+        opacity={0.42 + heat * 0.2}
       />
       <points ref={pointsRef}>
         <bufferGeometry>
@@ -141,14 +151,6 @@ function EnergyStream({ flow }: { flow: RouteFlow }) {
           sizeAttenuation
         />
       </points>
-      <mesh ref={originRef} position={originPos}>
-        <sphereGeometry args={[0.05, 12, 12]} />
-        <meshBasicMaterial ref={originMatRef} color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh ref={destRef} position={destPos}>
-        <sphereGeometry args={[0.05, 12, 12]} />
-        <meshBasicMaterial ref={destMatRef} color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
     </group>
   )
 }

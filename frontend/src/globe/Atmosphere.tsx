@@ -36,24 +36,19 @@ const fragmentShader = `
 export default function Atmosphere() {
   const uniforms = useMemo(
     () => ({
-      glowColor: { value: new THREE.Color('#5599ff') },
-      intensity: { value: 0.6 },
-      power: { value: 3.0 },
+      glowColor: { value: new THREE.Color('#5b9f99') },
+      intensity: { value: 0.24 },
+      power: { value: 3.8 },
     }),
     [],
   )
 
   const ref = useRef<THREE.Mesh>(null)
-  const innerRef = useRef<THREE.Mesh>(null)
 
-  useFrame(({ clock }, delta) => {
+  useFrame((_, delta) => {
     if (ref.current) {
       ref.current.rotation.y += delta * 0.05
     }
-    if (innerRef.current) {
-      innerRef.current.rotation.y -= delta * 0.03
-    }
-    uniforms.intensity.value = 0.5 + 0.1 * Math.sin(clock.getElapsedTime() * 0.5)
   })
 
   return (
@@ -68,10 +63,6 @@ export default function Atmosphere() {
         side={THREE.BackSide}
         blending={THREE.AdditiveBlending}
       />
-      <mesh ref={innerRef}>
-        <sphereGeometry args={[2.11, 48, 48]} />
-        <meshBasicMaterial color="#2a5f9e" transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
-      </mesh>
     </mesh>
   )
 }

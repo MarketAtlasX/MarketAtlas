@@ -1,5 +1,4 @@
-import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useMemo } from 'react'
 import * as THREE from 'three'
 
 const vertexShader = `
@@ -34,23 +33,16 @@ const fragmentShader = `
 `
 
 export default function Grid() {
-  const ref = useRef<THREE.Mesh>(null)
   const uniforms = useMemo(
     () => ({
-      opacity: { value: 0.1 },
-      color: { value: new THREE.Color('#00bbff') },
+      opacity: { value: 0.08 },
+      color: { value: new THREE.Color('#6fc4bd') },
     }),
     [],
   )
 
-  useFrame((_, delta) => {
-    if (ref.current) {
-      ref.current.rotation.y += delta * 0.012
-    }
-  })
-
   return (
-    <mesh ref={ref}>
+    <mesh>
       <sphereGeometry args={[2.08, 64, 64]} />
       <shaderMaterial
         uniforms={uniforms}

@@ -52,6 +52,7 @@ class IntentRouter:
             IntentType.REPORT: ["report", "brief", "analysis", "summary", "deep dive", "intelligence report", "overview"],
             IntentType.SIMILARITY: ["similar", "comparable", "analogous", "parallel", "like", "resemble", "alike", "remind", "mirror", "echo", "reminiscent", "historic", "precedent", "past event"],
             IntentType.RISK: ["risk", "volatility", "volatile", "safe", "dangerous", "drawdown", "value at risk", "how risky", "risk score", "risk assessment", "risk analysis"],
+            IntentType.PREDICTION: ["predict", "prediction", "forecast outcome", "future prediction", "outlook for", "3-agent prediction", "probabilistic forecast", "future outlook", "scenario forecast"],
         }
 
         scores = {}
@@ -88,6 +89,7 @@ Categories:
 - REPORT: Comprehensive analysis, briefings, intelligence reports
 - SIMILARITY: Historical parallels, similar past events, precedents, comparisons to historical events
 - RISK: Risk assessment, volatility analysis, risk scores, safety of investments, risk evaluation
+- PREDICTION: 3-agent intelligence forecasts, future market/geopolitical predictions, scenario probabilities
 
 This is a follow-up question in an ongoing conversation.{context_hint}
 If the query refers to a previous exchange, classify it based on the topic of the conversation.
@@ -116,6 +118,7 @@ Category:"""
             IntentType.REPORT: ["ReportAgent", "ImpactAgent", "MarketAgent", "GraphAgent", "NewsAgent"],
             IntentType.SIMILARITY: ["EventSimilarityAgent", "ImpactAgent"],
             IntentType.RISK: ["RiskAgent", "MarketAgent"],
+            IntentType.PREDICTION: ["HistoricalAgent", "GeopoliticalAgent", "FinalPredictionAgent"],
             IntentType.ATLAS: ["AtlasAgent"],
         }
         return routing.get(intent, ["AtlasAgent"])

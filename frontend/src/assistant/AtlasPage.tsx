@@ -57,7 +57,9 @@ export function AtlasPage() {
           </div>
 
           <p className="text-[11px] font-mono text-[var(--text-lo)]">
-            {state === 'IDLE' ? (
+            {state === 'ERROR' ? (
+              <span className="text-[var(--critical)]">Voice service unavailable. Configure OPENAI_API_KEY or allow browser speech access.</span>
+            ) : state === 'IDLE' ? (
               <>Say <span className="text-[var(--accent)]">“ATLAS, explain general relativity”</span> or <span className="text-[var(--accent)]">“show routes from India to Germany”</span></>
             ) : state === 'LISTENING' ? (
               <span className="text-[var(--positive)]">Listening…</span>

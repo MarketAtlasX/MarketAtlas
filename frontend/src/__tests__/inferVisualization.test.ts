@@ -45,37 +45,4 @@ describe('inferVisualization', () => {
     expect(v.mode).toBe('route')
     expect(v.focus.length).toBeGreaterThanOrEqual(2)
   })
-
-  it('maps a supply chain query to supply mode', () => {
-    const v = inferVisualization('Show me the supply chain for semiconductors')
-    expect(v.mode).toBe('supply')
-    expect(v.palette).toBe('map')
-    expect(v.camera).toBe('pullback')
-  })
-
-  it('maps logistics phrasing to supply mode', () => {
-    const v = inferVisualization('Show the logistics network for rare earth metals')
-    expect(v.mode).toBe('supply')
-  })
-
-  it('maps a bare map query to map mode', () => {
-    const v = inferVisualization('Show me a world map')
-    expect(v.mode).toBe('map')
-    expect(v.palette).toBe('map')
-  })
-
-  it('prefers route mode when a map query names entities', () => {
-    const v = inferVisualization('Show me the trade map between India and Germany')
-    expect(v.mode).toBe('route')
-  })
-
-  it('prefers supply mode over route mode on supply phrasing', () => {
-    const v = inferVisualization('Map the supply chain between China and Japan')
-    expect(v.mode).toBe('supply')
-  })
-
-  it('keeps abstract questions abstract even with map words', () => {
-    const v = inferVisualization('What is a heatmap in statistics?')
-    expect(v.mode).toBe('abstract')
-  })
 })

@@ -29,7 +29,7 @@ export default function CommandConsole({ initialTab = 'events' }: CommandConsole
     <section className="shrink-0 border-t border-[var(--line)] bg-[rgba(4,8,12,0.85)] backdrop-blur-md px-3 py-2">
       <Tabs items={CONSOLE_TABS as any} value={tab} onChange={v => setTab(v as ConsoleTab)} className="max-w-lg mb-2" />
 
-      <div className={isCommand ? 'h-48' : 'h-24'} transition-all>
+      <div className={`${isCommand ? 'h-48' : 'h-24'} transition-all`}>
         {tab === 'events' && <LiveEventsTab />}
         {tab === 'propagation' && <PropagationTab />}
         {tab === 'analysis' && <AIAnalysisTab />}

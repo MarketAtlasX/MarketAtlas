@@ -1,7 +1,10 @@
 from .debate_agent import DebateAgent
 from .event_similarity_agent import EventSimilarityAgent
+from .final_prediction_agent import FinalPredictionAgent
 from .forecast_agent import ForecastAgent
+from .geopolitical_agent import GeopoliticalAgent
 from .graph_agent import GraphAgent
+from .historical_agent import HistoricalAgent
 from .impact_agent import ImpactAgent
 from .intent_router import IntentRouter
 from .atlas_agent import AtlasAgent
@@ -26,4 +29,7 @@ __all__ = [
     "SimulationAgent",
     "DebateAgent",
     "EventSimilarityAgent",
+    "HistoricalAgent",
+    "GeopoliticalAgent",
+    "FinalPredictionAgent",
 ]

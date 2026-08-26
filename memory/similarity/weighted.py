@@ -66,19 +66,34 @@ class WeightedSimilarity:
         return self._model
 
     def _event_similarity(self, a: Episode, b: Episode) -> float:
-        from sklearn.metrics.pairwise import cosine_similarity
-        import numpy as np
-
         text_a = a.to_embedding_text()[:500]
         text_b = b.to_embedding_text()[:500]
+
+        if a.model_dump() == b.model_dump():
+            return 1.0
+
+        if not text_a and not text_b:
+            return 1.0
+
+        if not text_a or not text_b:
+            return 0.0
+
+        tokens_a = text_a.split()[:100]
+        tokens_b = text_b.split()[:100]
+
+        if tokens_a == tokens_b:
+            return 1.0
+
         try:
+            from sklearn.metrics.pairwise import cosine_similarity
+
             model = self._get_model()
             emb_a = model.encode(text_a)
             emb_b = model.encode(text_b)
             sim = cosine_similarity([emb_a], [emb_b])[0][0]
-            return float(sim)
+            return float(max(0.0, min(1.0, sim)))
         except Exception:
-            return self._jaccard_similarity(text_a.split()[:100], text_b.split()[:100])
+            return self._jaccard_similarity(tokens_a, tokens_b)
 
     def _set_similarity(self, set_a: set, set_b: set) -> float:
         if not set_a and not set_b:
