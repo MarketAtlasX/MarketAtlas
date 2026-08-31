@@ -31,4 +31,15 @@ describe('NavigationRail', () => {
     )
     expect(screen.getByTitle('Reset globe')).toBeInTheDocument()
   })
+
+  it('renders the atlas navigation destination', () => {
+    render(
+      <MemoryRouter>
+        <WorldProvider>
+          <NavigationRail />
+        </WorldProvider>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTitle('ATLAS')).toBeInTheDocument()
+  })
 })
