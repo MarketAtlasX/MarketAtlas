@@ -172,6 +172,64 @@ export function buildConflictFlows(): RouteFlow[] {
   return flows
 }
 
+function riskToneForScore(risk: number): FlowTone {
+  if (risk >= 70) return 'red'
+  if (risk >= 55) return 'amber'
+  return 'gold'
+}
+
+function riskColorForScore(risk: number): string {
+  if (risk >= 70) return '#ff3b30'
+  if (risk >= 55) return '#ff9d3b'
+  return '#ffd54a'
+}
+
+export function buildRiskFlows(): RouteFlow[] {
+  const flows: RouteFlow[] = [...buildConflictFlows()]
+  const hotStates = worldStates
+    .filter(ws => ws.riskScore >= 55)
+    .sort((a, b) => b.riskScore - a.riskScore)
+    .slice(0, 14)
+
+  const seen = new Set<string>()
+
+  for (const ws of hotStates) {
+    const from = resolveCoords(ws.name)
+    if (!from) continue
+
+    const rankedTargets = hotStates
+      .filter(target => target.name !== ws.name)
+      .map(target => {
+        const to = resolveCoords(target.name)
+        if (!to) return null
+        const distance = Math.hypot(from.lat - to.lat, from.lng - to.lng)
+        return { target, to, distance }
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 2)
+
+    for (const entry of rankedTargets) {
+      const key = [ws.name, entry.target.name].sort().join('::')
+      if (seen.has(key)) continue
+      seen.add(key)
+
+      const severity = Math.max(ws.riskScore, entry.target.riskScore)
+      flows.push({
+        startLat: from.lat,
+        startLng: from.lng,
+        endLat: entry.to.lat,
+        endLng: entry.to.lng,
+        color: riskColorForScore(severity),
+        intensity: Math.min(1, severity / 100),
+        tone: riskToneForScore(severity),
+      })
+    }
+  }
+
+  return flows
+}
+
 function hubNetworkFlows(): RouteFlow[] {
   const flows: RouteFlow[] = []
   for (let i = 0; i < MAJOR_HUBS.length; i++) {
@@ -360,6 +418,7 @@ export function resolveScene(intent: VisualizationIntent): SceneConfig {
       detach = 0.12
       heatColor = '#ff3b30'
       tint = '#ff9a5a'
+      routes.push(...buildRiskFlows())
       for (const ws of worldStates) {
         if (ws.riskScore >= 55) {
           const r = regionFocusFor(ws.name, 'conflict')
