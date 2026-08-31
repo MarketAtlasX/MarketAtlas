@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
 import { useAssistantState } from './state/AssistantStateContext'
 import { AtlasOrb } from './orb/AtlasOrb'
 import { AssistantHUD } from './ui/AssistantHUD'
@@ -20,22 +18,12 @@ export function AtlasPage() {
   const visible = lines.slice(-6)
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-command overflow-hidden relative">
+    <div className="h-full w-full flex flex-col bg-command overflow-hidden relative">
       <div className="absolute inset-0 pointer-events-none atlas-backdrop" />
 
-      <header className="shrink-0 flex items-center justify-between px-5 py-4 relative z-10">
-        <Link
-          to="/dashboard"
-          className="flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[rgba(6,12,18,0.7)] px-3 py-1.5 text-[10px] font-mono tracking-widest text-[var(--text-mid)] hover:text-[var(--accent)] hover:border-[rgba(56,232,255,0.3)] transition-colors"
-        >
-          <ChevronLeft size={12} />
-          COMMAND CENTER
-        </Link>
+      <div className="shrink-0 flex items-center justify-end px-5 py-4 relative z-10">
         <AssistantHUD />
-        <span className="w-40 text-right text-[9px] font-mono tracking-[0.25em] text-[var(--text-lo)] uppercase">
-          General Intelligence
-        </span>
-      </header>
+      </div>
 
       <main className="flex-1 relative flex flex-col items-center justify-center min-h-0">
         <AtlasOrb className="atlas-orb-responsive" />
