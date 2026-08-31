@@ -14,6 +14,7 @@ export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
 interface CinematicGlobeProps {
   mode?: GlobeMode
+  intentOverride?: VisualizationIntent
   onSelect?: (entity: string, lat: number, lng: number) => void
   className?: string
 }
@@ -21,28 +22,18 @@ interface CinematicGlobeProps {
 /* ─── Semantic Color Grammar ────────────────────────────────── */
 
 const COLORS = {
-  // Peaceful / Stable Areas -> Soft Warm Yellowish Gold Cap
   PEACE_CAP:    'rgba(255, 213, 74, 0.22)',
-  PEACE_STROKE: 'rgba(240, 200, 120, 0.75)', // Platinum-Gold Outline
-
-  // Elevated / Tension Zones -> Warm Amber / Orange
+  PEACE_STROKE: 'rgba(240, 200, 120, 0.75)',
   TENSION_CAP:    'rgba(245, 166, 35, 0.50)',
   TENSION_STROKE: 'rgba(255, 160, 64, 0.90)',
-
-  // War / Conflict Zones -> Crimson Red
   WAR_CAP:    'rgba(255, 59, 48, 0.65)',
   WAR_STROKE: 'rgba(255, 77, 94, 0.98)',
-
-  // Selected Country -> Bright Glowing Gold
   SELECT_CAP:    'rgba(255, 215, 0, 0.85)',
   SELECT_STROKE: '#ffe600',
-
-  // Globe Base & Atmosphere -> Dark Charcoal Base with Warm Golden-Amber Halo Outline
-  GLOBE_BASE: '#0d1117',
-  GLOBE_EMIT: '#131822',
-  ATMOSPHERE: '#7a6548', // Warm Golden-Amber Atmosphere Outline Halo
-
-  // Label Colors
+  GLOBE_BASE: '#05080b',
+  GLOBE_EMIT: '#0a1016',
+  ATMOSPHERE: '#d9e2ea',
+  GRID: 'rgba(223, 232, 239, 0.22)',
   LABEL_GOLD: '#ffd54a',
   LABEL_WHITE: '#f0f4f8',
 } as const
@@ -53,28 +44,47 @@ function getArcColor(d: RouteFlow): string[] {
   const tone = d.tone || 'cyan'
   const colorStr = (d.color || '').toLowerCase()
 
-  // 1. Military / Conflict / War Routes -> Crimson Red
   if (tone === 'red' || colorStr.includes('3b30') || colorStr.includes('4d5e')) {
     return ['rgba(255, 59, 48, 0.25)', '#ff3b30', '#ff4d5e', 'rgba(255, 59, 48, 0.25)']
   }
 
-  // 2. Energy / Oil & Gas Routes -> Golden Amber
   if (tone === 'gold' || colorStr.includes('d54a') || colorStr.includes('b020')) {
     return ['rgba(255, 176, 32, 0.25)', '#ffb020', '#ffa040', 'rgba(255, 176, 32, 0.25)']
   }
 
-  // 3. Commercial Trade Routes -> Emerald Green
-  if (tone === 'cyan' && Math.random() > 0.5) {
+  if (tone === 'amber' || (tone === 'cyan' && (d.intensity ?? 0.5) < 0.55)) {
     return ['rgba(46, 230, 168, 0.25)', '#2ee6a8', '#2ee6a8', 'rgba(46, 230, 168, 0.25)']
   }
 
-  // 4. Semiconductor & Tech Supply Chains -> Electric Cyan
   if (tone === 'cyan') {
     return ['rgba(0, 229, 255, 0.25)', '#00e5ff', '#00e5ff', 'rgba(0, 229, 255, 0.25)']
   }
 
-  // 5. Strategic / Diplomatic Alliances -> Royal Violet
   return ['rgba(179, 89, 255, 0.25)', '#b359ff', '#b359ff', 'rgba(179, 89, 255, 0.25)']
+}
+
+function riskArcAltitudeScale(d: RouteFlow, mode: GlobeMode): number {
+  if (mode !== 'risk') return 0.32
+  const heat = d.intensity ?? 0.5
+  return 0.5 + heat * 0.35
+}
+
+function riskArcStroke(d: RouteFlow, mode: GlobeMode): number {
+  const heat = d.intensity ?? 0.5
+  if (mode !== 'risk') return Math.max(0.25, heat * 0.5)
+  return Math.max(0.7, heat * 1.45)
+}
+
+function riskArcDashLength(mode: GlobeMode): number {
+  return mode === 'risk' ? 0.24 : 0.18
+}
+
+function riskArcDashGap(mode: GlobeMode): number {
+  return mode === 'risk' ? 0.06 : 0.1
+}
+
+function riskArcAnimateTime(mode: GlobeMode): number {
+  return mode === 'risk' ? 8000 : 11000
 }
 
 /* ─── Mode → Intent ─────────────────────────────────────────── */
@@ -187,7 +197,7 @@ function polygonAltitude(featureName: string, selectedEntity: string | null): nu
 
 /* ─── Component ─────────────────────────────────────────────── */
 
-export default function CinematicGlobe({ mode = 'world', onSelect, className = '' }: CinematicGlobeProps) {
+export default function CinematicGlobe({ mode = 'world', intentOverride, onSelect, className = '' }: CinematicGlobeProps) {
   const { state, selectEntity } = useWorldStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
@@ -201,10 +211,8 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
   onSelectRef.current = onSelect
   selectEntityRef.current = selectEntity
 
-  // Subscribe to external visualization bus
   useEffect(() => visualizationBus.subscribe(setFocusIntent), [])
 
-  // Load Natural Earth 110m country geometries ONCE
   useEffect(() => {
     import('world-atlas/countries-110m.json').then((topology: any) => {
       const geoCountries = topojson.feature(topology, topology.objects.countries)
@@ -212,18 +220,17 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
     })
   }, [])
 
-  // Compute visualization intent
   const intent = useMemo(() => {
+    if (intentOverride) return intentOverride
     if (focusIntent) return focusIntent
     return modeToIntent(mode, state.selectedEntity)
-  }, [focusIntent, mode, state.selectedEntity])
+  }, [focusIntent, intentOverride, mode, state.selectedEntity])
 
   const caption = intent.caption ?? INTENT_CAPTION[intent.mode] ?? 'GLOBAL COMMAND CORE'
   const scene = useMemo(() => resolveScene(intent), [intent])
   const labels = useMemo(() => buildLabelData(), [])
   const nodes = useMemo(() => buildNodes('world'), [])
 
-  // Handle country / node selection
   const handleEntityClick = useCallback((entityName: string, lat: number, lng: number) => {
     selectEntityRef.current(entityName)
     setFocusIntent(
@@ -239,7 +246,6 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
     onSelectRef.current?.(entityName, lat, lng)
   }, [])
 
-  // Initialize Globe ONCE
   useEffect(() => {
     if (!containerRef.current || globeRef.current) return
 
@@ -248,54 +254,49 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
       .height(containerRef.current.clientHeight)
       .backgroundColor('rgba(0,0,0,0)')
 
-      // --- Globe Surface with Warm Golden-Amber Atmosphere Halo ---
       .showGlobe(true)
       .showAtmosphere(true)
+      .showGraticules(true)
       .atmosphereColor(COLORS.ATMOSPHERE)
-      .atmosphereAltitude(0.18)
+      .atmosphereAltitude(0.09)
 
-      // --- GeoJSON 3D Country Polygons with Platinum-Gold Border Outlines ---
       .polygonsData([])
       .polygonCapColor((d: any) => polygonCapColor(d?.properties?.name || '', mode, state.selectedEntity))
-      .polygonSideColor(() => 'rgba(28, 36, 46, 0.85)')
+      .polygonSideColor(() => 'rgba(11, 15, 19, 0.92)')
       .polygonStrokeColor((d: any) => polygonStrokeColor(d?.properties?.name || '', state.selectedEntity))
       .polygonAltitude((d: any) => polygonAltitude(d?.properties?.name || '', state.selectedEntity))
-      .polygonCapCurvatureResolution(3)
+      .polygonCapCurvatureResolution(5)
 
-      // --- Arcs (Multi-Colored Categorized Routes) ---
       .arcsData([])
       .arcStartLat((d: any) => d.startLat)
       .arcStartLng((d: any) => d.startLng)
       .arcEndLat((d: any) => d.endLat)
       .arcEndLng((d: any) => d.endLng)
       .arcColor((d: any) => getArcColor(d))
-      .arcAltitudeAutoScale(0.38)
-      .arcStroke((d: any) => Math.max(0.35, (d.intensity ?? 0.5) * 0.65))
-      .arcDashLength(0.42)
-      .arcDashGap(0.18)
-      .arcDashAnimateTime(7500)
+      .arcAltitudeAutoScale(riskArcAltitudeScale)
+      .arcStroke((d: any) => riskArcStroke(d, mode))
+      .arcDashLength(riskArcDashLength(mode))
+      .arcDashGap(riskArcDashGap(mode))
+      .arcDashAnimateTime(riskArcAnimateTime(mode))
 
-      // --- Points (Strategic Nodes & Event Markers) ---
       .pointsData([])
       .pointLat((d: any) => d.lat)
       .pointLng((d: any) => d.lng)
-      .pointColor((d: any) => d.color || COLORS.LABEL_GOLD)
-      .pointRadius((d: any) => Math.min(0.24, (d.radius ?? 0.08) * 2.4))
-      .pointAltitude(0.022)
+      .pointColor((d: any) => d.color || COLORS.LABEL_WHITE)
+      .pointRadius((d: any) => Math.min(0.18, (d.radius ?? 0.08) * 1.9))
+      .pointAltitude(0.016)
 
-      // --- WebGL Native Text Labels ---
       .labelsData([])
       .labelLat((d: any) => d.lat)
       .labelLng((d: any) => d.lng)
       .labelText((d: any) => d.text)
       .labelColor((d: any) => d.color || COLORS.LABEL_WHITE)
-      .labelSize((d: any) => (d.size ?? 0.3) * 1.15)
+      .labelSize((d: any) => (d.size ?? 0.3) * 1.02)
       .labelResolution(2)
-      .labelDotRadius(0.09)
+      .labelDotRadius(0.055)
       .labelIncludeDot(true)
-      .labelAltitude(0.028)
+      .labelAltitude(0.02)
 
-      // --- Polygon Click Listener ---
       .onPolygonClick((polygon: any) => {
         const countryName = polygon?.properties?.name
         if (countryName) {
@@ -311,35 +312,32 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
         }
       })
 
-    // Custom Dark Charcoal Globe Base Material
     const material = new THREE.MeshPhongMaterial({
       color: new THREE.Color(COLORS.GLOBE_BASE),
       emissive: new THREE.Color(COLORS.GLOBE_EMIT),
-      emissiveIntensity: 0.6,
-      shininess: 16,
+      emissiveIntensity: 0.35,
+      shininess: 4,
+      specular: new THREE.Color('#161d25'),
       transparent: true,
-      opacity: 0.96,
+      opacity: 0.98,
     })
     globe.globeMaterial(material)
     globe.globeImageUrl('')
 
-    // Smooth OrbitControls setup — ZOOM RE-ENABLED WITH SMOOTH BOUNDS
-    globe.controls().enableZoom = true // Re-enable user zooming in & out
+    globe.controls().enableZoom = true
     globe.controls().enablePan = false
-    globe.controls().minDistance = 160
-    globe.controls().maxDistance = 520
+    globe.controls().minDistance = 165
+    globe.controls().maxDistance = 480
     globe.controls().autoRotate = true
-    globe.controls().autoRotateSpeed = 0.15
+    globe.controls().autoRotateSpeed = 0.11
     globe.controls().enableDamping = true
-    globe.controls().dampingFactor = 0.08
-    globe.controls().rotateSpeed = 0.5
+    globe.controls().dampingFactor = 0.06
+    globe.controls().rotateSpeed = 0.42
 
-    // Initial point of view — Perfectly sized to fit fully inside dashboard (altitude: 2.1)
-    globe.pointOfView({ lat: 20, lng: 30, altitude: 2.1 }, 0)
+    globe.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 0)
 
     globeRef.current = globe
 
-    // Handle Window Resize
     const handleResize = () => {
       if (!containerRef.current || !globeRef.current) return
       globe.width(containerRef.current.clientWidth).height(containerRef.current.clientHeight)
@@ -356,7 +354,6 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
     }
   }, [handleEntityClick])
 
-  // --- Update WebGL Layers (Guarded against unnecessary re-renders) ---
   useEffect(() => {
     const globe = globeRef.current
     if (!globe) return
@@ -375,7 +372,6 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
     if (frameRef.current) cancelAnimationFrame(frameRef.current)
 
     frameRef.current = requestAnimationFrame(() => {
-      // 1. Update 3D Country Polygons
       if (countries.length > 0) {
         globe
           .polygonsData(countries)
@@ -384,13 +380,16 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
           .polygonAltitude((d: any) => polygonAltitude(d?.properties?.name || '', state.selectedEntity))
       }
 
-      // 2. Update Multi-Colored Categorized Routes / Arcs
-      globe.arcsData(scene.routes)
+      globe
+        .arcAltitudeAutoScale(riskArcAltitudeScale)
+        .arcStroke((d: any) => riskArcStroke(d, mode))
+        .arcDashLength(riskArcDashLength(mode))
+        .arcDashGap(riskArcDashGap(mode))
+        .arcDashAnimateTime(riskArcAnimateTime(mode))
+        .arcsData(scene.routes)
 
-      // 3. Update Strategic Points & Event Markers
       globe.pointsData(scene.showOverlays ? nodes : [])
 
-      // 4. Update WebGL Native Labels
       const activeLabels = scene.showOverlays
         ? labels.map((l: any) => {
             const isSelected = state.selectedEntity && l.text.toLowerCase() === state.selectedEntity.toLowerCase()
@@ -403,18 +402,17 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
         : []
       globe.labelsData(activeLabels)
 
-      // 5. Controls & Camera Position
       globe.controls().autoRotate = scene.autoRotate
-      globe.controls().autoRotateSpeed = scene.autoRotate ? 0.15 : 0
+      globe.controls().autoRotateSpeed = scene.autoRotate ? 0.11 : 0
 
       const focusTarget = intent.focus?.[0] || intent.origin
       if (focusTarget) {
         const coords = resolveCoords(focusTarget)
         if (coords) {
-          globe.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.7 }, 1000)
+          globe.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.58 }, 1000)
         }
       } else {
-        globe.pointOfView({ lat: 20, lng: 30, altitude: 2.1 }, 900)
+        globe.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 900)
       }
     })
   }, [countries, intent, labels, mode, nodes, scene, state.selectedEntity])
@@ -423,10 +421,9 @@ export default function CinematicGlobe({ mode = 'world', onSelect, className = '
     <div className={`cinematic-globe globe-container relative w-full h-full ${className}`}>
       <div ref={containerRef} className="cinematic-globe__canvas absolute inset-0" />
 
-      {/* Radial Vignette */}
-      <div className="cinematic-globe__vignette pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_50%,transparent_50%,rgba(5,10,18,0.45)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_45%,rgba(243,247,250,0.06),transparent_34%),radial-gradient(circle_at_50%_50%,transparent_56%,rgba(2,4,6,0.62)_100%)]" />
+      <div className="cinematic-globe__vignette pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_24%,transparent_76%,rgba(255,255,255,0.02))]" />
 
-      {/* HUD Caption Overlay */}
       <div className="cinematic-globe__caption absolute bottom-14 left-4 z-10 pointer-events-none select-none font-mono">
         <div key={caption} className="stream-in text-[11px] tracking-[0.3em] text-[var(--accent)] drop-shadow">
           {caption}
