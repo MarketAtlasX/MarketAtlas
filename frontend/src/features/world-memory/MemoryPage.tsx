@@ -5,6 +5,7 @@ import Panel from '../../components/ui/Panel'
 import Badge from '../../components/ui/Badge'
 import ProgressBar from '../../components/ui/ProgressBar'
 import StatusDot from '../../components/ui/StatusDot'
+import { buildReplayIntent, encodeReplayIntent, modeToGlobeParam } from './replayOnGlobe'
 
 interface Analogue {
   id: string
@@ -112,6 +113,11 @@ export default function MemoryPage() {
     return ANALOGUES.filter(a => matchesQuery(a, query))
   }, [query])
 
+  const handleReplayOnGlobe = (analogue: Analogue) => {
+    const intent = buildReplayIntent(analogue)
+    navigate(`/dashboard?tab=events&globe=${modeToGlobeParam(intent)}&replay=${encodeReplayIntent(intent)}`)
+  }
+
   return (
     <div className="h-full flex flex-col p-4 gap-3 overflow-hidden bg-command">
       <div className="shrink-0 flex items-end justify-between gap-4">
@@ -205,7 +211,7 @@ export default function MemoryPage() {
 
                 <div className="flex gap-2 pt-1">
                   <button
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => handleReplayOnGlobe(selected)}
                     className="flex-1 flex items-center justify-center gap-2 rounded border border-[rgba(56,232,255,0.35)] bg-[rgba(56,232,255,0.1)] py-2 text-[10px] font-semibold tracking-[0.15em] text-[var(--accent)] hover:bg-[rgba(56,232,255,0.18)] transition-colors"
                   >
                     <Globe2 size={13} /> REPLAY ON GLOBE
