@@ -6,7 +6,7 @@ import SimulatorPage from './features/scenario-simulator/SimulatorPage'
 import MemoryPage from './features/world-memory/MemoryPage'
 import { AtlasPage } from './assistant/AtlasPage'
 import { AtlasCommandHandler } from './assistant/commands/AtlasCommandHandler'
-import { ErrorBoundary } from './components/ErrorBoundary'
+import AppLayout from './components/AppLayout'
 
 export default function App() {
   return (
@@ -14,12 +14,12 @@ export default function App() {
       <AtlasCommandHandler />
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<WorldCommandCenter />} />
-        <Route path="/markets" element={<MarketsPage />} />
-        <Route path="/graph" element={<GraphPage />} />
-        <Route path="/simulator" element={<SimulatorPage />} />
-        <Route path="/memory" element={<MemoryPage />} />
-        <Route path="/atlas" element={<AtlasPage />} />
+        <Route path="/dashboard" element={<AppLayout><WorldCommandCenter /></AppLayout>} />
+        <Route path="/markets" element={<AppLayout><MarketsPage /></AppLayout>} />
+        <Route path="/graph" element={<AppLayout><GraphPage /></AppLayout>} />
+        <Route path="/simulator" element={<AppLayout><SimulatorPage /></AppLayout>} />
+        <Route path="/memory" element={<AppLayout><MemoryPage /></AppLayout>} />
+        <Route path="/atlas" element={<AppLayout><AtlasPage /></AppLayout>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </>
