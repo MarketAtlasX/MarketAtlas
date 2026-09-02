@@ -253,6 +253,7 @@ Both the backend extractor and the offline frontend fallback resolve intents in 
 | Entities | `/entities` | CRUD, filter by type/country, search |
 | Market Prices | `/market-prices` | CRUD, yfinance fetch, latest/range queries |
 | Signals | `/signals` | CRUD, filter by type/status/confidence |
+| Prediction | `/predict/ticker/{ticker}` | 3-agent prediction with scenarios |
 | AI Analysis | `/events/{id}/analyze` | Run AI pipeline → generate signals |
 | Free-text | `/analyze` | Ad-hoc sentiment analysis |
 | Knowledge Graph | `/events/{id}/knowledge-graph` | KG enrichment |
