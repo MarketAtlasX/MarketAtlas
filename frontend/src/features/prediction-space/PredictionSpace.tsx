@@ -1,5 +1,22 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import type { PredictionResult } from '../../api/client'
 
-export default function PredictionSpace() {
-  return <div>PREDICTION SPACE</div>
+interface PredictionSpaceProps {
+  selectedEntity?: string | null
+  onPredictionLoaded?: (ticker: string, prediction: PredictionResult) => void
+  className?: string
+}
+
+export default function PredictionSpace({
+  selectedEntity,
+  onPredictionLoaded,
+  className = '',
+}: PredictionSpaceProps) {
+  const [tickerInput, setTickerInput] = useState('')
+
+  return (
+    <div className={className}>
+      <span>PREDICTION SPACE</span>
+    </div>
+  )
 }
