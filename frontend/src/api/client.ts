@@ -137,6 +137,7 @@ export interface PredictionResult {
   evidence: Array<{ source: string; evidence: string; impact: string; confidence: number }>
   agent_contributions: Record<string, string>
   historical_output: HistoricalAgentOutput | null
+  geopolitical_output: GeopoliticalAgentOutput | null
   created_at: string
 }
 
