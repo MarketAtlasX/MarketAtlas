@@ -78,6 +78,16 @@ export interface HistoricalPattern {
   confidence: number
 }
 
+export interface GeopoliticalFactor {
+  factor_name: string
+  category: string
+  fact_summary: string
+  interpretation: string
+  potential_impact: string
+  severity: number
+  uncertainty: string
+}
+
 export interface PredictionResult {
   prediction_id: string
   target: string
