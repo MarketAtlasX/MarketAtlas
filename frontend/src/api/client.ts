@@ -136,6 +136,7 @@ export interface PredictionResult {
   reasoning_summary: string
   evidence: Array<{ source: string; evidence: string; impact: string; confidence: number }>
   agent_contributions: Record<string, string>
+  historical_output: HistoricalAgentOutput | null
   created_at: string
 }
 
