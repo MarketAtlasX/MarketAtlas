@@ -141,6 +141,11 @@ export interface PredictionResult {
   created_at: string
 }
 
+export interface PredictionOptions {
+  timeHorizon?: 'short_term' | 'medium_term' | 'long_term'
+  includeRaw?: boolean
+}
+
 export async function getPrediction(symbol: string): Promise<PredictionResult> {
   const { data } = await api.get<PredictionResult>(`/predict/ticker/${encodeURIComponent(symbol)}`)
   return data
