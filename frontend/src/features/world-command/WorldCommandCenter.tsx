@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import NavigationRail from './NavigationRail'
 import IntelligencePanel from './IntelligencePanel'
+import PredictionSpace from '../prediction-space/PredictionSpace'
 import AgentStatusMatrix from './AgentStatusMatrix'
 import CommandConsole, { type ConsoleTab } from './CommandConsole'
 import HolographicGlobe, { type GlobeMode } from '../globe/HolographicGlobe'
@@ -103,7 +104,9 @@ export default function WorldCommandCenter() {
           <CommandConsole initialTab={consoleTab} />
         </section>
 
-        <aside className="w-80 shrink-0 border-l border-[var(--line)] bg-[rgba(4,8,12,0.7)] backdrop-blur-md overflow-y-auto">
+        <aside className="w-80 shrink-0 border-l border-[var(--line)] bg-[rgba(4,8,12,0.7)] backdrop-blur-md overflow-y-auto flex flex-col">
+          <PredictionSpace selectedEntity={state.selectedEntity} />
+          <div className="h-px bg-[var(--line)]" />
           {showAgents ? <AgentStatusMatrix /> : <IntelligencePanel />}
         </aside>
       </main>
