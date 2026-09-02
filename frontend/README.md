@@ -2,7 +2,7 @@
 
 ## Overview
 
-MarketAtlas is the visual operating system for geopolitical intelligence: a holographic globe, causal graph, AI command console, scenario simulator, and world memory — all in one living command center.
+MarketAtlas is the visual operating system for geopolitical intelligence: a holographic globe, causal graph, AI command console, scenario simulator, world memory, and AI-powered prediction space — all in one living command center.
 
 ## Tech Stack
 
