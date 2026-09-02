@@ -146,8 +146,17 @@ export interface PredictionOptions {
   includeRaw?: boolean
 }
 
-export async function getPrediction(symbol: string): Promise<PredictionResult> {
-  const { data } = await api.get<PredictionResult>(`/predict/ticker/${encodeURIComponent(symbol)}`)
+export async function getPrediction(
+  symbol: string,
+  opts?: PredictionOptions,
+): Promise<PredictionResult> {
+  const params: Record<string, string> = {}
+  if (opts?.timeHorizon) params.time_horizon = opts.timeHorizon
+  if (opts?.includeRaw) params.include_raw = 'true'
+  const { data } = await api.get<PredictionResult>(
+    `/predict/ticker/${encodeURIComponent(symbol)}`,
+    { params },
+  )
   return data
 }
 
