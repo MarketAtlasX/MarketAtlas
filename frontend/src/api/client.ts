@@ -135,6 +135,7 @@ export interface PredictionResult {
   uncertainties: string[]
   reasoning_summary: string
   evidence: Array<{ source: string; evidence: string; impact: string; confidence: number }>
+  agent_contributions: Record<string, string>
   created_at: string
 }
 
