@@ -69,6 +69,15 @@ export interface PredictionScenario {
   market_implications: string
 }
 
+export interface HistoricalPattern {
+  pattern_name: string
+  description: string
+  historical_precedent: string
+  timeframe: string
+  outcome_observed: string
+  confidence: number
+}
+
 export interface PredictionResult {
   prediction_id: string
   target: string
