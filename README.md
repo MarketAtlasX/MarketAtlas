@@ -17,7 +17,8 @@ This repository is the **monorepo** for the MarketAtlas ecosystem — all servic
 - 🔀 **Semantic camera** — the globe zooms, orbits, and flies between countries based on *what you ask*
 - 🧭 **Trade-route rendering** — animated particle streams along real maritime/land corridors
 - 🔥 **Conflict & risk heat** — clusters and heatmaps surface geopolitical hotspots
-- 🔗 **Causal reasoning** — four-graph intelligence system explains *why* predictions are made
+- 🔗 **Prediction Space** -- 3-agent AI prediction panel with scenario tree
+- **Causal reasoning** — four-graph intelligence system explains *why* predictions are made
 - 🧪 **Scenario simulator** — clone-simulate-destroy world twin with probability trees
 
 ---
