@@ -45,6 +45,7 @@ src/
   components/                 # Shared UI components
   features/
     world-command/            # Dashboard, top bar, nav rail, panels
+    prediction-space/         # AI-powered stock prediction panel
     globe/                    # Globe rendering and scene director
     markets/                  # Market data and forecasts
     graph-analysis/           # Causal graph
