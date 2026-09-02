@@ -88,6 +88,21 @@ export interface GeopoliticalFactor {
   uncertainty: string
 }
 
+export interface HistoricalAgentOutput {
+  agent: string
+  status: 'success' | 'degraded' | 'failed' | 'no_data'
+  target: string
+  analysis: string
+  patterns: HistoricalPattern[]
+  key_events: string[]
+  trends: string[]
+  risk_factors: string[]
+  confidence: number
+  uncertainties: string[]
+  data_sources: string[]
+  error: string | null
+}
+
 export interface PredictionResult {
   prediction_id: string
   target: string
