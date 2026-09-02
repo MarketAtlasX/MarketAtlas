@@ -68,6 +68,19 @@ src/
 - **MAP** — Planar map view
 - **EVENTS** — Live event markers
 
+## Prediction Space
+
+The Prediction Space sits in the right rail and provides AI-powered stock predictions
+using the backend's 3-agent pipeline (Historical, Geopolitical, Final Synthesis).
+
+Features:
+- Ticker search and quick-access chips
+- Direction badge and confidence gauge
+- Agent consensus bars
+- Scenario tree (Base, Bull, Bear, Tail-Risk)
+- Prediction narrative and collapsible factors
+- Globe integration and offline fallback
+
 ## Replay on Globe
 
 From World Memory, click **REPLAY ON GLOBE** to replay a historical analogue on the interactive globe.
