@@ -11,6 +11,7 @@ import { useLiveWorldSocket } from '../../services/websocket/useLiveWorldSocket'
 import Tabs from '../../components/ui/Tabs'
 import { decodeReplayIntent } from '../world-memory/replayOnGlobe'
 import type { VisualizationIntent } from '../globe/visualizationIntent'
+import { intelligenceBus } from '../../services/intelligenceBus'
 
 const GLOBE_MODES: { key: GlobeMode; label: string }[] = [
   { key: 'world', label: 'WORLD' },
@@ -64,10 +65,21 @@ export default function WorldCommandCenter() {
 
   const showAgents = searchParams.get('tab') === 'agents'
 
+  useEffect(() => {
+    return intelligenceBus.subscribe(event => {
+      if (event.type === 'ENTITY_SELECTED' && event.payload?.entity) {
+        selectEntity(event.payload.entity)
+      } else if (event.type === 'GLOBE_INTENT' && event.payload?.intent) {
+        setReplayIntent(event.payload.intent)
+      }
+    })
+  }, [selectEntity])
+
   const handleGlobeSelect = (entity: string) => {
     selectEntity(entity)
     setReplayIntent(null)
     setConsoleTab('events')
+    intelligenceBus.emit('ENTITY_SELECTED', { entity })
   }
 
   return (
