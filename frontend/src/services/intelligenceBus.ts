@@ -7,7 +7,10 @@ export type IntelligenceEventType =
   | 'STOCK_SELECTED'
   | 'TICKER_PREDICTED'
   | 'TICKER_REQUESTED'
+  | 'ATLAS_RESPONSE'
   | 'JARVIS_RESPONSE'
+  | 'CAUSAL_GRAPH_PROJECTED'
+  | 'BACKTEST_REQUESTED'
   | 'GLOBE_INTENT'
 
 export interface IntelligenceEvent<T = any> {
