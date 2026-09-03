@@ -106,3 +106,57 @@ async def predict_for_event(
         include_raw_agent_outputs=include_raw,
     )
     return await prediction_service.predict(req, db=db)
+
+
+# ── Intelligence-Engineering Endpoints: Ledger, Backtesting, Calibration, Causal Graph ──
+
+
+@router.get("/ledger")
+async def get_prediction_ledger(
+    ticker: Optional[str] = Query(None, description="Filter by stock ticker"),
+    status: Optional[str] = Query(None, description="Filter by PENDING or EVALUATED"),
+    limit: int = Query(50, ge=1, le=200, description="Max records to return"),
+):
+    """Retrieve historical prediction audit ledger records."""
+    from app.services.prediction_ledger_service import prediction_ledger_service
+
+    return prediction_ledger_service.get_ledger(ticker=ticker, status=status, limit=limit)
+
+
+@router.post("/ledger/evaluate")
+async def evaluate_ledger_maturities():
+    """Evaluate matured predictions against current prices and compute realized Brier scores."""
+    from app.services.prediction_ledger_service import prediction_ledger_service
+
+    evaluated = prediction_ledger_service.evaluate_matured_predictions()
+    metrics = prediction_ledger_service.compute_backtest_metrics()
+    return {"evaluated_count": len(evaluated), "evaluated_records": evaluated, "metrics": metrics}
+
+
+@router.get("/backtest")
+async def get_backtest_metrics(
+    ticker: Optional[str] = Query(None, description="Filter backtest metrics by ticker"),
+):
+    """Retrieve aggregate backtesting performance metrics (win rate, directional accuracy, Brier score)."""
+    from app.services.prediction_ledger_service import prediction_ledger_service
+
+    return prediction_ledger_service.compute_backtest_metrics(ticker=ticker)
+
+
+@router.get("/calibration")
+async def get_calibration_metrics():
+    """Retrieve model calibration reliability curve and multi-agent performance benchmarks."""
+    from app.services.agent_calibration_service import agent_calibration_service
+
+    return agent_calibration_service.get_calibration_summary()
+
+
+@router.get("/causal-graph/{ticker}")
+async def get_causal_graph(
+    ticker: str = Path(..., min_length=1, max_length=15, description="Asset ticker for causal chain analysis"),
+):
+    """Retrieve multi-hop causal reasoning chain (Geopolitical Risk -> Supply Chain -> Asset HQ -> Market)."""
+    from app.services.causal_graph_service import causal_graph_service
+
+    return causal_graph_service.build_causal_graph(ticker)
+
