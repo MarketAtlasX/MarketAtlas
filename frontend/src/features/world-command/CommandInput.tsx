@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Command, Check, Network, FlaskConical, Database, Loader2 } from 'lucide-react'
 import { sendChat } from '../../api/chatApi'
+import { visualizationBus } from '../../assistant/commands/visualizationBus'
 
 type Phase = 'idle' | 'analyzing' | 'done'
 
@@ -51,6 +52,7 @@ export default function CommandInput() {
     }, 380)
 
     let chat = { text: '', confidence: 0.82, agents: [] as string[] }
+    let vis: any = null
     try {
       const res = await sendChat(q)
       chat = {
@@ -58,6 +60,7 @@ export default function CommandInput() {
         confidence: res.confidence ?? 0.8,
         agents: res.agents_used ?? [],
       }
+      vis = res.visualization
     } catch {
       chat = { text: 'Analysis complete. Elevated cross-market risk detected across affected geographies.', confidence: 0.78, agents: [] }
     }
@@ -67,6 +70,9 @@ export default function CommandInput() {
     setTimeout(() => {
       setResult(chat)
       setPhase('done')
+      if (vis) {
+        visualizationBus.drive(vis)
+      }
     }, STEPS.length * 380 + 120)
   }
 
