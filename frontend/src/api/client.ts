@@ -138,10 +138,14 @@ export interface PredictionResult {
   agent_contributions: Record<string, string>
   historical_output: HistoricalAgentOutput | null
   geopolitical_output: GeopoliticalAgentOutput | null
-  created_at: string
+  created_at?: string
   key_drivers?: Array<{ factor: string; direction: 'positive' | 'negative'; magnitude: number }>
   agent_scores?: Record<string, number>
   related_countries?: string[]
+  expected_return_pct?: number
+  uncertainty_range?: number[]
+  calibration_score?: number
+  brier_score?: number
 }
 
 export interface PredictionOptions {
