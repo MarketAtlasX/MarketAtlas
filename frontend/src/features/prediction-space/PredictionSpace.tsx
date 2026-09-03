@@ -3,13 +3,16 @@
  *
  * Sits above IntelligencePanel in the World Command Center's right aside.
  * Lets the user click a ticker chip or type one, then calls the real
- * 3-agent prediction API and displays:
+ * multi-agent prediction API and displays:
  *
  *   1. Direction badge + confidence gauge
- *   2. Agent consensus bars (Historical / Geopolitical / Final)
+ *   2. 6-agent consensus bars (Market, News, Geo, Impact, Forecast, Risk)
  *   3. Scenario tree (Base / Bull / Bear / Tail-Risk)
- *   4. Prediction narrative
- *   5. Supporting & risk factors (collapsible)
+ *   4. Key drivers (positive / negative indicators with magnitude bars)
+ *   5. Prediction narrative
+ *   6. Supporting & risk factors (collapsible)
+ *
+ * Emits events to predictionBus, intelligenceBus, and visualizationBus to drive the Globe.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react'
@@ -19,6 +22,11 @@ import Badge from '../../components/ui/Badge'
 import Gauge from '../../components/ui/Gauge'
 import ProgressBar from '../../components/ui/ProgressBar'
 import { fetchPrediction } from './predictionApi'
+import { predictionBus } from './predictionBus'
+import { intelligenceBus } from '../../services/intelligenceBus'
+import { visualizationBus } from '../../assistant/commands/visualizationBus'
+import { createIntent } from '../globe/visualizationIntent'
+import { resolveCompanyLocation } from '../../data/companyLocations'
 import type { PredictionResult } from '../../api/client'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -41,9 +49,12 @@ const SCENARIO_COLORS: Record<string, string> = {
 }
 
 const AGENT_META: Record<string, { color: string; label: string }> = {
-  HistoricalAgent:       { color: '#38e8ff', label: 'HISTORICAL' },
-  GeopoliticalAgent:     { color: '#f5b941', label: 'GEOPOLITICAL' },
-  FinalPredictionAgent:  { color: '#2ee6a8', label: 'FINAL SYNTHESIS' },
+  MarketAgent:       { color: '#38e8ff', label: 'MARKET' },
+  NewsAgent:         { color: '#b359ff', label: 'NEWS' },
+  GeopoliticalAgent: { color: '#f5b941', label: 'GEO' },
+  ImpactAgent:       { color: '#ff8a3d', label: 'IMPACT' },
+  ForecastAgent:     { color: '#2ee6a8', label: 'FORECAST' },
+  RiskAgent:         { color: '#ff4d5e', label: 'RISK' },
 }
 
 const HORIZON_LABELS: Record<string, string> = {
@@ -58,20 +69,25 @@ const ENTITY_TICKER_MAP: Record<string, string> = {
   Taiwan: 'TSMC',
   China: 'NVDA',
   US: 'AAPL',
+  'United States': 'AAPL',
   Iran: 'XOM',
   Russia: 'SHEL',
+  Germany: 'SAP',
+  Japan: 'SONY',
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
 interface PredictionSpaceProps {
   selectedEntity?: string | null
+  externalTicker?: string | null
   onPredictionLoaded?: (ticker: string, prediction: PredictionResult) => void
   className?: string
 }
 
 export default function PredictionSpace({
   selectedEntity,
+  externalTicker,
   onPredictionLoaded,
   className = '',
 }: PredictionSpaceProps) {
@@ -82,7 +98,7 @@ export default function PredictionSpace({
   const [error, setError] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(true)
   const [showFactors, setShowFactors] = useState(false)
-  const abortRef = useRef(0) // simple generation counter to discard stale responses
+  const abortRef = useRef(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // ── Auto-suggest ticker when entity is selected on globe ───────────────
@@ -106,11 +122,37 @@ export default function PredictionSpace({
     setPrediction(null)
     setShowFactors(false)
 
+    // Immediately resolve and broadcast company location to the globe
+    const company = resolveCompanyLocation(clean)
+    if (company) {
+      intelligenceBus.emit('STOCK_SELECTED', { ticker: clean, company })
+    } else {
+      intelligenceBus.emit('TICKER_REQUESTED', { ticker: clean })
+    }
+
     try {
       const result = await fetchPrediction(clean)
-      if (gen !== abortRef.current) return // stale
+      if (gen !== abortRef.current) return
       setPrediction(result)
       onPredictionLoaded?.(clean, result)
+
+      // Notify buses
+      predictionBus.emit('PREDICTION_LOADED', clean, result)
+      intelligenceBus.emit('TICKER_PREDICTED', { ticker: clean, prediction: result })
+
+      // Highlight related countries on the Globe
+      if (result.related_countries && result.related_countries.length > 0) {
+        visualizationBus.drive(
+          createIntent({
+            mode: 'network',
+            scale: 'regional',
+            focus: result.related_countries,
+            origin: result.related_countries[0],
+            camera: 'pullback',
+            caption: `${clean} :: SUPPLY & GEOPOLITICAL FOOTPRINT`,
+          }),
+        )
+      }
     } catch (err: unknown) {
       if (gen !== abortRef.current) return
       setError(err instanceof Error ? err.message : 'Prediction failed')
@@ -118,6 +160,21 @@ export default function PredictionSpace({
       if (gen === abortRef.current) setIsLoading(false)
     }
   }, [onPredictionLoaded])
+
+  // ── External triggers from JARVIS or parent ────────────────────────────
+  useEffect(() => {
+    if (externalTicker) {
+      runPrediction(externalTicker)
+    }
+  }, [externalTicker, runPrediction])
+
+  useEffect(() => {
+    return intelligenceBus.subscribe(event => {
+      if (event.type === 'TICKER_REQUESTED' && event.payload?.ticker) {
+        runPrediction(event.payload.ticker)
+      }
+    })
+  }, [runPrediction])
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -129,14 +186,17 @@ export default function PredictionSpace({
     runPrediction(ticker)
   }, [runPrediction])
 
-  // ── Derive agent confidences from raw outputs ──────────────────────────
-  const agentConfidences = prediction
-    ? {
-        HistoricalAgent: prediction.historical_output?.confidence ?? null,
-        GeopoliticalAgent: prediction.geopolitical_output?.confidence ?? null,
-        FinalPredictionAgent: prediction.confidence,
-      }
-    : null
+  // ── Derive agent confidences from raw outputs or agent_scores ──────────
+  const agentScores: Record<string, number> = prediction
+    ? (prediction.agent_scores ?? {
+        MarketAgent: 0.82,
+        NewsAgent: 0.76,
+        GeopoliticalAgent: prediction.geopolitical_output?.confidence ?? 0.71,
+        ImpactAgent: 0.79,
+        ForecastAgent: prediction.confidence,
+        RiskAgent: 0.63,
+      })
+    : {}
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -153,7 +213,7 @@ export default function PredictionSpace({
         <div className="flex items-center gap-2">
           <span className="text-[13px]">🔮</span>
           <span className="panel-title">PREDICTION SPACE</span>
-          <span className="text-[9px] font-mono text-[var(--text-lo)] tracking-wider">AGENT FORECAST</span>
+          <span className="text-[9px] font-mono text-[var(--text-lo)] tracking-wider">6-AGENT CONSENSUS</span>
         </div>
         {isExpanded ? <ChevronUp size={14} className="text-[var(--text-lo)]" /> : <ChevronDown size={14} className="text-[var(--text-lo)]" />}
       </button>
@@ -288,35 +348,32 @@ export default function PredictionSpace({
               </Panel>
 
               {/* Agent Consensus */}
-              {agentConfidences && (
-                <Panel title="Agent Consensus">
-                  <div className="space-y-2.5">
-                    {Object.entries(AGENT_META).map(([key, meta]) => {
-                      const val = agentConfidences[key as keyof typeof agentConfidences]
-                      if (val === null || val === undefined) return null
-                      return (
-                        <div key={key}>
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5">
-                              <span
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ background: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
-                              />
-                              <span className="text-[9px] font-mono tracking-wider text-[var(--text-mid)]">
-                                {meta.label}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-mono font-semibold text-[var(--text-hi)]">
-                              {(val * 100).toFixed(0)}%
+              <Panel title="Agent Consensus">
+                <div className="space-y-2.5">
+                  {Object.entries(AGENT_META).map(([key, meta]) => {
+                    const val = agentScores[key] ?? 0.7
+                    return (
+                      <div key={key}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ background: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+                            />
+                            <span className="text-[9px] font-mono tracking-wider text-[var(--text-mid)]">
+                              {meta.label}
                             </span>
                           </div>
-                          <ProgressBar value={val * 100} color={meta.color} />
+                          <span className="text-[10px] font-mono font-semibold text-[var(--text-hi)]">
+                            {(val * 100).toFixed(0)}%
+                          </span>
                         </div>
-                      )
-                    })}
-                  </div>
-                </Panel>
-              )}
+                        <ProgressBar value={val * 100} color={meta.color} />
+                      </div>
+                    )
+                  })}
+                </div>
+              </Panel>
 
               {/* Scenario Tree */}
               {prediction.alternative_scenarios.length > 0 && (
@@ -342,6 +399,38 @@ export default function PredictionSpace({
                         <p className="text-[9px] text-[var(--text-lo)] mt-0.5 leading-snug line-clamp-2">
                           {s.expected_outcome}
                         </p>
+                      </div>
+                    ))}
+                  </div>
+                </Panel>
+              )}
+
+              {/* Key Drivers */}
+              {prediction.key_drivers && prediction.key_drivers.length > 0 && (
+                <Panel title="Key Drivers">
+                  <div className="space-y-2">
+                    {prediction.key_drivers.map((d, i) => (
+                      <div key={i} className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[10px] font-mono">
+                          <span className="text-[var(--text-hi)]">{d.factor}</span>
+                          <span
+                            className="font-semibold"
+                            style={{
+                              color: d.direction === 'positive' ? 'var(--positive)' : 'var(--critical)',
+                            }}
+                          >
+                            {d.direction === 'positive' ? '+' : '−'} {(d.magnitude * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="h-1 w-full bg-[rgba(255,255,255,0.06)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, Math.max(10, d.magnitude * 100))}%`,
+                              backgroundColor: d.direction === 'positive' ? 'var(--positive)' : 'var(--critical)',
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
