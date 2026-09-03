@@ -13,6 +13,7 @@ import { worldStates } from '../../data/worldState'
 import { theme } from './globeTheme'
 import { createCelestialSpace, type CelestialSpaceHandle } from './celestialSpace'
 import { resolveCompanyLocation, type CompanyLocation } from '../../data/companyLocations'
+import type { CausalGraph } from '../prediction-space/causalGraphApi'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
@@ -201,6 +202,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
   const selectEntityRef = useRef(selectEntity)
   const [focusIntent, setFocusIntent] = useState<VisualizationIntent | null>(null)
   const [selectedCompany, setSelectedCompany] = useState<CompanyLocation | null>(null)
+  const [projectedCausalGraph, setProjectedCausalGraph] = useState<CausalGraph | null>(null)
   const [countries, setCountries] = useState<any[]>([])
   const frameRef = useRef<number | null>(null)
   const celestialAnimRef = useRef<number | null>(null)
@@ -211,7 +213,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
 
   useEffect(() => visualizationBus.subscribe(setFocusIntent), [])
 
-  // Listen to intelligenceBus for stock selection & ticker queries
+  // Listen to intelligenceBus for stock selection, ticker queries & causal graph projection
   useEffect(() => {
     return intelligenceBus.subscribe(event => {
       if (event.type === 'STOCK_SELECTED') {
@@ -225,6 +227,13 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
         if (comp) {
           setSelectedCompany(comp)
           selectEntityRef.current(comp.headquarters.country)
+        }
+      } else if (event.type === 'CAUSAL_GRAPH_PROJECTED') {
+        const graph: CausalGraph = event.payload
+        setProjectedCausalGraph(graph)
+        if (graph && graph.nodes.length > 0) {
+          const focalNode = graph.nodes.find(n => n.type === 'company_hq') || graph.nodes[0]
+          globeRef.current?.pointOfView({ lat: focalNode.coords.lat, lng: focalNode.coords.lng, altitude: 1.62 }, 1200)
         }
       }
     })
@@ -453,7 +462,25 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
         .arcDashLength(riskArcDashLength(mode))
         .arcDashGap(riskArcDashGap(mode))
         .arcDashAnimateTime(riskArcAnimateTime(mode))
-        .arcsData([...scene.routes, ...companyArcs])
+
+      // ── Causal Graph Reasoning Arcs ─────────────────────────────────────
+      const causalArcs: RouteFlow[] = projectedCausalGraph
+        ? projectedCausalGraph.edges.map(e => {
+            const src = projectedCausalGraph.nodes.find(n => n.id === e.source)
+            const dst = projectedCausalGraph.nodes.find(n => n.id === e.target)
+            return {
+              startLat: src?.coords.lat ?? 0,
+              startLng: src?.coords.lng ?? 0,
+              endLat: dst?.coords.lat ?? 0,
+              endLng: dst?.coords.lng ?? 0,
+              color: e.tone === 'red' ? '#ff4d5e' : e.tone === 'gold' ? '#ffe600' : '#38e8ff',
+              intensity: e.strength,
+              tone: (e.tone === 'red' ? 'red' : e.tone === 'gold' ? 'gold' : 'cyan') as any,
+            }
+          })
+        : []
+
+      globe.arcsData([...scene.routes, ...companyArcs, ...causalArcs])
 
       // ── Company-Specific Points & Facilities ────────────────────────────
       const companyPoints = selectedCompany
@@ -488,7 +515,19 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
           ]
         : []
 
-      globe.pointsData([...(scene.showOverlays ? nodes : []), ...companyPoints])
+      const causalPoints = projectedCausalGraph
+        ? projectedCausalGraph.nodes.map(n => ({
+            lat: n.coords.lat,
+            lng: n.coords.lng,
+            color: n.color,
+            radius: n.type === 'company_hq' ? 0.13 : n.type === 'geopolitical_risk' ? 0.11 : 0.08,
+            altitude: 0.035,
+            entity: n.label,
+            label: `${n.label} [${n.type.toUpperCase()}]`,
+          }))
+        : []
+
+      globe.pointsData([...(scene.showOverlays ? nodes : []), ...companyPoints, ...causalPoints])
 
       // ── Company-Specific Labels ────────────────────────────────────────
       const companyLabels = selectedCompany
@@ -512,6 +551,17 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
           ]
         : []
 
+      const causalLabels = projectedCausalGraph
+        ? projectedCausalGraph.nodes.map(n => ({
+            lat: n.coords.lat,
+            lng: n.coords.lng,
+            text: `${n.label} (${n.city})`,
+            color: n.color,
+            size: n.type === 'company_hq' ? 0.48 : 0.35,
+            altitude: 0.045,
+          }))
+        : []
+
       const activeLabels = scene.showOverlays
         ? labels.map((l: any) => {
             const isSelected = state.selectedEntity && l.text.toLowerCase() === state.selectedEntity.toLowerCase()
@@ -522,35 +572,63 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
             }
           })
         : []
-      globe.labelsData([...activeLabels, ...companyLabels])
+      globe.labelsData([...activeLabels, ...companyLabels, ...causalLabels])
 
-      // ── Pulsing Concentric Radar Rings at Company HQ ────────────────────
+      // ── Pulsing Concentric Radar Rings at Company HQ & Causal Flashpoints ──
+      const rings: any[] = []
       if (selectedCompany) {
-        globe
-          .ringsData([
-            {
-              lat: selectedCompany.coords.lat,
-              lng: selectedCompany.coords.lng,
-              maxR: 5.2,
+        rings.push({
+          lat: selectedCompany.coords.lat,
+          lng: selectedCompany.coords.lng,
+          maxR: 5.2,
+          propagationSpeed: 2.2,
+          repeatPeriod: 1400,
+          altitude: 0.022,
+          color: () => (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`,
+        })
+      }
+      if (projectedCausalGraph) {
+        projectedCausalGraph.nodes.forEach(n => {
+          if (n.type === 'geopolitical_risk') {
+            rings.push({
+              lat: n.coords.lat,
+              lng: n.coords.lng,
+              maxR: 5.6,
+              propagationSpeed: 2.6,
+              repeatPeriod: 1100,
+              altitude: 0.025,
+              color: () => (t: number) => `rgba(255, 77, 94, ${Math.max(0, 1 - t) * 0.85})`,
+            })
+          } else if (n.type === 'company_hq' && !selectedCompany) {
+            rings.push({
+              lat: n.coords.lat,
+              lng: n.coords.lng,
+              maxR: 4.8,
               propagationSpeed: 2.2,
               repeatPeriod: 1400,
               altitude: 0.022,
-            },
-          ])
-          .ringColor(() => (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`)
-          .ringMaxRadius((d: any) => d.maxR)
-          .ringPropagationSpeed((d: any) => d.propagationSpeed)
-          .ringRepeatPeriod((d: any) => d.repeatPeriod)
-          .ringAltitude((d: any) => d.altitude)
-      } else {
-        globe.ringsData([])
+              color: () => (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`,
+            })
+          }
+        })
       }
 
-      globe.controls().autoRotate = selectedCompany ? false : scene.autoRotate
+      globe
+        .ringsData(rings)
+        .ringColor((d: any) => d.color || (() => 'rgba(255, 215, 0, 0.8)'))
+        .ringMaxRadius((d: any) => d.maxR || 5.0)
+        .ringPropagationSpeed((d: any) => d.propagationSpeed || 2.2)
+        .ringRepeatPeriod((d: any) => d.repeatPeriod || 1400)
+        .ringAltitude((d: any) => d.altitude || 0.022)
+
+      globe.controls().autoRotate = (selectedCompany || projectedCausalGraph) ? false : scene.autoRotate
       globe.controls().autoRotateSpeed = scene.autoRotate ? 0.11 : 0
 
       // ── Camera Navigation ──────────────────────────────────────────────
-      if (selectedCompany) {
+      if (projectedCausalGraph && projectedCausalGraph.nodes.length > 0) {
+        const focal = projectedCausalGraph.nodes.find(n => n.type === 'company_hq') || projectedCausalGraph.nodes[0]
+        globe.pointOfView({ lat: focal.coords.lat, lng: focal.coords.lng, altitude: 1.62 }, 1200)
+      } else if (selectedCompany) {
         globe.pointOfView(
           {
             lat: selectedCompany.coords.lat,
@@ -653,6 +731,56 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ─── Projected Causal Reasoning Vector Card ────────────────── */}
+      {projectedCausalGraph && (
+        <div className="absolute top-16 right-4 z-20 pointer-events-auto stream-in flex flex-col gap-1.5 rounded-lg border border-[rgba(56,232,255,0.4)] bg-[rgba(4,8,14,0.92)] backdrop-blur-md p-3.5 shadow-[0_0_24px_rgba(56,232,255,0.18)] max-w-sm font-mono">
+          <div className="flex items-center justify-between gap-2 border-b border-[rgba(56,232,255,0.25)] pb-1.5">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
+              </span>
+              <span className="text-[12px] font-bold text-[var(--accent)] tracking-wider">
+                CAUSAL CHAIN: {projectedCausalGraph.ticker}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setProjectedCausalGraph(null)}
+              className="text-[11px] text-[var(--text-lo)] hover:text-[var(--text-hi)] transition-colors px-1"
+              title="Close causal vector"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="text-[10px] text-[#ff4d5e] font-semibold mt-0.5 flex items-center gap-1">
+            <span>⚡ TRIGGER:</span>
+            <span>{projectedCausalGraph.primary_risk_vector}</span>
+          </div>
+
+          <div className="text-[9px] text-[var(--text-mid)] leading-snug">
+            {projectedCausalGraph.reasoning_summary}
+          </div>
+
+          <div className="mt-1 pt-1 border-t border-[var(--line)] flex flex-wrap gap-1">
+            {projectedCausalGraph.nodes.map(n => (
+              <span
+                key={n.id}
+                className="text-[8px] px-1.5 py-0.5 rounded border"
+                style={{
+                  borderColor: n.color,
+                  color: n.color,
+                  backgroundColor: `${n.color}15`,
+                }}
+              >
+                {n.label}
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
