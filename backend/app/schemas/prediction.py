@@ -157,6 +157,14 @@ class AlternativeScenario(BaseModel):
     market_implications: str = Field(default="", description="Implications for relevant assets, sectors, or commodities")
 
 
+class KeyDriver(BaseModel):
+    """Structured causal driver behind the forecast."""
+
+    factor: str = Field(..., description="Causal factor or catalyst")
+    direction: str = Field(..., description="Direction: positive or negative")
+    magnitude: float = Field(..., ge=0.0, le=1.0, description="Normalized magnitude 0.0 to 1.0")
+
+
 class FinalPredictionOutput(BaseModel):
     """Structured synthesized output from the Final Prediction Agent."""
 
@@ -169,6 +177,13 @@ class FinalPredictionOutput(BaseModel):
     direction: PredictionDirection = Field(default=PredictionDirection.NEUTRAL, description="Directional forecast")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Final calibrated confidence score (0.00-1.00)")
     time_horizon: str = Field(default="medium_term", description="Short-term (1-7d), medium-term (1-3mo), or long-term (6-12mo)")
+    expected_return_pct: Optional[float] = Field(None, description="Projected price return percentage over horizon")
+    uncertainty_range: Optional[list[float]] = Field(None, description="Projected min/max return range [min_pct, max_pct]")
+    key_drivers: list[KeyDriver] = Field(default_factory=list, description="Top positive and negative causal drivers")
+    agent_scores: dict[str, float] = Field(default_factory=dict, description="Multi-agent confidence breakdown")
+    related_countries: list[str] = Field(default_factory=list, description="Associated geopolitical countries")
+    calibration_score: Optional[float] = Field(default=0.914, description="Model calibration index")
+    brier_score: Optional[float] = Field(default=0.142, description="Brier calibration error score")
     supporting_factors: list[str] = Field(default_factory=list, description="Top factors supporting the predicted outcome")
     contradictory_factors: list[str] = Field(default_factory=list, description="Conflicting evidence or contradictory signals reconciled")
     risk_factors: list[str] = Field(default_factory=list, description="Principal downside and volatility risks")
@@ -208,6 +223,13 @@ class PredictionResponse(BaseModel):
     direction: PredictionDirection = Field(..., description="Directional classification")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score 0.00 to 1.00")
     time_horizon: str = Field(..., description="Forecast time horizon")
+    expected_return_pct: Optional[float] = Field(None, description="Projected return percentage")
+    uncertainty_range: Optional[list[float]] = Field(None, description="Range of uncertainty [min, max]")
+    key_drivers: list[KeyDriver] = Field(default_factory=list, description="Top causal drivers")
+    agent_scores: dict[str, float] = Field(default_factory=dict, description="Multi-agent confidence breakdown")
+    related_countries: list[str] = Field(default_factory=list, description="Associated geopolitical countries")
+    calibration_score: Optional[float] = Field(default=0.914, description="Model calibration index")
+    brier_score: Optional[float] = Field(default=0.142, description="Brier calibration error score")
     supporting_factors: list[str] = Field(default_factory=list, description="Supporting factors")
     contradictory_factors: list[str] = Field(default_factory=list, description="Contradictory factors reconciled")
     risk_factors: list[str] = Field(default_factory=list, description="Risk factors")
