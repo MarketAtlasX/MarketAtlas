@@ -42,3 +42,10 @@ class IntelligenceBus {
       }
     })
   }
+
+  public get current(): IntelligenceEvent | null {
+    return this.lastEvent
+  }
+}
+
+export const intelligenceBus = new IntelligenceBus()
