@@ -6,9 +6,13 @@ import { createIntent, type VisualizationIntent } from './WorldCore'
 import { INTENT_CAPTION } from './visualizationIntent'
 import { useWorldStore } from '../../stores/WorldStore'
 import { visualizationBus } from '../../assistant/commands/visualizationBus'
+import { intelligenceBus } from '../../services/intelligenceBus'
 import { buildLabelData, buildNodes, resolveCoords } from './globeData'
 import { resolveScene, type RouteFlow } from './SceneDirector'
 import { worldStates } from '../../data/worldState'
+import { theme } from './globeTheme'
+import { createCelestialSpace, type CelestialSpaceHandle } from './celestialSpace'
+import { resolveCompanyLocation, type CompanyLocation } from '../../data/companyLocations'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
@@ -19,24 +23,15 @@ interface CinematicGlobeProps {
   className?: string
 }
 
-/* ─── Semantic Color Grammar ────────────────────────────────── */
-
-const COLORS = {
-  PEACE_CAP:    'rgba(255, 213, 74, 0.22)',
-  PEACE_STROKE: 'rgba(240, 200, 120, 0.75)',
-  TENSION_CAP:    'rgba(245, 166, 35, 0.50)',
-  TENSION_STROKE: 'rgba(255, 160, 64, 0.90)',
-  WAR_CAP:    'rgba(255, 59, 48, 0.65)',
-  WAR_STROKE: 'rgba(255, 77, 94, 0.98)',
-  SELECT_CAP:    'rgba(255, 215, 0, 0.85)',
-  SELECT_STROKE: '#ffe600',
-  GLOBE_BASE: '#05080b',
-  GLOBE_EMIT: '#0a1016',
-  ATMOSPHERE: '#d9e2ea',
-  GRID: 'rgba(223, 232, 239, 0.22)',
-  LABEL_GOLD: '#ffd54a',
-  LABEL_WHITE: '#f0f4f8',
-} as const
+/*
+ * VISUAL PHILOSOPHY:
+ * The globe acts as a dark, subtle intelligence command center floating in realistic outer space.
+ * - Deep outer space with 6,000+ stars, the Milky Way galactic plane, and nebulae.
+ * - A dark, transparent Earth sphere floating in the cosmic void.
+ * - Countries are subtle outlines with muted gold/amber/red fills based on risk.
+ * - When a stock is selected, the globe flies directly to the company's state/city headquarters,
+ *   emanates pulsing golden radar rings, marks key facilities/supply chain nodes, and opens a HUD intel badge.
+ */
 
 /* ─── Route / Arrow Color Classifier ────────────────────────── */
 
@@ -45,22 +40,22 @@ function getArcColor(d: RouteFlow): string[] {
   const colorStr = (d.color || '').toLowerCase()
 
   if (tone === 'red' || colorStr.includes('3b30') || colorStr.includes('4d5e')) {
-    return ['rgba(255, 59, 48, 0.25)', '#ff3b30', '#ff4d5e', 'rgba(255, 59, 48, 0.25)']
+    return theme.arc.red
   }
 
-  if (tone === 'gold' || colorStr.includes('d54a') || colorStr.includes('b020')) {
-    return ['rgba(255, 176, 32, 0.25)', '#ffb020', '#ffa040', 'rgba(255, 176, 32, 0.25)']
+  if (tone === 'gold' || colorStr.includes('d54a') || colorStr.includes('b020') || colorStr.includes('ffe600')) {
+    return theme.arc.gold
   }
 
   if (tone === 'amber' || (tone === 'cyan' && (d.intensity ?? 0.5) < 0.55)) {
-    return ['rgba(46, 230, 168, 0.25)', '#2ee6a8', '#2ee6a8', 'rgba(46, 230, 168, 0.25)']
+    return theme.arc.amber
   }
 
   if (tone === 'cyan') {
-    return ['rgba(0, 229, 255, 0.25)', '#00e5ff', '#00e5ff', 'rgba(0, 229, 255, 0.25)']
+    return theme.arc.cyan
   }
 
-  return ['rgba(179, 89, 255, 0.25)', '#b359ff', '#b359ff', 'rgba(179, 89, 255, 0.25)']
+  return theme.arc.purple
 }
 
 function riskArcAltitudeScale(d: RouteFlow, mode: GlobeMode): number {
@@ -71,8 +66,8 @@ function riskArcAltitudeScale(d: RouteFlow, mode: GlobeMode): number {
 
 function riskArcStroke(d: RouteFlow, mode: GlobeMode): number {
   const heat = d.intensity ?? 0.5
-  if (mode !== 'risk') return Math.max(0.25, heat * 0.5)
-  return Math.max(0.7, heat * 1.45)
+  if (mode !== 'risk') return Math.min(0.4, Math.max(0.15, heat * 0.4))
+  return Math.min(0.7, Math.max(0.3, heat * 0.8))
 }
 
 function riskArcDashLength(mode: GlobeMode): number {
@@ -159,40 +154,40 @@ function isSelectedCountry(featureName: string, selectedEntity: string | null): 
 
 function polygonCapColor(featureName: string, mode: GlobeMode, selectedEntity: string | null): string {
   if (isSelectedCountry(featureName, selectedEntity)) {
-    return COLORS.SELECT_CAP
+    return theme.polygon.selected.cap
   }
 
   const ws = matchWorldState(featureName)
   const risk = ws?.riskScore ?? 45
 
   if (mode === 'risk' || risk >= 70) {
-    if (risk >= 70) return COLORS.WAR_CAP // War / Conflict Zone
-    if (risk >= 55) return COLORS.TENSION_CAP // Elevated Tension Zone
+    if (risk >= 70) return theme.polygon.conflict.cap
+    if (risk >= 55) return theme.polygon.tension.cap
   }
 
-  if (risk >= 70) return COLORS.WAR_CAP
-  if (risk >= 55) return COLORS.TENSION_CAP
-  return COLORS.PEACE_CAP // Peaceful / Stable Yellowish Gold
+  if (risk >= 70) return theme.polygon.conflict.cap
+  if (risk >= 55) return theme.polygon.tension.cap
+  return theme.polygon.stable.cap
 }
 
 function polygonStrokeColor(featureName: string, selectedEntity: string | null): string {
   if (isSelectedCountry(featureName, selectedEntity)) {
-    return COLORS.SELECT_STROKE
+    return theme.polygon.selected.stroke
   }
   const ws = matchWorldState(featureName)
   const risk = ws?.riskScore ?? 45
-  if (risk >= 70) return COLORS.WAR_STROKE
-  if (risk >= 55) return COLORS.TENSION_STROKE
-  return COLORS.PEACE_STROKE
+  if (risk >= 70) return theme.polygon.conflict.stroke
+  if (risk >= 55) return theme.polygon.tension.stroke
+  return theme.polygon.stable.stroke
 }
 
 function polygonAltitude(featureName: string, selectedEntity: string | null): number {
-  if (isSelectedCountry(featureName, selectedEntity)) return 0.028
+  if (isSelectedCountry(featureName, selectedEntity)) return theme.polygon.selected.altitude
   const ws = matchWorldState(featureName)
   const risk = ws?.riskScore ?? 45
-  if (risk >= 70) return 0.018
-  if (risk >= 55) return 0.014
-  return 0.010
+  if (risk >= 70) return theme.polygon.conflict.altitude
+  if (risk >= 55) return theme.polygon.tension.altitude
+  return theme.polygon.stable.altitude
 }
 
 /* ─── Component ─────────────────────────────────────────────── */
@@ -201,17 +196,39 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
   const { state, selectEntity } = useWorldStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
+  const celestialRef = useRef<CelestialSpaceHandle | null>(null)
   const onSelectRef = useRef(onSelect)
   const selectEntityRef = useRef(selectEntity)
   const [focusIntent, setFocusIntent] = useState<VisualizationIntent | null>(null)
+  const [selectedCompany, setSelectedCompany] = useState<CompanyLocation | null>(null)
   const [countries, setCountries] = useState<any[]>([])
   const frameRef = useRef<number | null>(null)
+  const celestialAnimRef = useRef<number | null>(null)
   const prevSceneHash = useRef<string>('')
 
   onSelectRef.current = onSelect
   selectEntityRef.current = selectEntity
 
   useEffect(() => visualizationBus.subscribe(setFocusIntent), [])
+
+  // Listen to intelligenceBus for stock selection & ticker queries
+  useEffect(() => {
+    return intelligenceBus.subscribe(event => {
+      if (event.type === 'STOCK_SELECTED') {
+        const comp: CompanyLocation | null = event.payload?.company ?? resolveCompanyLocation(event.payload?.ticker)
+        if (comp) {
+          setSelectedCompany(comp)
+          selectEntityRef.current(comp.headquarters.country)
+        }
+      } else if (event.type === 'TICKER_REQUESTED' || event.type === 'TICKER_PREDICTED') {
+        const comp = resolveCompanyLocation(event.payload?.ticker)
+        if (comp) {
+          setSelectedCompany(comp)
+          selectEntityRef.current(comp.headquarters.country)
+        }
+      }
+    })
+  }, [])
 
   useEffect(() => {
     import('world-atlas/countries-110m.json').then((topology: any) => {
@@ -226,7 +243,10 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
     return modeToIntent(mode, state.selectedEntity)
   }, [focusIntent, intentOverride, mode, state.selectedEntity])
 
-  const caption = intent.caption ?? INTENT_CAPTION[intent.mode] ?? 'GLOBAL COMMAND CORE'
+  const caption = selectedCompany
+    ? `${selectedCompany.ticker} :: ${selectedCompany.headquarters.city.toUpperCase()}, ${selectedCompany.headquarters.country.toUpperCase()}`
+    : intent.caption ?? INTENT_CAPTION[intent.mode] ?? 'GLOBAL COMMAND CORE'
+
   const scene = useMemo(() => resolveScene(intent), [intent])
   const labels = useMemo(() => buildLabelData(), [])
   const nodes = useMemo(() => buildNodes('world'), [])
@@ -257,8 +277,8 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
       .showGlobe(true)
       .showAtmosphere(true)
       .showGraticules(true)
-      .atmosphereColor(COLORS.ATMOSPHERE)
-      .atmosphereAltitude(0.09)
+      .atmosphereColor(theme.atmosphere.color)
+      .atmosphereAltitude(theme.atmosphere.altitude)
 
       .polygonsData([])
       .polygonCapColor((d: any) => polygonCapColor(d?.properties?.name || '', mode, state.selectedEntity))
@@ -282,20 +302,27 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
       .pointsData([])
       .pointLat((d: any) => d.lat)
       .pointLng((d: any) => d.lng)
-      .pointColor((d: any) => d.color || COLORS.LABEL_WHITE)
-      .pointRadius((d: any) => Math.min(0.18, (d.radius ?? 0.08) * 1.9))
-      .pointAltitude(0.016)
+      .pointColor((d: any) => d.color || theme.label.white)
+      .pointRadius((d: any) => Math.min(theme.node.maxRadius, (d.radius ?? 0.04) * 1.5))
+      .pointAltitude((d: any) => d.altitude ?? theme.node.altitudeOffset)
 
       .labelsData([])
       .labelLat((d: any) => d.lat)
       .labelLng((d: any) => d.lng)
       .labelText((d: any) => d.text)
-      .labelColor((d: any) => d.color || COLORS.LABEL_WHITE)
+      .labelColor((d: any) => d.color || theme.label.white)
       .labelSize((d: any) => (d.size ?? 0.3) * 1.02)
       .labelResolution(2)
-      .labelDotRadius(0.055)
+      .labelDotRadius(0.035)
       .labelIncludeDot(true)
-      .labelAltitude(0.02)
+      .labelAltitude((d: any) => d.altitude ?? 0.02)
+
+      .ringsData([])
+      .ringColor((d: any) => d.color || (() => 'rgba(255, 215, 0, 0.8)'))
+      .ringMaxRadius((d: any) => d.maxR || 5)
+      .ringPropagationSpeed((d: any) => d.propagationSpeed || 2)
+      .ringRepeatPeriod((d: any) => d.repeatPeriod || 1000)
+      .ringAltitude((d: any) => d.altitude || 0.02)
 
       .onPolygonClick((polygon: any) => {
         const countryName = polygon?.properties?.name
@@ -313,13 +340,13 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
       })
 
     const material = new THREE.MeshPhongMaterial({
-      color: new THREE.Color(COLORS.GLOBE_BASE),
-      emissive: new THREE.Color(COLORS.GLOBE_EMIT),
-      emissiveIntensity: 0.35,
+      color: new THREE.Color(theme.globe.base),
+      emissive: new THREE.Color(theme.globe.emissive),
+      emissiveIntensity: theme.globe.emissiveIntensity,
       shininess: 4,
       specular: new THREE.Color('#161d25'),
       transparent: true,
-      opacity: 0.98,
+      opacity: theme.globe.opacity,
     })
     globe.globeMaterial(material)
     globe.globeImageUrl('')
@@ -336,6 +363,18 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
 
     globe.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 0)
 
+    // ── Outer Space Celestial System Integration ──────────────────────────
+    const sceneObj = globe.scene()
+    if (sceneObj) {
+      celestialRef.current = createCelestialSpace(sceneObj)
+    }
+
+    const animateCelestial = () => {
+      celestialRef.current?.update(Date.now())
+      celestialAnimRef.current = requestAnimationFrame(animateCelestial)
+    }
+    celestialAnimRef.current = requestAnimationFrame(animateCelestial)
+
     globeRef.current = globe
 
     const handleResize = () => {
@@ -348,6 +387,9 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
     return () => {
       window.removeEventListener('resize', handleResize)
       if (frameRef.current) cancelAnimationFrame(frameRef.current)
+      if (celestialAnimRef.current) cancelAnimationFrame(celestialAnimRef.current)
+      celestialRef.current?.dispose()
+      celestialRef.current = null
       globe.controls().dispose()
       containerRef.current?.replaceChildren()
       globeRef.current = null
@@ -361,6 +403,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
     const sceneHash = JSON.stringify({
       mode,
       selected: state.selectedEntity,
+      company: selectedCompany?.ticker,
       routeCount: scene.routes.length,
       countryCount: countries.length,
       intentMode: intent.mode,
@@ -380,56 +423,246 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
           .polygonAltitude((d: any) => polygonAltitude(d?.properties?.name || '', state.selectedEntity))
       }
 
+      // ── Company-Specific Arcs & Supply Chains ───────────────────────────
+      const companyArcs: RouteFlow[] = selectedCompany
+        ? [
+            ...selectedCompany.facilities.map(f => ({
+              startLat: selectedCompany.coords.lat,
+              startLng: selectedCompany.coords.lng,
+              endLat: f.lat,
+              endLng: f.lng,
+              color: '#ffe600',
+              intensity: 0.95,
+              tone: 'gold' as const,
+            })),
+            ...selectedCompany.supplyChain.map(s => ({
+              startLat: selectedCompany.coords.lat,
+              startLng: selectedCompany.coords.lng,
+              endLat: s.lat,
+              endLng: s.lng,
+              color: '#38e8ff',
+              intensity: 0.85,
+              tone: 'cyan' as const,
+            })),
+          ]
+        : []
+
       globe
         .arcAltitudeAutoScale(riskArcAltitudeScale)
         .arcStroke((d: any) => riskArcStroke(d, mode))
         .arcDashLength(riskArcDashLength(mode))
         .arcDashGap(riskArcDashGap(mode))
         .arcDashAnimateTime(riskArcAnimateTime(mode))
-        .arcsData(scene.routes)
+        .arcsData([...scene.routes, ...companyArcs])
 
-      globe.pointsData(scene.showOverlays ? nodes : [])
+      // ── Company-Specific Points & Facilities ────────────────────────────
+      const companyPoints = selectedCompany
+        ? [
+            {
+              lat: selectedCompany.coords.lat,
+              lng: selectedCompany.coords.lng,
+              color: '#ffe600',
+              radius: 0.13,
+              altitude: 0.035,
+              entity: `${selectedCompany.ticker} HQ`,
+              label: `${selectedCompany.ticker} HEADQUARTERS`,
+            },
+            ...selectedCompany.facilities.map(f => ({
+              lat: f.lat,
+              lng: f.lng,
+              color: '#38e8ff',
+              radius: 0.08,
+              altitude: 0.025,
+              entity: `${f.type}: ${f.city}`,
+              label: `${f.name} (${f.type})`,
+            })),
+            ...selectedCompany.supplyChain.map(s => ({
+              lat: s.lat,
+              lng: s.lng,
+              color: '#2ee6a8',
+              radius: 0.065,
+              altitude: 0.02,
+              entity: s.target,
+              label: `${s.target} [${s.relationship}]`,
+            })),
+          ]
+        : []
+
+      globe.pointsData([...(scene.showOverlays ? nodes : []), ...companyPoints])
+
+      // ── Company-Specific Labels ────────────────────────────────────────
+      const companyLabels = selectedCompany
+        ? [
+            {
+              lat: selectedCompany.coords.lat,
+              lng: selectedCompany.coords.lng,
+              text: `${selectedCompany.ticker} HQ · ${selectedCompany.headquarters.city}${selectedCompany.headquarters.state ? ', ' + selectedCompany.headquarters.state : ''} (${selectedCompany.headquarters.countryCode})`,
+              color: '#ffe600',
+              size: 0.48,
+              altitude: 0.045,
+            },
+            ...selectedCompany.facilities.map(f => ({
+              lat: f.lat,
+              lng: f.lng,
+              text: `${f.type}: ${f.city}, ${f.country}`,
+              color: '#7adcff',
+              size: 0.32,
+              altitude: 0.03,
+            })),
+          ]
+        : []
 
       const activeLabels = scene.showOverlays
         ? labels.map((l: any) => {
             const isSelected = state.selectedEntity && l.text.toLowerCase() === state.selectedEntity.toLowerCase()
             return {
               ...l,
-              color: isSelected ? COLORS.SELECT_STROKE : COLORS.LABEL_GOLD,
+              color: isSelected ? theme.polygon.selected.stroke : theme.label.gold,
               size: isSelected ? 0.45 : (l.size ?? 0.3),
             }
           })
         : []
-      globe.labelsData(activeLabels)
+      globe.labelsData([...activeLabels, ...companyLabels])
 
-      globe.controls().autoRotate = scene.autoRotate
+      // ── Pulsing Concentric Radar Rings at Company HQ ────────────────────
+      if (selectedCompany) {
+        globe
+          .ringsData([
+            {
+              lat: selectedCompany.coords.lat,
+              lng: selectedCompany.coords.lng,
+              maxR: 5.2,
+              propagationSpeed: 2.2,
+              repeatPeriod: 1400,
+              altitude: 0.022,
+            },
+          ])
+          .ringColor(() => (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`)
+          .ringMaxRadius((d: any) => d.maxR)
+          .ringPropagationSpeed((d: any) => d.propagationSpeed)
+          .ringRepeatPeriod((d: any) => d.repeatPeriod)
+          .ringAltitude((d: any) => d.altitude)
+      } else {
+        globe.ringsData([])
+      }
+
+      globe.controls().autoRotate = selectedCompany ? false : scene.autoRotate
       globe.controls().autoRotateSpeed = scene.autoRotate ? 0.11 : 0
 
-      const focusTarget = intent.focus?.[0] || intent.origin
-      if (focusTarget) {
-        const coords = resolveCoords(focusTarget)
-        if (coords) {
-          globe.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.58 }, 1000)
-        }
+      // ── Camera Navigation ──────────────────────────────────────────────
+      if (selectedCompany) {
+        globe.pointOfView(
+          {
+            lat: selectedCompany.coords.lat,
+            lng: selectedCompany.coords.lng,
+            altitude: 1.35,
+          },
+          1200,
+        )
       } else {
-        globe.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 900)
+        const focusTarget = intent.focus?.[0] || intent.origin
+        if (focusTarget) {
+          const coords = resolveCoords(focusTarget)
+          if (coords) {
+            globe.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.58 }, 1000)
+          }
+        } else {
+          globe.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 900)
+        }
       }
     })
-  }, [countries, intent, labels, mode, nodes, scene, state.selectedEntity])
+  }, [countries, intent, labels, mode, nodes, scene, selectedCompany, state.selectedEntity])
 
   return (
-    <div className={`cinematic-globe globe-container relative w-full h-full ${className}`}>
-      <div ref={containerRef} className="cinematic-globe__canvas absolute inset-0" />
+    <div className={`cinematic-globe globe-container relative w-full h-full overflow-hidden ${className}`}>
+      {/* ─── Deep Outer Space Cosmic Canvas Backdrop ──────────────── */}
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[#020408]" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_rgba(24,40,68,0.32)_0%,_rgba(8,16,28,0.75)_50%,_rgba(1,3,6,0.98)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-40 bg-[radial-gradient(circle_at_25%_25%,rgba(138,43,226,0.14)_0%,transparent_50%),radial-gradient(circle_at_80%_75%,rgba(0,229,255,0.09)_0%,transparent_50%)]" />
 
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_45%,rgba(243,247,250,0.06),transparent_34%),radial-gradient(circle_at_50%_50%,transparent_56%,rgba(2,4,6,0.62)_100%)]" />
-      <div className="cinematic-globe__vignette pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_24%,transparent_76%,rgba(255,255,255,0.02))]" />
+      {/* ─── WebGL Globe Canvas ───────────────────────────────────── */}
+      <div ref={containerRef} className="cinematic-globe__canvas absolute inset-0 z-10" />
 
+      {/* ─── Cinematic Vignette ───────────────────────────────────── */}
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_50%,transparent_54%,rgba(1,3,6,0.72)_100%)]" />
+
+      {/* ─── Selected Company Location Intel Overlay Badge ────────── */}
+      {selectedCompany && (
+        <div className="absolute top-16 left-4 z-20 pointer-events-auto stream-in flex flex-col gap-1.5 rounded-lg border border-[rgba(255,215,0,0.4)] bg-[rgba(4,8,14,0.92)] backdrop-blur-md p-3.5 shadow-[0_0_24px_rgba(255,215,0,0.18)] max-w-xs font-mono">
+          <div className="flex items-center justify-between gap-2 border-b border-[rgba(255,215,0,0.25)] pb-1.5">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ffe600] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ffe600]" />
+              </span>
+              <span className="text-[13px] font-bold text-[#ffe600] tracking-wider">{selectedCompany.ticker}</span>
+              <span className="text-[8px] px-1.5 py-0.5 rounded bg-[rgba(255,215,0,0.12)] text-[#ffd54a] border border-[rgba(255,215,0,0.3)]">
+                HQ LOCATION
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedCompany(null)}
+              className="text-[11px] text-[var(--text-lo)] hover:text-[var(--text-hi)] transition-colors px-1"
+              title="Close company intel"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="text-[11px] font-semibold text-[var(--text-hi)] mt-0.5 leading-snug">
+            {selectedCompany.name}
+          </div>
+
+          <div className="text-[10px] text-[var(--accent)] flex items-start gap-1 leading-snug">
+            <span>📍</span>
+            <span>
+              {selectedCompany.headquarters.city}
+              {selectedCompany.headquarters.state ? `, ${selectedCompany.headquarters.state}` : ''}
+              <span className="text-[var(--text-mid)]"> · {selectedCompany.headquarters.country}</span>
+            </span>
+          </div>
+
+          {selectedCompany.headquarters.address && (
+            <div className="text-[8px] text-[var(--text-lo)] pl-4">
+              {selectedCompany.headquarters.address}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between text-[8px] text-[var(--text-lo)] border-t border-[var(--line)] pt-1 mt-0.5">
+            <span>COORDS: {selectedCompany.coords.lat.toFixed(4)}°N, {selectedCompany.coords.lng.toFixed(4)}°W</span>
+            <span className="text-[var(--text-mid)]">{selectedCompany.headquarters.countryCode}</span>
+          </div>
+
+          <div className="text-[9px] text-[var(--text-mid)] line-clamp-2 mt-0.5 leading-tight">
+            {selectedCompany.sector}
+          </div>
+
+          {selectedCompany.facilities.length > 0 && (
+            <div className="mt-1 pt-1 border-t border-[var(--line)]">
+              <span className="text-[8px] tracking-wider text-[var(--text-lo)] block mb-1">KEY FACILITIES & HUBS</span>
+              <div className="flex flex-wrap gap-1">
+                {selectedCompany.facilities.map(f => (
+                  <span
+                    key={f.name}
+                    className="text-[8px] px-1.5 py-0.5 rounded bg-[rgba(56,232,255,0.08)] text-[var(--accent)] border border-[rgba(56,232,255,0.2)]"
+                  >
+                    {f.type}: {f.city}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── Caption HUD ──────────────────────────────────────────── */}
       <div className="cinematic-globe__caption absolute bottom-14 left-4 z-10 pointer-events-none select-none font-mono">
         <div key={caption} className="stream-in text-[11px] tracking-[0.3em] text-[var(--accent)] drop-shadow">
           {caption}
         </div>
         <div className="mt-1 text-[9px] tracking-widest text-[rgba(95,125,153,0.9)]">
-          {mode.toUpperCase()} :: {intent.scale.toUpperCase()}
+          {selectedCompany ? `ASSET HQ :: ${selectedCompany.ticker}` : `${mode.toUpperCase()} :: ${intent.scale.toUpperCase()}`}
         </div>
       </div>
     </div>
