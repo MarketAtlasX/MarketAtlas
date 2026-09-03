@@ -29,6 +29,21 @@ function generateMockPrediction(ticker: string): PredictionResult {
 
   return {
     prediction_id: crypto.randomUUID?.() ?? `mock-${Date.now()}`,
+    key_drivers: [
+      { factor: 'AI chip demand', direction: 'positive' as const, magnitude: 0.85 },
+      { factor: 'Taiwan strait risk', direction: 'negative' as const, magnitude: 0.72 },
+      { factor: 'Q3 earnings beat', direction: 'positive' as const, magnitude: 0.68 },
+      { factor: 'Valuation stretch', direction: 'negative' as const, magnitude: 0.55 },
+    ],
+    agent_scores: {
+      MarketAgent: rand(0.60, 0.90),
+      NewsAgent: rand(0.50, 0.85),
+      GeopoliticalAgent: geoConf,
+      ImpactAgent: rand(0.55, 0.80),
+      ForecastAgent: rand(0.65, 0.95),
+      RiskAgent: rand(0.40, 0.70),
+    },
+    related_countries: ticker === 'NVDA' ? ['United States', 'Taiwan'] : ticker === 'XOM' ? ['United States', 'Iran', 'Saudi Arabia'] : ['United States'],
     target: `Market and geopolitical outlook for ${ticker}`,
     ticker,
     entity_id: null,
