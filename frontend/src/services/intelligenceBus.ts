@@ -17,3 +17,12 @@ export interface IntelligenceEvent<T = any> {
 }
 
 type IntelligenceSubscriber = (event: IntelligenceEvent) => void
+
+class IntelligenceBus {
+  private subscribers: Set<IntelligenceSubscriber> = new Set()
+  private lastEvent: IntelligenceEvent | null = null
+
+  public subscribe(fn: IntelligenceSubscriber): () => void {
+    this.subscribers.add(fn)
+    return () => this.subscribers.delete(fn)
+  }
