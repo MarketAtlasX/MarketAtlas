@@ -26,3 +26,19 @@ class IntelligenceBus {
     this.subscribers.add(fn)
     return () => this.subscribers.delete(fn)
   }
+
+  public emit<T>(type: IntelligenceEventType, payload: T): void {
+    const event: IntelligenceEvent<T> = {
+      type,
+      payload,
+      timestamp: Date.now(),
+    }
+    this.lastEvent = event
+    this.subscribers.forEach(sub => {
+      try {
+        sub(event)
+      } catch (err) {
+        console.error('IntelligenceBus subscriber error:', err)
+      }
+    })
+  }
