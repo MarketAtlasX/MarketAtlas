@@ -51,6 +51,10 @@ function generateMockPrediction(ticker: string): PredictionResult {
     direction: dir,
     confidence: conf,
     time_horizon: 'medium_term',
+    expected_return_pct: dir === 'BULLISH' ? +(conf * 14.5).toFixed(1) : dir === 'BEARISH' ? +(-conf * 11.2).toFixed(1) : 1.4,
+    uncertainty_range: [-4.2, 12.8],
+    calibration_score: 0.914,
+    brier_score: 0.142,
     supporting_factors: [
       'Strong historical pattern match with prior rally phases',
       'Favorable sector rotation and institutional flow signals',
