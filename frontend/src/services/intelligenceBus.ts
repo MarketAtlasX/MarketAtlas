@@ -9,3 +9,11 @@ export type IntelligenceEventType =
   | 'TICKER_REQUESTED'
   | 'JARVIS_RESPONSE'
   | 'GLOBE_INTENT'
+
+export interface IntelligenceEvent<T = any> {
+  type: IntelligenceEventType
+  payload: T
+  timestamp?: number
+}
+
+type IntelligenceSubscriber = (event: IntelligenceEvent) => void
