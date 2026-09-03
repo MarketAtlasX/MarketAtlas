@@ -40,3 +40,12 @@ const SEED_QUOTES: MarketQuote[] = [
   { symbol: 'TSM', name: 'TSMC ADR', price: 214.8, changePct: -2.4, timestamp: new Date().toISOString() },
   { symbol: 'GC', name: 'Gold', price: 2482.1, changePct: 1.9, timestamp: new Date().toISOString() },
 ]
+
+const SEED_SECTORS: SectorSnapshot[] = [
+  { sector: 'Technology', returnPct: 2.1, volatility: 0.24, tickers: ['AAPL', 'MSFT', 'NVDA'] },
+  { sector: 'Energy', returnPct: 3.4, volatility: 0.31, tickers: ['XOM', 'CVX', 'COP'] },
+  { sector: 'Semiconductors', returnPct: 1.8, volatility: 0.28, tickers: ['AMD', 'INTC', 'AVGO'] },
+  { sector: 'Defense', returnPct: 1.2, volatility: 0.18, tickers: ['LMT', 'RTX', 'NOC'] },
+  { sector: 'Financials', returnPct: 0.9, volatility: 0.19, tickers: ['JPM', 'BAC', 'GS'] },
+  { sector: 'Healthcare', returnPct: 0.6, volatility: 0.15, tickers: ['JNJ', 'UNH', 'LLY'] },
+]
