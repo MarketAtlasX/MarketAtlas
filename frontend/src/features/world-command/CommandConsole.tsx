@@ -5,7 +5,7 @@ import LiveEventsTab from './tabs/LiveEventsTab'
 import PropagationTab from './tabs/PropagationTab'
 import AIAnalysisTab from './tabs/AIAnalysisTab'
 import MemoryTab from './tabs/MemoryTab'
-import JarvisConsole from './tabs/JarvisConsole'
+import AtlasConsole from './tabs/AtlasConsole'
 
 export type ConsoleTab = 'events' | 'propagation' | 'analysis' | 'memory' | 'command'
 
@@ -14,7 +14,7 @@ export const CONSOLE_TABS = [
   { key: 'propagation', label: 'PROPAGATION', icon: <Waypoints size={11} /> },
   { key: 'analysis', label: 'AI ANALYSIS', icon: <Sparkles size={11} /> },
   { key: 'memory', label: 'WORLD MEMORY', icon: <Database size={11} /> },
-  { key: 'command', label: 'JARVIS', icon: <Brain size={11} /> },
+  { key: 'command', label: 'ATLAS', icon: <Brain size={11} /> },
 ] as const
 
 interface CommandConsoleProps {
@@ -34,7 +34,7 @@ export default function CommandConsole({ initialTab = 'events' }: CommandConsole
         {tab === 'propagation' && <PropagationTab />}
         {tab === 'analysis' && <AIAnalysisTab />}
         {tab === 'memory' && <MemoryTab />}
-        {tab === 'command' && <JarvisConsole />}
+        {tab === 'command' && <AtlasConsole />}
       </div>
     </section>
   )
