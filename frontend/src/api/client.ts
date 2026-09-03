@@ -139,6 +139,9 @@ export interface PredictionResult {
   historical_output: HistoricalAgentOutput | null
   geopolitical_output: GeopoliticalAgentOutput | null
   created_at: string
+  key_drivers?: Array<{ factor: string; direction: 'positive' | 'negative'; magnitude: number }>
+  agent_scores?: Record<string, number>
+  related_countries?: string[]
 }
 
 export interface PredictionOptions {
