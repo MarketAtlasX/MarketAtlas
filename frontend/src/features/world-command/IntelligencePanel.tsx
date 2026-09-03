@@ -7,6 +7,8 @@ import Gauge from '../../components/ui/Gauge'
 import Badge from '../../components/ui/Badge'
 import Panel from '../../components/ui/Panel'
 import ProgressBar from '../../components/ui/ProgressBar'
+import { intelligenceBus } from '../../services/intelligenceBus'
+import { resolveCompanyLocation } from '../../data/companyLocations'
 
 const RELATED_SIGNALS: Record<string, string[]> = {
   Iran: ['XOM', 'SHEL', 'GC'],
@@ -89,10 +91,25 @@ export default function IntelligencePanel() {
       </Panel>
 
       <Panel title="Market Impact">
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {signals.map(s => (
-            <div key={s.symbol} className="flex items-center gap-2 text-[11px]">
-              <span className="w-12 font-mono font-semibold text-[var(--text-hi)]">{s.symbol}</span>
+            <div
+              key={s.symbol}
+              onClick={() => {
+                const company = resolveCompanyLocation(s.symbol)
+                if (company) {
+                  intelligenceBus.emit('STOCK_SELECTED', { ticker: s.symbol, company })
+                } else {
+                  intelligenceBus.emit('TICKER_REQUESTED', { ticker: s.symbol })
+                }
+              }}
+              className="flex items-center gap-2 text-[11px] p-1.5 rounded hover:bg-[rgba(56,232,255,0.08)] cursor-pointer transition-colors group"
+              title={`Inspect ${s.symbol} company location on Globe`}
+            >
+              <span className="w-14 font-mono font-semibold text-[var(--text-hi)] group-hover:text-[var(--accent)] flex items-center gap-1.5">
+                <Target size={11} className="text-[var(--text-lo)] group-hover:text-[var(--accent)] transition-colors" />
+                {s.symbol}
+              </span>
               <span
                 className="flex items-center gap-0.5 font-mono"
                 style={{ color: s.direction === 'UP' ? 'var(--positive)' : 'var(--critical)' }}
@@ -101,8 +118,7 @@ export default function IntelligencePanel() {
                 {s.changePct > 0 ? '+' : ''}
                 {s.changePct.toFixed(1)}%
               </span>
-              <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--text-lo)]">
-                <Target size={10} className="text-[var(--accent)]" />
+              <span className="ml-auto flex items-center gap-1 text-[10px] text-[var(--text-lo)] font-mono">
                 {(s.confidence * 100).toFixed(0)}%
               </span>
             </div>
