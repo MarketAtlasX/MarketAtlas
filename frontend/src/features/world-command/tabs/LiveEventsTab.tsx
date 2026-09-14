@@ -19,7 +19,10 @@ export default function LiveEventsTab() {
   const { state } = useWorldStore()
 
   return (
-    <div className="h-full flex gap-2 overflow-x-auto">
+    <div className="h-full flex gap-2 overflow-x-auto relative">
+      <span className="absolute right-1 top-0 z-10 text-[8px] font-mono tracking-wider text-[var(--warning)]">
+        {state.dataMode.toUpperCase()} · {state.updatedAt ? new Date(state.updatedAt).toLocaleTimeString() : 'NO LIVE UPDATE'}
+      </span>
       {state.events.slice(0, 14).map(e => {
         const t = new Date(e.timestamp).getTime()
         const mins = Math.max(0, Math.round((Date.now() - t) / 60000))
