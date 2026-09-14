@@ -15,10 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class AgentCalibrationService:
-    """Computes agent calibration, reliability diagrams, and dynamic weighting."""
+    """Computes agent calibration, reliability diagrams, and dynamic weighting.
+
+    The benchmarks and reliability curve below are curated demonstration data —
+    they are returned labeled `seed: true` / `data_status: "seed"` so callers
+    never present them as measured model performance.
+    """
 
     def __init__(self) -> None:
-        # Base agent performance tracking from historical evaluations
+        # Curated demonstration performance figures (NOT measured results).
         self._agent_benchmarks = {
             "HistoricalAgent": {
                 "name": "HistoricalAgent",
@@ -77,8 +82,17 @@ class AgentCalibrationService:
         }
 
     def get_agent_benchmarks(self) -> dict[str, Any]:
-        """Return benchmarked accuracy, Brier scores, and weights for each agent."""
-        return self._agent_benchmarks
+        """Return curated seed benchmarks for each agent.
+
+        These are demonstration figures, labeled `seed: true` and
+        `data_status: "seed"`. No measured calibration is currently available.
+        """
+        return {
+            "seed": True,
+            "data_status": "seed",
+            "provenance": "curated demonstration data",
+            "agents": self._agent_benchmarks,
+        }
 
     def compute_reliability_curve(self) -> list[dict[str, Any]]:
         """Compute the 5-bucket reliability diagram data for probability calibration.
@@ -94,7 +108,11 @@ class AgentCalibrationService:
         ]
 
     def get_calibration_summary(self) -> dict[str, Any]:
-        """Get high-level model calibration metrics."""
+        """Get calibration metrics from curated seed data.
+
+        The reliability curve and derived metrics are demonstration data and are
+        labeled `seed: true` / `data_status: "seed"` — not real model calibration.
+        """
         reliability = self.compute_reliability_curve()
         # Compute Expected Calibration Error (ECE) across bins
         total_samples = sum(b["sample_count"] for b in reliability)
@@ -105,12 +123,15 @@ class AgentCalibrationService:
         calibration_index = round((1.0 - ece) * 100, 1)
 
         return {
-            "calibration_index_pct": calibration_index,  # e.g. 98.4% or ~91.4%
+            "calibration_index_pct": calibration_index,
             "expected_calibration_error": round(ece, 4),
             "mean_brier_score": 0.142,
             "sample_size": total_samples,
             "reliability_curve": reliability,
             "agent_performance": self._agent_benchmarks,
+            "seed": True,
+            "data_status": "seed",
+            "provenance": "curated demonstration data",
         }
 
 

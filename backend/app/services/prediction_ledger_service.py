@@ -187,10 +187,20 @@ SEEDED_LEDGER_RECORDS = [
 
 
 class PredictionLedgerService:
-    """Service managing prediction audit trails, backtesting, and performance verification."""
+    """Service managing prediction audit trails, backtesting, and performance verification.
+
+    The ledger is seeded with curated demonstration records. Every seeded record and
+    any metric derived from them is labeled `seed: true` / `data_status: "seed"` so
+    callers never present demo backtests as real performance.
+    """
 
     def __init__(self) -> None:
-        self._memory_records: list[dict[str, Any]] = list(SEEDED_LEDGER_RECORDS)
+        self._memory_records: list[dict[str, Any]] = []
+        for record in SEEDED_LEDGER_RECORDS:
+            record["seed"] = True
+            record["data_status"] = "seed"
+            record["data_source"] = "curated demonstration data"
+            self._memory_records.append(record)
 
     def record_prediction(
         self,
@@ -235,6 +245,9 @@ class PredictionLedgerService:
             "scenario_distribution": scenarios or {},
             "key_drivers": key_drivers or [],
             "agents_used": agents_used or ["HistoricalAgent", "GeopoliticalAgent", "MarketAgent", "ForecastAgent"],
+            "seed": False,
+            "data_status": "live",
+            "data_source": "live_prediction",
         }
         self._memory_records.insert(0, record)
         return record
@@ -256,7 +269,11 @@ class PredictionLedgerService:
         return res[:limit]
 
     def evaluate_matured_predictions(self, current_quotes: Optional[dict[str, float]] = None) -> list[dict[str, Any]]:
-        """Evaluate pending predictions whose maturity dates have passed."""
+        """Evaluate pending predictions whose maturity dates have passed.
+
+        Only predictions with a real current quote are evaluated. Records without a
+        quote stay PENDING rather than receiving an invented exit price.
+        """
         now = datetime.utcnow()
         quotes = current_quotes or {}
         evaluated = []
@@ -266,7 +283,9 @@ class PredictionLedgerService:
                 mat_date = datetime.fromisoformat(r["maturity_date"])
                 if now >= mat_date:
                     t = r["ticker"]
-                    exit_p = quotes.get(t, r["entry_price"] * 1.05)
+                    exit_p = quotes.get(t)
+                    if exit_p is None:
+                        continue
                     ret_pct = ((exit_p - r["entry_price"]) / r["entry_price"]) * 100
                     actual_dir = "BULLISH" if ret_pct > 1.0 else "BEARISH" if ret_pct < -1.0 else "NEUTRAL"
                     is_accurate = actual_dir == r["predicted_direction"]
@@ -287,7 +306,11 @@ class PredictionLedgerService:
         return evaluated
 
     def compute_backtest_metrics(self, ticker: Optional[str] = None) -> dict[str, Any]:
-        """Compute aggregate backtest metrics across evaluated predictions."""
+        """Compute aggregate backtest metrics across evaluated predictions.
+
+        Metrics derived from seeded demonstration records are labeled `seed: true`
+        and `data_status: "seed"` so callers can present them as demo data.
+        """
         evaluated = [r for r in self._memory_records if r.get("status") == "EVALUATED"]
         if ticker:
             t = ticker.strip().upper()
@@ -300,10 +323,13 @@ class PredictionLedgerService:
                 "directional_accuracy_pct": 0.0,
                 "win_rate_pct": 0.0,
                 "mean_brier_score": 0.0,
-                "calibration_index_pct": 91.4,
-                "profit_factor": 1.0,
+                "calibration_index_pct": 0.0,
+                "profit_factor": 0.0,
                 "avg_realized_return_pct": 0.0,
                 "avg_expected_return_pct": 0.0,
+                "seed": None,
+                "data_status": "none",
+                "provenance": "no evaluated predictions available",
             }
 
         accurate_count = sum(1 for r in evaluated if r.get("directional_accurate"))
@@ -311,17 +337,19 @@ class PredictionLedgerService:
         losses = [abs(r["realized_return_pct"]) for r in evaluated if (r.get("realized_return_pct") or 0) < 0]
 
         total_win = sum(wins) if wins else 0.0
-        total_loss = sum(losses) if losses else 1.0
-        profit_factor = round(total_win / total_loss, 2) if total_loss > 0 else 2.5
+        total_loss = sum(losses) if losses else 0.0
+        profit_factor = round(total_win / total_loss, 2) if total_loss > 0 else 0.0
 
         brier_scores = [r["brier_score"] for r in evaluated if r.get("brier_score") is not None]
-        mean_brier = round(sum(brier_scores) / len(brier_scores), 4) if brier_scores else 0.142
+        mean_brier = round(sum(brier_scores) / len(brier_scores), 4) if brier_scores else 0.0
 
         dir_acc = round((accurate_count / total) * 100, 1)
         win_rate = round((len(wins) / total) * 100, 1)
 
         returns = [r["realized_return_pct"] for r in evaluated if r.get("realized_return_pct") is not None]
         exp_returns = [r["expected_return_pct"] for r in evaluated if r.get("expected_return_pct") is not None]
+
+        seed_derived = all(bool(r.get("seed")) for r in evaluated)
 
         return {
             "total_evaluated": total,
@@ -332,6 +360,9 @@ class PredictionLedgerService:
             "profit_factor": profit_factor,
             "avg_realized_return_pct": round(sum(returns) / len(returns), 2) if returns else 0.0,
             "avg_expected_return_pct": round(sum(exp_returns) / len(exp_returns), 2) if exp_returns else 0.0,
+            "seed": True if seed_derived else False,
+            "data_status": "seed" if seed_derived else "live",
+            "provenance": "curated demonstration data" if seed_derived else "live predictions",
         }
 
 
