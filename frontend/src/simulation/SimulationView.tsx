@@ -53,6 +53,11 @@ export default function SimulationView({ initialScenarioText = '' }: SimulationV
         setProgress('Simulation complete!')
         setTimeout(() => setProgress(null), 3000)
       }
+      if (msg.type === 'simulation_error') {
+        const errMsg = typeof msg.error === 'string' ? msg.error : 'Simulation failed'
+        setError(errMsg)
+        setTimeout(() => setError(null), 5000)
+      }
     })
     wsRef.current = ws
     return () => { ws.close() }
