@@ -108,11 +108,14 @@ async def _send_signal_updates(client_id: str, websocket: WebSocket):
             break
 
 
-async def handle_websocket(websocket: WebSocket):
+async def handle_websocket(websocket: WebSocket, authenticated_user_id: int):
     await websocket.accept()
     client_id = str(uuid.uuid4())
     connected_clients[client_id] = websocket
 
+    # The chat user identity comes from the authenticated JWT, never from the
+    # client message payload (prevents user spoofing).
+    chat_user_id = str(authenticated_user_id)
     signal_task: asyncio.Task | None = None
 
     try:
@@ -146,7 +149,6 @@ async def handle_websocket(websocket: WebSocket):
             else:
                 query = data.get("query", "")
                 conversation_id = data.get("conversation_id", str(uuid.uuid4()))
-                user_id = data.get("user_id", "default")
                 stream = data.get("stream", False)
 
                 if not query:
@@ -158,19 +160,20 @@ async def handle_websocket(websocket: WebSocket):
                         "type": "stream_start",
                         "conversation_id": conversation_id,
                     })
-                    response = await run_chat(query=query, conversation_id=conversation_id, user_id=user_id)
+                    response = await run_chat(query=query, conversation_id=conversation_id, user_id=chat_user_id)
                     await websocket.send_json({
                         "type": "metadata",
                         "conversation_id": conversation_id,
                         "intent": response.intent.value,
                         "agents_used": response.agents_used,
                         "confidence": response.confidence,
+                        "data_status": response.data_status,
                     })
                     for chunk in response.response.split(". "):
                         await websocket.send_json({"type": "chunk", "text": chunk + ". "})
                     await websocket.send_json({"type": "stream_end"})
                 else:
-                    response = await run_chat(query=query, conversation_id=conversation_id, user_id=user_id)
+                    response = await run_chat(query=query, conversation_id=conversation_id, user_id=chat_user_id)
                     await websocket.send_json({
                         "type": "response",
                         "conversation_id": conversation_id,
@@ -178,17 +181,19 @@ async def handle_websocket(websocket: WebSocket):
                         "intent": response.intent.value,
                         "agents_used": response.agents_used,
                         "confidence": response.confidence,
+                        "data_status": response.data_status,
                     })
 
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+        logger.error(f"Chat WebSocket error for user {chat_user_id}: {e}")
         try:
             await websocket.send_json({"type": "error", "message": str(e)})
         except Exception:
             pass
     finally:
+        logger.info("Chat WebSocket disconnected: user %s", chat_user_id)
         connected_clients.pop(client_id, None)
         for ch in channel_subscriptions.values():
             ch.discard(client_id)
