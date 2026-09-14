@@ -9,6 +9,7 @@ from app.services.auth_service import (
     create_access_token,
     generate_api_key,
     get_current_user,
+    hash_api_key,
     hash_password,
     verify_password,
 )
@@ -42,6 +43,8 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
 
     if not user or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account is deactivated")
 
     token = create_access_token(user.id)
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
@@ -50,7 +53,7 @@ async def login(body: UserLogin, db: AsyncSession = Depends(get_db)):
 @router.post("/api-key", response_model=APIKeyResponse)
 async def generate_key(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     new_key = generate_api_key()
-    current_user.api_key = new_key
+    current_user.api_key = hash_api_key(new_key)
     await db.commit()
     return APIKeyResponse(api_key=new_key)
 
