@@ -2,7 +2,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
@@ -139,7 +139,7 @@ app = FastAPI(
 # Register middleware (order matters: outermost first)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.cors_origins],
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -182,8 +182,20 @@ app.include_router(simulation_ws_router)
 
 
 @app.websocket("/ws/chat")
-async def chat_websocket(websocket):
-    await chat_ws_handler(websocket)
+async def chat_websocket(websocket: WebSocket):
+    # Authenticate before accepting — the chat user is derived from the JWT,
+    # never from a client-supplied user_id.
+    from app.services.auth_service import decode_access_token
+
+    token = websocket.query_params.get("token", "")
+    auth_header = websocket.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header[7:]
+    user_id = decode_access_token(token) if token else None
+    if user_id is None:
+        await websocket.close(code=4401, reason="Unauthorized")
+        return
+    await chat_ws_handler(websocket, user_id)
 
 
 @app.get("/health")
