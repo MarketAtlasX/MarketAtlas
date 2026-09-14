@@ -54,10 +54,20 @@ export default function TopStatusBar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 px-2.5 py-1.5 border border-[rgba(46,230,168,0.3)] bg-[rgba(46,230,168,0.06)]">
-          <StatusDot tone="positive" />
-          <span className="text-[11px] font-semibold tracking-[0.2em] text-[var(--positive)]">LIVE</span>
-        </div>
+        {state.dataMode === 'live' ? (
+          <div className="flex items-center gap-2 px-2.5 py-1.5 border border-[rgba(46,230,168,0.3)] bg-[rgba(46,230,168,0.06)]">
+            <StatusDot tone="positive" />
+            <span className="text-[11px] font-semibold tracking-[0.2em] text-[var(--positive)]">LIVE</span>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2 px-2.5 py-1.5 border border-[rgba(245,185,65,0.3)] bg-[rgba(245,185,65,0.06)]"
+            title="No live feed connected — showing offline simulated data"
+          >
+            <StatusDot tone="warning" pulse={false} />
+            <span className="text-[11px] font-semibold tracking-[0.2em] text-[var(--warning)]">SIMULATED</span>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 px-2.5 py-1.5 border border-[var(--line)]">
           <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-mid)]">World Risk</span>
