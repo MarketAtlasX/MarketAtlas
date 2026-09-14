@@ -21,8 +21,9 @@ interface InboundMessage {
   severity?: number
 }
 
-function connect(url: string, onMessage: (raw: string) => void): WebSocket {
+function connect(url: string, onOpen: () => void, onMessage: (raw: string) => void): WebSocket {
   const ws = new WebSocket(url)
+  ws.onopen = onOpen
   ws.onmessage = e => {
     try {
       onMessage(typeof e.data === 'string' ? e.data : '')
@@ -42,9 +43,11 @@ export function useLiveWorldSocket() {
     const sockets: WebSocket[] = []
     let retries = 0
 
-    const attach = (url: string) => {
+    const attach = (url: string, channels: string[]) => {
       try {
-        const ws = connect(url, raw => {
+        const ws = connect(url, () => {
+          channels.forEach(channel => ws.send(JSON.stringify({ type: 'subscribe', channel })))
+        }, raw => {
           let msg: InboundMessage
           try {
             msg = JSON.parse(raw)
@@ -94,7 +97,7 @@ export function useLiveWorldSocket() {
         ws.onclose = () => {
           if (retries < 4) {
             retries += 1
-            setTimeout(() => attach(url), 5000 * retries)
+            setTimeout(() => attach(url, channels), 5000 * retries)
           }
         }
       } catch {
@@ -102,8 +105,8 @@ export function useLiveWorldSocket() {
       }
     }
 
-    attach('/ws')
-    attach('/ws/graph')
+    attach('/ws', ['signals', 'events', 'risk', 'forecasts'])
+    attach('/ws/graph', ['graph'])
 
     return () => {
       sockets.forEach(ws => ws.close())
