@@ -17,6 +17,25 @@ OPENAI_API_KEY: Optional[str] = None
 CLAUDE_API_KEY: Optional[str] = None
 LLM_MODEL = "gpt-4o-mini"
 
+# Process-wide flag: set when MockLLM is used so callers can label responses
+# as simulated instead of presenting fabricated text as real intelligence.
+_mock_used_anywhere = False
+
+
+def _mark_mock_used() -> None:
+    global _mock_used_anywhere
+    _mock_used_anywhere = True
+
+
+def mock_fallback_used() -> bool:
+    """True if a MockLLM response was generated in this process."""
+    return _mock_used_anywhere
+
+
+def reset_mock_fallback_flag() -> None:
+    global _mock_used_anywhere
+    _mock_used_anywhere = False
+
 try:
     from app.config import settings as _s
 except Exception:
@@ -189,7 +208,14 @@ FOLLOWUP_PRONOUNS = re.compile(
 
 
 class MockLLM(LLMInterface):
+    """Placeholder provider used only when every real provider is unavailable.
+
+    Output is simulated. Callers should check :func:`mock_fallback_used` and
+    label the response rather than presenting it as real intelligence.
+    """
+
     def generate(self, prompt: str, system_prompt: Optional[str] = None, temperature: float = 0.3, history: Optional[list[dict]] = None) -> str:
+        _mark_mock_used()
         query = prompt.split("Query: ")[-1].split("\n")[0].strip() if "Query: " in prompt else prompt[:100]
 
         if "Extract" in prompt or "JSON" in prompt:
