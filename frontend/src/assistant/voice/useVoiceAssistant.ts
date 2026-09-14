@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAssistantState } from '../state/AssistantStateContext'
-import { commandBus } from '../commands/commandBus'
 import { RealtimeVoice } from './RealtimeVoice'
 import type { AtlasEvent } from './atlasEvents'
 import { AudioMeter } from './audioMeter'
-import { atlasBrain, atlasBrainOffline, inferVisualization } from '../brain/atlasBrain'
+import { atlasBrainOffline } from '../brain/atlasBrain'
 import { transcriptBus } from '../brain/transcriptBus'
 import { getSpeechRecognition, speak, warmUpVoices } from './browserSpeech'
 import { visualizationBus } from '../commands/visualizationBus'
+import { useAtlasAgent } from '../agent/useAtlasAgent'
 
 export interface VoiceAssistantApi {
   active: boolean
@@ -18,6 +18,7 @@ export interface VoiceAssistantApi {
 
 export function useVoiceAssistant(): VoiceAssistantApi {
   const { setState, setAmplitude, setMode } = useAssistantState()
+  const { execute } = useAtlasAgent()
   const voiceRef = useRef<RealtimeVoice | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
   const meterRef = useRef<AudioMeter | null>(null)
@@ -43,17 +44,12 @@ export function useVoiceAssistant(): VoiceAssistantApi {
       setState('THINKING')
       transcriptBus.push('user', transcript)
 
-      void atlasBrain(transcript).then(response => {
-        response.commands.forEach(command => commandBus.emit(command))
-        if (response.visualization) {
-          setMode('globe')
-        }
-
+      void execute(transcript).then(execution => {
         window.setTimeout(() => {
-          cancelSpeechRef.current = speak(response.text, {
+          cancelSpeechRef.current = speak(execution.response, {
             onStart: () => {
               setState('SPEAKING')
-              transcriptBus.push('atlas', response.text)
+              transcriptBus.push('atlas', execution.response)
             },
             onEnd: () => {
               setState('IDLE')
@@ -63,7 +59,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
         }, 500)
       })
     },
-    [setMode, setState],
+    [execute, setMode, setState],
   )
 
   const startOffline = useCallback(async () => {
@@ -152,7 +148,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
           if (text) {
             transcriptBus.push('atlas', text)
             const response = atlasBrainOffline(text)
-            response.commands.forEach(command => commandBus.emit(command))
+            void execute(text)
             if (response.visualization) {
               visualizationBus.drive(response.visualization)
               setMode('globe')
