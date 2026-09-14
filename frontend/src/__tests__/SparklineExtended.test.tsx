@@ -11,8 +11,8 @@ describe('Sparkline', () => {
   })
 
   it('renders with empty data gracefully', () => {
-    render(<Sparkline data={[]} />)
-    const svg = screen.getByRole('img')
-    expect(svg).toBeInTheDocument()
+    const { container } = render(<Sparkline data={[]} />)
+    expect(container.querySelector('svg')).toBeNull()
+    expect(container.querySelector('div')).toBeInTheDocument()
   })
 })

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { render } from '@testing-library/react'
-import ErrorBoundary from '../components/ErrorBoundary'
+import { render, screen } from '@testing-library/react'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 
 function Broken({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) {
@@ -25,6 +25,6 @@ describe('ErrorBoundary', () => {
         <Broken shouldThrow={true} />
       </ErrorBoundary>,
     )
-    expect(document.body.textContent).toContain('Error')
+    expect(document.body.textContent).toContain('Something went wrong')
   })
 })

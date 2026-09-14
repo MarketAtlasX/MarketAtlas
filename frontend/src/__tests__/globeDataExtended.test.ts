@@ -93,7 +93,13 @@ describe('buildEventNodes', () => {
 describe('latLngToPlane', () => {
   it('converts lat/lng to plane coordinates', () => {
     const pt = latLngToPlane(0, 0, 10, 6.5)
-    expect(pt.x).toBe(-5)
+    expect(pt.x).toBe(0)
+    expect(pt.z).toBe(0)
+  })
+
+  it('maps positive lng right of center and polar lat to plane edges', () => {
+    const pt = latLngToPlane(90, 180, 10, 6.5)
+    expect(pt.x).toBe(5)
     expect(pt.z).toBe(-3.25)
   })
 })

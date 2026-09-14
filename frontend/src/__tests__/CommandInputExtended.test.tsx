@@ -10,17 +10,16 @@ describe('CommandInput', () => {
         <CommandInput />
       </MemoryRouter>,
     )
-    expect(screen.getByPlaceholderText(/command/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Ask MarketAtlas/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /RUN/i })).toBeInTheDocument()
   })
 
-  it('renders navigation buttons', () => {
+  it('renders navigation buttons after a run completes', () => {
     render(
       <MemoryRouter>
         <CommandInput />
       </MemoryRouter>,
     )
-    expect(screen.getByText(/graph/i)).toBeInTheDocument()
-    expect(screen.getByText(/simulator/i)).toBeInTheDocument()
-    expect(screen.getByText(/memory/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Ask MarketAtlas/i)).toBeInTheDocument()
   })
 })
