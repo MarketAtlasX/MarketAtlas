@@ -5,7 +5,7 @@ import { WorldProvider } from '../stores/WorldStore'
 import TopStatusBar from '../features/world-command/TopStatusBar'
 
 describe('TopStatusBar', () => {
-  it('renders the brand and live indicator', () => {
+  it('renders the brand and truthful data-mode indicator', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard']}>
         <WorldProvider>
@@ -14,7 +14,8 @@ describe('TopStatusBar', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('Geopolitical Intelligence')).toBeInTheDocument()
-    expect(screen.getByText('LIVE')).toBeInTheDocument()
+    expect(screen.getByText('SIMULATED')).toBeInTheDocument()
+    expect(screen.queryByText('LIVE')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Go to dashboard' })).toBeInTheDocument()
   })
 

@@ -5,7 +5,7 @@ import { WorldProvider } from '../stores/WorldStore'
 import LiveEventsTab from '../features/world-command/tabs/LiveEventsTab'
 
 describe('LiveEventsTab', () => {
-  it('renders the live events heading', () => {
+  it('shows the current data mode status', () => {
     render(
       <MemoryRouter>
         <WorldProvider>
@@ -13,6 +13,7 @@ describe('LiveEventsTab', () => {
         </WorldProvider>
       </MemoryRouter>,
     )
-    expect(screen.getByText(/LIVE EVENTS/)).toBeInTheDocument()
+    expect(screen.getByText(/SIMULATED/)).toBeInTheDocument()
+    expect(screen.getByText(/NO LIVE UPDATE/)).toBeInTheDocument()
   })
 })
