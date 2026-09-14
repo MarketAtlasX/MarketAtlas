@@ -1,3 +1,4 @@
+import secrets
 from pathlib import Path
 
 from pydantic import Field, computed_field, model_validator
@@ -87,10 +88,22 @@ class Settings(BaseSettings):
     )
 
     # -------------------------------------------------------------------------
+    # Deployment environment
+    # -------------------------------------------------------------------------
+    app_env: str = Field(
+        default="development",
+        alias="APP_ENV",
+        description="'production' enforces a non-empty JWT_SECRET at startup",
+    )
+
+    # -------------------------------------------------------------------------
     # -------------------------------------------------------------------------
     # Auth Configuration
     # -------------------------------------------------------------------------
-    jwt_secret: str = Field(default="test-secret-jwt-key-marketatlas-12345", alias="JWT_SECRET")
+    # An empty JWT_SECRET is only permitted in development mode, where an
+    # ephemeral secret is generated at startup (tokens invalidate on restart).
+    # In production, JWT_SECRET MUST be provided explicitly.
+    jwt_secret: str = Field(default="", alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
     jwt_expiry_hours: int = Field(alias="JWT_EXPIRY_HOURS", default=24)
 
@@ -197,9 +210,16 @@ class Settings(BaseSettings):
     enable_workers: bool = Field(default=False, alias="ENABLE_WORKERS")
 
     @model_validator(mode="after")
-    def reject_insecure_jwt_secret(self) -> "Settings":
+    def validate_jwt_secret(self) -> "Settings":
         if self.jwt_secret == "change-me-in-production":
             raise ValueError("JWT_SECRET must not use the placeholder value")
+        if self.app_env == "production":
+            if not self.jwt_secret:
+                raise ValueError("APP_ENV=production requires JWT_SECRET to be set")
+        elif not self.jwt_secret:
+            # Development-only ephemeral secret so tokens can never use a
+            # predictable hardcoded value.
+            self.jwt_secret = secrets.token_hex(32)
         return self
 
     # -------------------------------------------------------------------------
@@ -223,6 +243,12 @@ class Settings(BaseSettings):
             f"{sync_driver}://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Comma-separated CORS_ORIGINS split into individual origins."""
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 settings = Settings()
