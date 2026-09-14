@@ -6,6 +6,7 @@ import { createIntent, type VisualizationIntent } from './WorldCore'
 import { INTENT_CAPTION } from './visualizationIntent'
 import { useWorldStore } from '../../stores/WorldStore'
 import { visualizationBus } from '../../assistant/commands/visualizationBus'
+import { globeFocusBus } from '../../assistant/commands/globeFocusBus'
 import { intelligenceBus } from '../../services/intelligenceBus'
 import { buildLabelData, buildNodes, resolveCoords } from './globeData'
 import { resolveScene, type RouteFlow } from './SceneDirector'
@@ -14,6 +15,7 @@ import { theme } from './globeTheme'
 import { createCelestialSpace, type CelestialSpaceHandle } from './celestialSpace'
 import { resolveCompanyLocation, type CompanyLocation } from '../../data/companyLocations'
 import type { CausalGraph } from '../prediction-space/causalGraphApi'
+import { useAtlasStore } from '../../stores/AtlasStore'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
@@ -195,6 +197,7 @@ function polygonAltitude(featureName: string, selectedEntity: string | null): nu
 
 export default function CinematicGlobe({ mode = 'world', intentOverride, onSelect, className = '' }: CinematicGlobeProps) {
   const { state, selectEntity } = useWorldStore()
+  const { setCamera } = useAtlasStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
   const celestialRef = useRef<CelestialSpaceHandle | null>(null)
@@ -212,6 +215,21 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
   selectEntityRef.current = selectEntity
 
   useEffect(() => visualizationBus.subscribe(setFocusIntent), [])
+
+  useEffect(() => globeFocusBus.subscribe(target => {
+    if (!target) {
+      globeRef.current?.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 900)
+      setCamera({ lat: 18, lng: 18, altitude: 1.92, target: null })
+      return
+    }
+    const coords = target.lat !== undefined && target.lng !== undefined
+      ? { lat: target.lat, lng: target.lng }
+      : resolveCoords(target.entity)
+    if (!coords) return
+    const altitude = 1.58
+    globeRef.current?.pointOfView({ lat: coords.lat, lng: coords.lng, altitude }, 1200)
+    setCamera({ lat: coords.lat, lng: coords.lng, altitude, target: target.entity })
+  }), [setCamera])
 
   // Listen to intelligenceBus for stock selection, ticker queries & causal graph projection
   useEffect(() => {
