@@ -12,6 +12,7 @@ import Tabs from '../../components/ui/Tabs'
 import { decodeReplayIntent } from '../world-memory/replayOnGlobe'
 import type { VisualizationIntent } from '../globe/visualizationIntent'
 import { intelligenceBus } from '../../services/intelligenceBus'
+import { useAtlasStore, type AtlasLayer } from '../../stores/AtlasStore'
 
 const GLOBE_MODES: { key: GlobeMode; label: string }[] = [
   { key: 'world', label: 'WORLD' },
@@ -40,6 +41,8 @@ export default function WorldCommandCenter() {
   const [consoleTab, setConsoleTab] = useState<ConsoleTab>(() => tabFromParam(searchParams.get('tab')))
   const [replayIntent, setReplayIntent] = useState<VisualizationIntent | null>(() => decodeReplayIntent(searchParams.get('replay')))
   const { state, selectEntity } = useWorldStore()
+  const { update } = useAtlasStore()
+  const { state: atlasState } = useAtlasStore()
 
   useLiveWorldSocket()
 
@@ -77,6 +80,7 @@ export default function WorldCommandCenter() {
 
   const handleGlobeSelect = (entity: string) => {
     selectEntity(entity)
+    update({ selectedCountry: entity, selectedCity: null, selectedEvent: null, highlightedEntities: [entity], openPanel: 'evidence', execution: 'idle' })
     setReplayIntent(null)
     setConsoleTab('events')
     intelligenceBus.emit('ENTITY_SELECTED', { entity })
@@ -98,10 +102,36 @@ export default function WorldCommandCenter() {
                 {state.selectedEntity ? `FOCUS :: ${state.selectedEntity.toUpperCase()}` : 'SELECT A NODE TO INSPECT'}
               </p>
             </div>
+            {(atlasState.execution !== 'idle' || atlasState.actionHistory.length > 0) && (
+              <div className="absolute left-4 bottom-4 z-20 w-64 rounded-md border border-[rgba(56,232,255,0.25)] bg-[rgba(4,8,14,0.88)] px-3 py-2 backdrop-blur-md font-mono">
+                <div className="flex items-center justify-between text-[9px] tracking-[0.16em] text-[var(--accent)]">
+                  <span>ATLAS · {atlasState.execution.toUpperCase()}</span>
+                  <span>{atlasState.executionSteps.filter(step => step.status === 'complete').length}/{atlasState.executionSteps.length}</span>
+                </div>
+                <div className="mt-1.5 space-y-1">
+                  {(atlasState.executionSteps.length > 0 ? atlasState.executionSteps.map(step => ({ ...step, displayStatus: step.status })) : atlasState.actionHistory.slice(-4).map((label, index) => ({ id: `${index}-${label}`, label, displayStatus: 'complete' as const }))).slice(-4).map(step => (
+                    <div key={step.id} className={`text-[10px] ${step.displayStatus === 'active' ? 'text-[var(--text-hi)]' : step.displayStatus === 'complete' ? 'text-[var(--positive)]' : 'text-[var(--text-lo)]'}`}>
+                      {step.displayStatus === 'complete' ? '✓' : step.displayStatus === 'active' ? '→' : '·'} {step.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {atlasState.latestEvidence && (
+              <div className="absolute right-4 bottom-4 z-20 rounded border border-[var(--line)] bg-[rgba(4,8,14,0.82)] px-2.5 py-1.5 font-mono text-[9px] text-[var(--text-mid)] backdrop-blur-md">
+                <span className={atlasState.latestEvidence.status === 'live' ? 'text-[var(--positive)]' : atlasState.latestEvidence.status === 'unavailable' ? 'text-[var(--warning)]' : 'text-[var(--text-mid)]'}>
+                  {atlasState.latestEvidence.status.toUpperCase()}
+                </span>
+                <span className="mx-1.5 text-[var(--text-lo)]">·</span>
+                {atlasState.latestEvidence.freshness.toUpperCase()}
+                {atlasState.latestEvidence.source ? ` · ${atlasState.latestEvidence.source}` : ''}
+              </div>
+            )}
             <div className="absolute top-4 right-4 z-10 w-56">
               <Tabs items={GLOBE_MODES as any} value={mode} onChange={v => {
                 setReplayIntent(null)
                 setMode(v as GlobeMode)
+                update({ activeLayer: (v === 'risk' ? 'risk' : v === 'supply' ? 'supply-chain' : v === 'events' ? 'events' : v === 'map' ? 'world' : 'world') as AtlasLayer })
               }} />
             </div>
             {state.selectedEntity && (
