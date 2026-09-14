@@ -1,13 +1,49 @@
 import axios from 'axios'
 
+let backendAvailable: boolean | null = null
+let checkingBackend = false
+let checkQueue: Array<(v: boolean) => void> = []
+
 export const api = axios.create({
   baseURL: '/api',
   timeout: 2000,
 })
 
-let backendAvailable: boolean | null = null
-let checkingBackend = false
-let checkQueue: Array<(v: boolean) => void> = []
+let authPromise: Promise<string | null> | null = null
+async function ensureAuthToken(): Promise<string | null> {
+  if (!authPromise) {
+    authPromise = import('../simulation/auth')
+      .then(({ ensureAuth }) => ensureAuth())
+      .catch(() => null)
+  }
+  return authPromise
+}
+
+api.interceptors.request.use(async (config) => {
+  try {
+    const { getToken } = await import('../simulation/auth')
+    const token = getToken()
+    if (token) config.headers.Authorization = `Bearer ${token}`
+  } catch { /* stay token-less */ }
+  return config
+})
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    if (error.response?.status === 401 && !error.config?._authRetried) {
+      error.config._authRetried = true
+      try {
+        const token = await ensureAuthToken()
+        if (token) {
+          error.config.headers.Authorization = `Bearer ${token}`
+          return api(error.config)
+        }
+      } catch { /* fall through */ }
+    }
+    return Promise.reject(error)
+  },
+)
 
 function checkBackend(): Promise<boolean> {
   if (backendAvailable !== null) return Promise.resolve(backendAvailable)
@@ -162,51 +198,21 @@ export async function getPrediction(
   if (opts?.includeRaw) params.include_raw = 'true'
   const { data } = await api.get<PredictionResult>(
     `/predict/ticker/${encodeURIComponent(symbol)}`,
-    { params },
+    { params, timeout: 60000 },
   )
   return data
 }
 
-const stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'JPM', 'V', 'NVDA', 'META', 'SPY']
-
-function rand(min: number, max: number) { return +(min + Math.random() * (max - min)).toFixed(4) }
-
-function generateMockData(symbol?: string): AnalysisResult {
-  if (!symbol) symbol = stocks[Math.floor(Math.random() * stocks.length)]
-  return {
-    snapshot: {
-      symbol,
-      momentum: rand(-0.08, 0.12),
-      volatility: rand(0.01, 0.06),
-      volume_status: ['surge', 'normal', 'thin'][Math.floor(Math.random() * 3)],
-    },
-    impact: {
-      composite_risk: rand(0.1, 0.9),
-      local_severity: rand(0.1, 0.8),
-      entity_count: Math.floor(Math.random() * 10) + 2,
-      relations: [
-        { source: 'Russia', target: 'Oil', label: 'sanction' },
-        { source: 'China', target: 'Tech', label: 'restriction' },
-      ],
-    },
-    recommendation: {
-      action: (['BUY', 'HOLD', 'SELL'] as const)[Math.floor(Math.random() * 3)],
-      reason: 'Geopolitical risk assessment combined with market momentum analysis.',
-      confidence: rand(0.5, 0.95),
-    },
-  }
-}
-
 export async function analyze(text: string, symbol?: string): Promise<AnalysisResult> {
   const online = await checkBackend()
-  if (!online) return generateMockData(symbol)
+  if (!online) throw new Error('Market analysis unavailable: backend is offline')
   try {
-    const { data } = await api.post<AnalysisResult>('/analyze', { text })
+    const { data } = await api.post<AnalysisResult>('/analyze', { text }, { timeout: 60000 })
     if (symbol) data.snapshot.symbol = symbol
     return data
   } catch {
     backendAvailable = false
-    return generateMockData(symbol)
+    throw new Error('Market analysis unavailable: service request failed')
   }
 }
 
