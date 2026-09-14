@@ -28,6 +28,8 @@ describe('AppLayout', () => {
         </WorldProvider>
       </MemoryRouter>,
     )
-    expect(screen.getByText('MARKETATLAS')).toBeInTheDocument()
+    const brand = screen.getByTitle('Go to dashboard')
+    expect(brand.textContent).toContain('MARKET')
+    expect(brand.textContent).toContain('ATLAS')
   })
 })

@@ -20,7 +20,9 @@ describe('AppLayout routing integration', () => {
       </MemoryRouter>,
     )
     expect(screen.getByTestId('test-page')).toBeInTheDocument()
-    expect(screen.getByText('MARKETATLAS')).toBeInTheDocument()
+    const brand = screen.getByTitle('Go to dashboard')
+    expect(brand.textContent).toContain('MARKET')
+    expect(brand.textContent).toContain('ATLAS')
   })
 
   it('renders back button on memory route', () => {
