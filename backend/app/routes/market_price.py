@@ -4,8 +4,10 @@ from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.user import User
 from app.schemas.market_price import MarketPriceCreate, MarketPriceRead
 from app.schemas.pagination import PaginatedResponse
+from app.services.auth_service import get_current_user
 from app.services.market_data_service import MarketDataService
 from app.services.market_price_service import MarketPriceService, get_market_price_service
 
@@ -15,6 +17,7 @@ router = APIRouter(prefix="/market-prices", tags=["market-prices"])
 @router.post("", response_model=MarketPriceRead, status_code=201)
 async def create_market_price(
     price_in: MarketPriceCreate,
+    current_user: User = Depends(get_current_user),
     service: MarketPriceService = Depends(get_market_price_service),
 ) -> MarketPriceRead:
     """Create a new market price record (returns 409 on duplicate)."""
@@ -91,6 +94,7 @@ async def fetch_market_data(
         "1d",
         description="Interval (1m, 2m, 5m, 15m, 30m, 60m, 1d, 5d, 1wk, 1mo)",
     ),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Fetch market prices from yfinance for an entity's ticker and store them."""

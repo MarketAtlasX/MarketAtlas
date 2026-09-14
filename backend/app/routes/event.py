@@ -3,11 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import EventSeverity, EventStatus, EventType
 from app.database import get_db
+from app.models.user import User
 from app.repositories.entity import EntityRepository
 from app.repositories.event import EventRepository
 from app.repositories.event_entity import EventEntityRepository
 from app.schemas.event import EventCreate, EventRead, EventReadWithEntities, EventUpdate
 from app.schemas.pagination import PaginatedResponse
+from app.services.auth_service import get_current_user
 from app.services.event_service import EventService, get_event_service
 
 router = APIRouter(prefix="/events", tags=["events"])
@@ -16,6 +18,7 @@ router = APIRouter(prefix="/events", tags=["events"])
 @router.post("", response_model=EventRead, status_code=201)
 async def create_event(
     event_in: EventCreate,
+    current_user: User = Depends(get_current_user),
     service: EventService = Depends(get_event_service),
 ) -> EventRead:
     """Create a new event."""
@@ -98,6 +101,7 @@ async def get_recent_events(
 async def update_event(
     event_id: int = Path(..., gt=0),
     event_in: EventUpdate = ...,
+    current_user: User = Depends(get_current_user),
     service: EventService = Depends(get_event_service),
 ) -> EventRead:
     """Partially update an existing event."""
@@ -107,6 +111,7 @@ async def update_event(
 @router.delete("/{event_id}", status_code=204)
 async def delete_event(
     event_id: int = Path(..., gt=0),
+    current_user: User = Depends(get_current_user),
     service: EventService = Depends(get_event_service),
 ) -> None:
     """Delete an event."""
@@ -126,6 +131,7 @@ async def delete_event(
 async def link_entity_to_event(
     event_id: int = Path(..., gt=0),
     entity_id: int = Path(..., gt=0),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Link an existing entity to an existing event."""
@@ -159,6 +165,7 @@ async def link_entity_to_event(
 async def unlink_entity_from_event(
     event_id: int = Path(..., gt=0),
     entity_id: int = Path(..., gt=0),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Remove the link between an entity and an event."""

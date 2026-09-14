@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, Path, Query
 
 from app.core.enums import SignalStatus, SignalType
+from app.models.user import User
 from app.schemas.pagination import PaginatedResponse
 from app.schemas.signal import SignalCreate, SignalRead, SignalUpdate
+from app.services.auth_service import get_current_user
 from app.services.signal_service import SignalService, get_signal_service
 
 _SERIALIZER = SignalRead
@@ -13,6 +15,7 @@ router = APIRouter(prefix="/signals", tags=["signals"])
 @router.post("", response_model=SignalRead, status_code=201)
 async def create_signal(
     signal_in: SignalCreate,
+    current_user: User = Depends(get_current_user),
     service: SignalService = Depends(get_signal_service),
 ) -> SignalRead:
     """
@@ -111,6 +114,7 @@ async def get_high_confidence_signals(
 async def update_signal(
     signal_id: int = Path(..., gt=0),
     signal_in: SignalUpdate = ...,
+    current_user: User = Depends(get_current_user),
     service: SignalService = Depends(get_signal_service),
 ) -> SignalRead:
     """Partially update an existing signal."""
@@ -120,6 +124,7 @@ async def update_signal(
 @router.delete("/{signal_id}", status_code=204)
 async def delete_signal(
     signal_id: int = Path(..., gt=0),
+    current_user: User = Depends(get_current_user),
     service: SignalService = Depends(get_signal_service),
 ) -> None:
     """Delete a signal."""

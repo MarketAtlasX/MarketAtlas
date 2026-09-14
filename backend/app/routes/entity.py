@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, Path, Query
 
 from app.core.enums import EntityType
+from app.models.user import User
 from app.schemas.entity import EntityCreate, EntityRead, EntityUpdate
 from app.schemas.pagination import PaginatedResponse
+from app.services.auth_service import get_current_user
 from app.services.entity_service import EntityService, get_entity_service
 
 router = APIRouter(prefix="/entities", tags=["entities"])
@@ -11,6 +13,7 @@ router = APIRouter(prefix="/entities", tags=["entities"])
 @router.post("", response_model=EntityRead, status_code=201)
 async def create_entity(
     entity_in: EntityCreate,
+    current_user: User = Depends(get_current_user),
     service: EntityService = Depends(get_entity_service),
 ) -> EntityRead:
     """Create a new entity. Returns 409 if an entity with the same name exists."""
@@ -80,6 +83,7 @@ async def get_entity_by_ticker(
 async def update_entity(
     entity_id: int = Path(..., gt=0),
     entity_in: EntityUpdate = ...,
+    current_user: User = Depends(get_current_user),
     service: EntityService = Depends(get_entity_service),
 ) -> EntityRead:
     """Partially update an existing entity. Returns 409 on name collision."""
@@ -89,6 +93,7 @@ async def update_entity(
 @router.delete("/{entity_id}", status_code=204)
 async def delete_entity(
     entity_id: int = Path(..., gt=0),
+    current_user: User = Depends(get_current_user),
     service: EntityService = Depends(get_entity_service),
 ) -> None:
     """Delete an entity."""
