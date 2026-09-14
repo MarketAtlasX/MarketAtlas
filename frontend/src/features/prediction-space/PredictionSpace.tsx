@@ -661,6 +661,13 @@ export default function PredictionSpace({
           {/* ─── LEDGER & BACKTEST VIEW ──────────────────────────────── */}
           {activeTab === 'backtest' && (
             <div className="flex flex-col gap-3 stream-in">
+              {(backtestMetrics?.synthetic || ledgerRecords.some(r => r.synthetic)) && (
+                <div className="px-2 py-1 rounded bg-[rgba(245,185,65,0.08)] border border-[rgba(245,185,65,0.3)] text-center">
+                  <span className="text-[9px] font-semibold tracking-widest text-[#f5b941]">
+                    SIMULATED OFFLINE DATA — NOT LIVE LEDGER
+                  </span>
+                </div>
+              )}
               {/* Backtesting Aggregate KPIs */}
               {backtestMetrics && (
                 <div className="grid grid-cols-2 gap-2">
