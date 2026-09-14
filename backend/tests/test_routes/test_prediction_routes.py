@@ -16,6 +16,8 @@ for _p in [str(_ROOT), str(_BACKEND)]:
 from fastapi.testclient import TestClient
 from app.database import get_db
 from app.main import app
+from app.models.user import User
+from app.services.auth_service import get_current_user
 
 
 class TestPredictionRoutes(unittest.TestCase):
@@ -28,6 +30,11 @@ class TestPredictionRoutes(unittest.TestCase):
             yield self.mock_db
 
         app.dependency_overrides[get_db] = override_get_db
+
+        # Mutating prediction routes require auth — use a fake authenticated user.
+        self.fake_user = User(id=1, email="test@marketatlas.ai", hashed_password="x", display_name="Test")
+        app.dependency_overrides[get_current_user] = lambda: self.fake_user
+
         self.client = TestClient(app)
 
     def tearDown(self):
