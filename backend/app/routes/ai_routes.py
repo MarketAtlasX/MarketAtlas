@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.core.enums import EventSeverity, EventType
 from app.database import get_db
 from app.models.event import Event
+from app.models.user import User
 from app.repositories.entity import EntityRepository
 from app.repositories.event import EventRepository
 from app.repositories.market_price import MarketPriceRepository
@@ -15,6 +16,7 @@ from app.schemas.analysis import AnalyzeEventRequest, AnalyzeEventResponse
 from app.schemas.event import EventRead
 from app.schemas.signal import SignalUpdate
 from app.services.ai_service import ai_service
+from app.services.auth_service import get_current_user
 from app.services.kg_service import analyze_stock_knowledge_graph
 from app.services.memory_client import memory_client
 from app.services.signal_service import SignalService
@@ -28,6 +30,7 @@ router = APIRouter(prefix="/events", tags=["analysis"])
 async def analyze_event(
     event_id: int = Path(..., gt=0),
     body: AnalyzeEventRequest | None = None,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> AnalyzeEventResponse:
     event_repo = EventRepository(db)

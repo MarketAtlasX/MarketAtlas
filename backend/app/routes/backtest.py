@@ -11,6 +11,8 @@ from app.database import get_db
 from app.models.entity import Entity
 from app.models.event import Event
 from app.models.market_price import MarketPrice
+from app.models.user import User
+from app.services.auth_service import get_current_user
 
 router = APIRouter(prefix="/backtest", tags=["backtesting"])
 
@@ -19,6 +21,7 @@ router = APIRouter(prefix="/backtest", tags=["backtesting"])
 async def run_backtest(
     entity_id: int = Query(..., description="Entity ID to backtest"),
     days: int = Query(365, ge=30, le=3650, description="Lookback days"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     # Fetch entity

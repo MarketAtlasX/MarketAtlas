@@ -1,10 +1,12 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.geopolitical.pipeline import run_pipeline
+from app.models.user import User
 from app.services.ai_service import ai_service
+from app.services.auth_service import get_current_user
 from app.services.kg_service import analyze_stock_knowledge_graph
 
 router = APIRouter(tags=["analysis"])
@@ -47,7 +49,10 @@ class AnalyzeTextResponse(BaseModel):
 
 
 @router.post("/analyze", response_model=AnalyzeTextResponse)
-async def analyze_text(body: AnalyzeTextRequest) -> AnalyzeTextResponse:
+async def analyze_text(
+    body: AnalyzeTextRequest,
+    current_user: User = Depends(get_current_user),
+) -> AnalyzeTextResponse:
     text = body.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="text must be non-empty")
@@ -102,7 +107,10 @@ class AnalyzeV2Request(BaseModel):
 
 
 @router.post("/analyze/v2")
-async def analyze_v2(body: AnalyzeV2Request):
+async def analyze_v2(
+    body: AnalyzeV2Request,
+    current_user: User = Depends(get_current_user),
+):
     result = await run_pipeline(
         query=body.text,
         ticker=body.ticker,
