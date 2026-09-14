@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Path, Query, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.enums import LiveEventStatus
+from app.models.user import User
 from app.schemas.live_event import (
     EventImpactCreate,
     EventNewsArticleCreate,
@@ -19,6 +20,7 @@ from app.schemas.live_event import (
     UserEventFilterCreate,
 )
 from app.schemas.pagination import PaginatedResponse
+from app.services.auth_service import get_current_user
 from app.services.live_event_service import LiveEventService, get_live_event_service
 
 logger = logging.getLogger(__name__)
@@ -27,25 +29,26 @@ router = APIRouter(prefix="/live-events", tags=["live-events"])
 
 @router.get("/alerts")
 async def list_alerts(
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
-    user_id = 1
-    alerts = await service.get_all_alerts(user_id)
+    alerts = await service.get_all_alerts(current_user.id)
     return {"items": alerts, "total": len(alerts)}
 
 
 @router.get("/alerts/unread-count")
 async def alert_unread_count(
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
-    user_id = 1
-    count = await service.alert_unread_count(user_id)
+    count = await service.alert_unread_count(current_user.id)
     return {"count": count}
 
 
 @router.post("/alerts/{alert_id}/read", status_code=204)
 async def mark_alert_read(
     alert_id: str = Path(...),
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     await service.mark_alert_read(alert_id)
@@ -53,29 +56,29 @@ async def mark_alert_read(
 
 @router.post("/alerts/read-all", status_code=204)
 async def mark_all_alerts_read(
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
-    user_id = 1
-    await service.mark_all_alerts_read(user_id)
+    await service.mark_all_alerts_read(current_user.id)
 
 
 @router.get("/filters")
 async def list_filters(
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
-    user_id = 1
-    filters = await service.get_filters(user_id)
+    filters = await service.get_filters(current_user.id)
     return {"items": filters, "total": len(filters)}
 
 
 @router.post("/filters", status_code=201)
 async def create_filter(
     filter_in: UserEventFilterCreate,
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
-    user_id = 1
     return await service.create_filter(
-        user_id=user_id,
+        user_id=current_user.id,
         name=filter_in.name,
         filter_config=filter_in.filter_config,
         is_default=filter_in.is_default,
@@ -85,6 +88,7 @@ async def create_filter(
 @router.post("", response_model=LiveEventRead, status_code=201)
 async def create_live_event(
     event_in: LiveEventCreate,
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     return await service.create(event_in)
@@ -134,6 +138,126 @@ async def live_event_timeline(
     return await service.get_timeline(hours=hours)
 
 
+@router.get("/observation")
+async def live_event_observation(
+    query: Optional[str] = Query(None, min_length=1, max_length=200),
+    country_code: Optional[str] = Query(None, alias="countryCode", max_length=2),
+    ticker: Optional[str] = Query(None, max_length=20),
+    service: LiveEventService = Depends(get_live_event_service),
+):
+    """Return an evidence bundle for Atlas intelligence tools.
+
+    This endpoint composes persisted provider-backed event, impact, and source
+    article records. It intentionally returns an unavailable envelope when the
+    database has no matching evidence instead of inventing an observation.
+    """
+    page = await service.search(
+        skip=0,
+        limit=10,
+        country_code=country_code,
+        keyword=query or ticker,
+        sort_by="first_seen_at",
+        sort_desc=True,
+    )
+    if not page.items:
+        return {
+            "status": "unavailable",
+            "freshness": "unknown",
+            "query": query or ticker or country_code,
+            "evidence": [],
+            "limitations": ["No persisted provider-backed event matched the request."],
+        }
+
+    event = await service.get(page.items[0].id)
+    impacts = await service.get_impacts(event.id)
+    articles = await service.get_news(event.id)
+    causal_edges = []
+    geography = event.region or event.country_code
+    for impact in impacts:
+        if geography:
+            causal_edges.append({
+                "source": event.title,
+                "source_type": "event",
+                "target": geography,
+                "target_type": "geography",
+                "confidence": impact.confidence,
+                "evidence_ref": str(impact.id),
+            })
+        causal_edges.append({
+            "source": geography or event.title,
+            "source_type": "geography" if geography else "event",
+            "target": impact.entity_name,
+            "target_type": impact.entity_type,
+            "confidence": impact.confidence,
+            "evidence_ref": str(impact.id),
+        })
+        for asset in impact.affected_assets:
+            causal_edges.append({
+                "source": impact.entity_name,
+                "source_type": impact.entity_type,
+                "target": asset.ticker or asset.name,
+                "target_type": asset.asset_type,
+                "confidence": impact.confidence,
+                "evidence_ref": str(impact.id),
+            })
+    return {
+        "status": "live" if event.status in {"breaking", "ongoing"} else "historical",
+        "freshness": "current" if event.status in {"breaking", "ongoing"} else "historical",
+        "event": LiveEventFullRead.model_validate(event).model_dump(mode="json"),
+        "impacts": [
+            {
+                "entity_id": impact.entity_id,
+                "entity_name": impact.entity_name,
+                "entity_type": impact.entity_type,
+                "impact_direction": impact.impact_direction,
+                "impact_score": impact.impact_score,
+                "confidence": impact.confidence,
+                "impact_type": impact.impact_type,
+                "analysis_summary": impact.analysis_summary,
+                "reasoning_factors": impact.reasoning_factors,
+                "generated_by": impact.generated_by,
+                "id": impact.id,
+                "event_id": impact.event_id,
+                "created_at": impact.created_at.isoformat(),
+                "affected_assets": [
+                    {
+                        "id": asset.id,
+                        "impact_id": asset.impact_id,
+                        "asset_type": asset.asset_type,
+                        "ticker": asset.ticker,
+                        "name": asset.name,
+                        "estimated_move": asset.estimated_move,
+                        "volatility_impact": asset.volatility_impact,
+                        "time_horizon": asset.time_horizon,
+                        "current_price": asset.current_price,
+                        "price_direction": asset.price_direction,
+                    }
+                    for asset in impact.affected_assets
+                ],
+            }
+            for impact in impacts
+        ],
+        "sources": [
+            {
+                "url": article.url,
+                "title": article.title,
+                "source": article.source,
+                "published_at": article.published_at.isoformat() if article.published_at else None,
+                "fetched_at": article.fetched_at.isoformat(),
+                "relevance": article.relevance_score,
+            }
+            for article in articles
+        ],
+        "causal_chain": causal_edges,
+        "provenance": {
+            "provider": event.source,
+            "observed_at": event.updated_at.isoformat(),
+            "confidence": event.confidence,
+        },
+        "limitations": ["Impact relationships are analytical interpretations and may be incomplete."],
+    }
+
+
 @router.get("/{event_id}", response_model=LiveEventFullRead)
 async def get_live_event(
     event_id: str = Path(...),
@@ -146,6 +270,7 @@ async def get_live_event(
 async def update_live_event(
     event_id: str = Path(...),
     event_in: LiveEventUpdate = ...,
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     return await service.update(event_id, event_in)
@@ -155,6 +280,7 @@ async def update_live_event(
 async def change_live_event_status(
     event_id: str = Path(...),
     status: LiveEventStatus = ...,
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     return await service.change_status(event_id, status)
@@ -163,6 +289,7 @@ async def change_live_event_status(
 @router.delete("/{event_id}", status_code=204)
 async def delete_live_event(
     event_id: str = Path(...),
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     await service.delete(event_id)
@@ -171,6 +298,7 @@ async def delete_live_event(
 @router.post("/{event_id}/analyze", response_model=LiveEventFullRead)
 async def analyze_live_event(
     event_id: str = Path(...),
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     event = await service.get(event_id)
@@ -190,6 +318,7 @@ async def get_event_impacts(
 async def add_event_impact(
     event_id: str = Path(...),
     impact_in: EventImpactCreate = ...,
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     return await service.add_impact(event_id, impact_in)
@@ -208,6 +337,7 @@ async def get_event_news(
 async def add_event_news(
     event_id: str = Path(...),
     news_in: EventNewsArticleCreate = ...,
+    current_user: User = Depends(get_current_user),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     return await service.add_news_article(event_id, news_in)
