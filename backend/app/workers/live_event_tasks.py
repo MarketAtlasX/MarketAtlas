@@ -24,8 +24,17 @@ def analyze_live_event_task(self, event_id: str, title: str, description: str) -
                     impact_score=0.5,
                     confidence=0.5,
                     impact_type="price",
-                    analysis_summary=f"AI analysis of: {description[:200]}",
-                    reasoning_factors={"method": "rule_based", "title_length": len(title)},
+                    analysis_summary=(
+                        "Rule-based placeholder impact (no real analysis). "
+                        "No market impacts were qualified for this event."
+                    ),
+                    reasoning_factors={
+                        "method": "rule_based",
+                        "title_length": len(title),
+                        "data_quality": "unquantified",
+                        "note": "generic placeholder; score and confidence are default values, not measurements",
+                    },
+                    generated_by="rule_based_seed",
                 )
                 try:
                     result = await service.add_impact(event_id, impact)
