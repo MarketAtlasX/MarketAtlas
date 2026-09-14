@@ -17,6 +17,7 @@ export interface MarketQuote {
   high52w?: number
   low52w?: number
   timestamp: string
+  synthetic?: boolean
 }
 
 export interface SectorSnapshot {
@@ -24,6 +25,7 @@ export interface SectorSnapshot {
   returnPct: number
   volatility: number
   tickers: string[]
+  synthetic?: boolean
 }
 
 // ── Cache ──────────────────────────────────────────────────────────────────
@@ -39,26 +41,26 @@ function isFresh(cache: { ts: number } | null): boolean {
 // ── Seed data (offline fallback) ───────────────────────────────────────────
 
 const SEED_QUOTES: MarketQuote[] = [
-  { symbol: 'NVDA', name: 'NVIDIA', price: 182.4, changePct: 4.8, timestamp: new Date().toISOString() },
-  { symbol: 'AAPL', name: 'Apple', price: 231.2, changePct: -1.2, timestamp: new Date().toISOString() },
-  { symbol: 'MSFT', name: 'Microsoft', price: 448.6, changePct: 1.3, timestamp: new Date().toISOString() },
-  { symbol: 'TSLA', name: 'Tesla', price: 312.8, changePct: -2.1, timestamp: new Date().toISOString() },
-  { symbol: 'AMZN', name: 'Amazon', price: 198.4, changePct: 0.8, timestamp: new Date().toISOString() },
-  { symbol: 'GOOGL', name: 'Alphabet', price: 178.9, changePct: 1.1, timestamp: new Date().toISOString() },
-  { symbol: 'META', name: 'Meta', price: 512.3, changePct: 2.4, timestamp: new Date().toISOString() },
-  { symbol: 'XOM', name: 'Exxon Mobil', price: 118.6, changePct: 3.1, timestamp: new Date().toISOString() },
-  { symbol: 'SHEL', name: 'Shell', price: 72.9, changePct: 2.7, timestamp: new Date().toISOString() },
-  { symbol: 'TSM', name: 'TSMC ADR', price: 214.8, changePct: -2.4, timestamp: new Date().toISOString() },
-  { symbol: 'GC', name: 'Gold', price: 2482.1, changePct: 1.9, timestamp: new Date().toISOString() },
+  { symbol: 'NVDA', name: 'NVIDIA', price: 182.4, changePct: 4.8, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'AAPL', name: 'Apple', price: 231.2, changePct: -1.2, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'MSFT', name: 'Microsoft', price: 448.6, changePct: 1.3, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'TSLA', name: 'Tesla', price: 312.8, changePct: -2.1, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'AMZN', name: 'Amazon', price: 198.4, changePct: 0.8, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'GOOGL', name: 'Alphabet', price: 178.9, changePct: 1.1, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'META', name: 'Meta', price: 512.3, changePct: 2.4, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'XOM', name: 'Exxon Mobil', price: 118.6, changePct: 3.1, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'SHEL', name: 'Shell', price: 72.9, changePct: 2.7, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'TSM', name: 'TSMC ADR', price: 214.8, changePct: -2.4, timestamp: new Date().toISOString(), synthetic: true },
+  { symbol: 'GC', name: 'Gold', price: 2482.1, changePct: 1.9, timestamp: new Date().toISOString(), synthetic: true },
 ]
 
 const SEED_SECTORS: SectorSnapshot[] = [
-  { sector: 'Technology', returnPct: 2.1, volatility: 0.24, tickers: ['AAPL', 'MSFT', 'NVDA'] },
-  { sector: 'Energy', returnPct: 3.4, volatility: 0.31, tickers: ['XOM', 'CVX', 'COP'] },
-  { sector: 'Semiconductors', returnPct: 1.8, volatility: 0.28, tickers: ['AMD', 'INTC', 'AVGO'] },
-  { sector: 'Defense', returnPct: 1.2, volatility: 0.18, tickers: ['LMT', 'RTX', 'NOC'] },
-  { sector: 'Financials', returnPct: 0.9, volatility: 0.19, tickers: ['JPM', 'BAC', 'GS'] },
-  { sector: 'Healthcare', returnPct: 0.6, volatility: 0.15, tickers: ['JNJ', 'UNH', 'LLY'] },
+  { sector: 'Technology', returnPct: 2.1, volatility: 0.24, tickers: ['AAPL', 'MSFT', 'NVDA'], synthetic: true },
+  { sector: 'Energy', returnPct: 3.4, volatility: 0.31, tickers: ['XOM', 'CVX', 'COP'], synthetic: true },
+  { sector: 'Semiconductors', returnPct: 1.8, volatility: 0.28, tickers: ['AMD', 'INTC', 'AVGO'], synthetic: true },
+  { sector: 'Defense', returnPct: 1.2, volatility: 0.18, tickers: ['LMT', 'RTX', 'NOC'], synthetic: true },
+  { sector: 'Financials', returnPct: 0.9, volatility: 0.19, tickers: ['JPM', 'BAC', 'GS'], synthetic: true },
+  { sector: 'Healthcare', returnPct: 0.6, volatility: 0.15, tickers: ['JNJ', 'UNH', 'LLY'], synthetic: true },
 ]
 
 // ── API ────────────────────────────────────────────────────────────────────
