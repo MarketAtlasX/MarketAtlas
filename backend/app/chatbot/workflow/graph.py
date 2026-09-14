@@ -662,14 +662,15 @@ async def run_chat(query: str, conversation_id: str = None, user_id: str = "defa
     except asyncio.TimeoutError:
         result = {
             "final_response": (
-                "I'm analyzing that now. Based on what I know so far: "
-                "Geopolitical tensions and supply-demand dynamics are driving market movements. "
-                "The full analysis is taking longer than expected — try asking a more specific question."
+                "The analysis did not complete in the allotted time. No intelligence "
+                "result is currently available — try asking a more specific question."
             ),
             "intent": IntentType.IMPACT,
             "agents_used": [],
-            "confidence": 0.5,
-            "sources": ["MarketAtlas Intelligence"],
+            "confidence": 0.0,
+            "sources": [],
+            "data_status": "unavailable",
+            "limitations": ["The analysis timed out before any intelligence was produced."],
         }
 
     sources = list(set(result.get("sources", [])))
@@ -692,4 +693,6 @@ async def run_chat(query: str, conversation_id: str = None, user_id: str = "defa
         prediction=result.get("_context", {}).get("prediction"),
         explanations=result.get("_context", {}).get("explanations"),
         visualization=result.get("visualization"),
+        data_status=result.get("data_status", "live"),
+        limitations=result.get("limitations", []),
     )

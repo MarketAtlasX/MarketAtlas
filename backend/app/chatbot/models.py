@@ -97,6 +97,8 @@ class ChatResponse(BaseModel):
     prediction: Optional[dict[str, Any]] = None
     explanations: Optional[dict[str, Any]] = None
     visualization: Optional[VisualizationIntent] = None
+    data_status: str = "live"
+    limitations: list[str] = []
 
 
 class GraphEntity(BaseModel):
