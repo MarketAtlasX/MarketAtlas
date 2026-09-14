@@ -1,12 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Command, Check, Network, FlaskConical, LineChart, Loader2, Brain, ScrollText } from 'lucide-react'
-import { sendChat, type VisualizationIntent } from '../../../api/chatApi'
+import { sendChat, backendOnline, type VisualizationIntent } from '../../../api/chatApi'
 import { visualizationBus } from '../../../assistant/commands/visualizationBus'
 import { intelligenceBus } from '../../../services/intelligenceBus'
 import { createIntent } from '../../globe/visualizationIntent'
 import { resolveCompanyLocation } from '../../../data/companyLocations'
 import { fetchCausalGraph } from '../../prediction-space/causalGraphApi'
+import { useAtlasAgent } from '../../../assistant/agent/useAtlasAgent'
+import { AGENT_DEFINITIONS } from '../../agents/agents'
+import StatusDot from '../../../components/ui/StatusDot'
 
 type Role = 'you' | 'atlas'
 
@@ -52,6 +55,8 @@ export default function AtlasConsole() {
   const [query, setQuery] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
+  const [connected, setConnected] = useState<boolean | null>(null)
+  const { execute } = useAtlasAgent()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -59,6 +64,14 @@ export default function AtlasConsole() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  useEffect(() => {
+    let alive = true
+    backendOnline()
+      .then(ok => { if (alive) setConnected(ok) })
+      .catch(() => { if (alive) setConnected(false) })
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     scrollToBottom()
@@ -132,46 +145,37 @@ export default function AtlasConsole() {
     }, 450)
 
     try {
-      const chat_response = await sendChat(q)
+      const agentExecution = await execute(q)
 
       if (timerRef.current) clearInterval(timerRef.current)
       setStepIndex(ORCHESTRATION_STEPS.length)
 
-      const detected = TICKERS.filter(t => (q + ' ' + chat_response.response).toUpperCase().includes(t))
+      const detected = TICKERS.filter(t => (q + ' ' + agentExecution.response).toUpperCase().includes(t))
 
       const atlasMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'atlas',
-        text: chat_response.response,
+        text: agentExecution.response,
         timestamp: Date.now(),
-        confidence: chat_response.confidence ?? 0.82,
-        agents: chat_response.agents_used?.length ? chat_response.agents_used : ['GeopoliticalAgent', 'MarketAgent', 'FinalPredictionAgent'],
+        agents: [agentExecution.providerBacked ? 'AtlasProvider' : 'DeterministicFallback'],
         tickers: detected,
       }
 
       setMessages(prev => [...prev.slice(-19), atlasMsg])
 
-      // Drive globe if visualization intent returned
-      if (chat_response.visualization) {
-        visualizationBus.drive(chat_response.visualization as VisualizationIntent)
-      }
-
-      // Master Orchestration: broadcast across Globe, Prediction Space, and Causal Graph
-      await orchestrateAcrossSystems(q, chat_response.response)
-
-      intelligenceBus.emit('ATLAS_RESPONSE', { query: q, response: chat_response.response, tickers: detected })
+      intelligenceBus.emit('ATLAS_RESPONSE', { query: q, response: agentExecution.response, tickers: detected })
     } catch (err: unknown) {
       if (timerRef.current) clearInterval(timerRef.current)
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'atlas',
-        text: 'ATLAS offline mode: Intelligence pipeline synthesized locally. All systems nominal.',
+        text: 'Atlas could not reach the intelligence service. I did not generate a market conclusion. The interface may still be navigated with available local context.',
         timestamp: Date.now(),
         confidence: 0.78,
         agents: ['LocalRuntime', 'GeopoliticalEngine'],
       }
       setMessages(prev => [...prev.slice(-19), errorMsg])
-      await orchestrateAcrossSystems(q, '')
+      await execute(q)
     } finally {
       setIsAnalyzing(false)
     }
@@ -196,18 +200,21 @@ export default function AtlasConsole() {
       {/* ── Console Header ── */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-[var(--line)] bg-[rgba(255,255,255,0.02)]">
         <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
-          </span>
+          {connected === true ? (
+            <StatusDot tone="positive" />
+          ) : connected === false ? (
+            <StatusDot tone="warning" pulse={false} />
+          ) : (
+            <StatusDot tone="neutral" pulse={false} />
+          )}
           <span className="text-[11px] font-bold tracking-wider text-[var(--text-hi)] flex items-center gap-1.5">
             <Brain size={13} className="text-[var(--accent)]" />
-            ATLAS CONNECTED
+            {connected === true ? 'ATLAS ONLINE' : connected === false ? 'ATLAS OFFLINE · LOCAL MODE' : 'ATLAS · CHECKING'}
           </span>
         </div>
         <div className="flex items-center gap-2 text-[9px] text-[var(--text-lo)] tracking-wider">
           <span>PIPELINE: MULTI-AGENT</span>
-          <span className="text-[var(--accent)]">AGENTS: 13</span>
+          <span className="text-[var(--accent)]">AGENTS: {AGENT_DEFINITIONS.length}</span>
         </div>
       </div>
 
