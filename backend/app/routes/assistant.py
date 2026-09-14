@@ -1,9 +1,11 @@
 """Assistant endpoints — ephemeral credentials for the ATLAS voice assistant."""
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.config import settings
+from app.models.user import User
+from app.services.auth_service import get_current_user
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
@@ -13,7 +15,7 @@ class RealtimeTokenResponse(BaseModel):
 
 
 @router.post("/realtime-token", response_model=RealtimeTokenResponse)
-async def create_realtime_token() -> RealtimeTokenResponse:
+async def create_realtime_token(current_user: User = Depends(get_current_user)) -> RealtimeTokenResponse:
     """Issue a short-lived OpenAI Realtime ephemeral client secret.
 
     The browser never sees the server-side OPENAI_API_KEY; it receives a
@@ -41,13 +43,13 @@ async def create_realtime_token() -> RealtimeTokenResponse:
             headers={
                 "Authorization": f"Bearer {settings.openai_api_key}",
                 "Content-Type": "application/json",
-                "OpenAI-Safety-Identifier": "marketatlas-web",
+                "OpenAI-Safety-Identifier": f"marketatlas-user-{current_user.id}",
             },
             json=payload,
         )
 
     if response.status_code >= 400:
-        raise HTTPException(status_code=response.status_code, detail=response.text[:300])
+        raise HTTPException(status_code=502, detail="Realtime voice provider unavailable")
 
     data = response.json()
     value = (data.get("client_secret") or {}).get("value")
