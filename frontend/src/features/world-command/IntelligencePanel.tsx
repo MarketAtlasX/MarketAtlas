@@ -23,9 +23,9 @@ export default function IntelligencePanel() {
   const { state } = useWorldStore()
   const navigate = useNavigate()
 
-  const entity = state.selectedEntity ?? 'Iran'
+  const entity = state.selectedEntity ?? 'WORLD'
   const ws = worldStates.find(w => w.name === entity)
-  const risk = ws ? ws.riskScore : 82
+  const risk = ws?.riskScore ?? state.worldRisk.score
   const liveEvents = useMemo(
     () =>
       state.events
@@ -36,7 +36,7 @@ export default function IntelligencePanel() {
   const fallbackEvents = useMemo(() => state.events.slice(0, 4), [state.events])
   const activeEvents = liveEvents.length > 0 ? liveEvents : fallbackEvents
 
-  const related = RELATED_SIGNALS[entity] ?? ['NVDA', 'XOM', 'GC']
+  const related = RELATED_SIGNALS[entity] ?? []
   const signals = useMemo(
     () => state.signals.filter(s => related.includes(s.symbol)).slice(0, 4),
     [state.signals, related],
