@@ -26,7 +26,7 @@ export default function Sparkline({ data, width = 120, height = 32, stroke = 'va
   const areaId = useMemo(() => `spark-${stroke.replace(/[^a-z0-9]/gi, '')}`, [stroke])
 
   return (
-    <svg width={width} height={height} className={className}>
+    <svg width={width} height={height} className={className} role="img" aria-label="sparkline">
       {fill && (
         <>
           <defs>

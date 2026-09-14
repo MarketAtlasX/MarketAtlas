@@ -59,6 +59,7 @@ export default function NavigationRail() {
           <NavLink
             key={item.label}
             to={item.to!}
+            title={item.label}
             className={({ isActive }) =>
               `${cls} ${isActive ? 'text-[var(--accent)] border-[rgba(97,199,182,0.28)] bg-[rgba(97,199,182,0.1)]' : ''}`
             }

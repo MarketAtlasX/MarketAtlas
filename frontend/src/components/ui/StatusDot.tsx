@@ -14,7 +14,7 @@ const COLORS: Record<string, string> = {
 export default function StatusDot({ tone = 'accent', pulse = true }: StatusDotProps) {
   const color = COLORS[tone]
   return (
-    <span className="relative inline-flex h-2 w-2">
+    <span className="relative inline-flex h-2 w-2" role="status">
       {pulse && (
         <span
           className="absolute inline-flex h-full w-full rounded-full opacity-40"
