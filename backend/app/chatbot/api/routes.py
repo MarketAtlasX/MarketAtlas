@@ -1,9 +1,10 @@
 import json
 import logging
-import random
-from datetime import datetime, timedelta
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
 
 from ...services.financial_data_service import FinancialDataService
@@ -18,6 +19,9 @@ from ..models import ChatRequest, RiskIndexRequest, SimilarityRequest
 from ..rag.vector_store import search_knowledge
 from ..workflow.graph import run_chat
 from .data import COUNTRIES, COUNTRIES_BY_CODE, MILITARY_RELATIONS, PORTS, TRADE_ROUTES
+from app.config import settings
+from app.models.user import User
+from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +29,126 @@ chat_router = APIRouter(prefix="/api/v1/chat")
 _financial_service = FinancialDataService()
 
 
+class AgentTurnRequest(BaseModel):
+    messages: list[dict[str, Any]] = Field(default_factory=list, max_length=24)
+    tools: list[dict[str, Any]] = Field(default_factory=list, max_length=64)
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+# Canonical Atlas tool allow-list. The provider may only choose from these —
+# clients cannot register arbitrary tools through the API.
+ATLAS_TOOL_ALLOW_LIST = frozenset({
+    "rotate_to_location", "zoom_to_location", "focus_country", "focus_city",
+    "focus_region", "select_country", "select_event", "select_company",
+    "highlight_entities", "clear_highlights", "show_globe_layer", "hide_globe_layer",
+    "trace_route", "show_connections", "reset_globe",
+    "show_stock", "show_stock_chart", "compare_stocks", "show_index",
+    "show_sector", "show_commodity", "show_currency", "show_market", "show_watchlist",
+    "open_panel", "close_panel", "focus_panel", "switch_tab", "set_timeframe",
+    "search_market", "change_view",
+    "analyze_event", "analyze_geopolitical_risk", "trace_market_impact",
+    "trace_supply_chain", "analyze_company_exposure", "compare_scenarios",
+    "summarize_market",
+})
+
+
+def _filter_allowed_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep only tools whose function name is on the canonical allow-list."""
+    allowed: list[dict[str, Any]] = []
+    for tool in tools:
+        fn = tool.get("function") if isinstance(tool, dict) else None
+        name = fn.get("name") if isinstance(fn, dict) else None
+        if (
+            isinstance(name, str)
+            and name in ATLAS_TOOL_ALLOW_LIST
+            and name.isidentifier()
+        ):
+            allowed.append(tool)
+    return allowed
+
+
+@chat_router.post("/agent/turn")
+async def agent_turn(request: AgentTurnRequest, current_user: User = Depends(get_current_user)):
+    """Execute one structured Atlas agent turn using the configured provider.
+
+    Tool execution remains client-side because the tools control the browser and
+    globe. The provider only chooses from the canonical server-side allow-list and
+    receives structured results on subsequent turns.
+    """
+    if not settings.openai_api_key:
+        raise HTTPException(status_code=503, detail="Structured Atlas provider unavailable")
+
+    tools = _filter_allowed_tools(request.tools)
+    if not tools:
+        raise HTTPException(
+            status_code=400,
+            detail="No tools from the canonical allow-list were supplied",
+        )
+
+    system = (
+        "You are Atlas, the operator of a globe-first financial intelligence application. "
+        "Use tools when visual action or evidence retrieval helps answer the user. "
+        "You may only call supplied tools. Never invent prices, events, confidence, or sources. "
+        "After tool results, continue selecting tools until the request is complete. "
+        "Give concise user-facing narration, never hidden chain-of-thought. "
+        f"Current application context: {json.dumps(request.context, default=str)}"
+    )
+    messages = [
+        {"role": "system", "content": system},
+        *[
+            {
+                "role": message.get("role"),
+                "content": message.get("content"),
+                **({"tool_call_id": message["tool_call_id"]} if message.get("tool_call_id") else {}),
+                **({"tool_calls": message["tool_calls"]} if message.get("tool_calls") else {}),
+            }
+            for message in request.messages
+            if message.get("role") in {"user", "assistant", "tool"} and (message.get("content") is not None or message.get("tool_calls"))
+        ],
+    ]
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": messages,
+        "tools": tools,
+        "tool_choice": "auto",
+        "temperature": 0.2,
+        "max_tokens": 700,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=35) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {settings.openai_api_key}", "Content-Type": "application/json"},
+                json=payload,
+            )
+        response.raise_for_status()
+        message = response.json().get("choices", [{}])[0].get("message", {})
+        return {"message": message, "provider": "openai"}
+    except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+        logger.warning("Structured Atlas provider failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Structured Atlas provider unavailable") from exc
+
+
 @chat_router.post("")
 async def chat(request: ChatRequest):
+    from ..llm.provider import mock_fallback_used, reset_mock_fallback_flag
+
+    reset_mock_fallback_flag()
     try:
         response = await run_chat(
             query=request.query,
             conversation_id=request.conversation_id,
             user_id=request.user_id,
         )
+        if mock_fallback_used():
+            response.response += (
+                "\n\n[Simulated response — no intelligence provider was available, "
+                "so this is placeholder text, not real analysis.]"
+            )
+            response.data_status = "unavailable"
+            response.limitations = [
+                "No real intelligence provider produced this response; it is a placeholder fallback."
+            ]
         return response
     except Exception as e:
         logger.error(f"Chat error: {e}", exc_info=True)
@@ -363,105 +479,6 @@ async def all_ports():
     return PORTS
 
 
-_entity_market_data: dict[int, list[dict]] = {}
-
-
-def _generate_market_data(entity_id: int) -> list[dict]:
-    if entity_id in _entity_market_data:
-        return _entity_market_data[entity_id]
-    data = []
-    base_price = random.uniform(50, 500)
-    for i in range(60):
-        date = (datetime.utcnow() - timedelta(days=59 - i)).strftime("%Y-%m-%d")
-        change = random.uniform(-5, 5)
-        o = round(base_price + change, 2)
-        h = round(o + random.uniform(0, 3), 2)
-        low_price = round(o - random.uniform(0, 3), 2)
-        c = round(random.uniform(low_price, h), 2)
-        v = random.randint(1000000, 50000000)
-        data.append({
-            "id": i + 1,
-            "entity_id": entity_id,
-            "open": o, "high": h, "low": low_price,
-            "close": c, "volume": v,
-            "price_date": date,
-        })
-        base_price = c
-    _entity_market_data[entity_id] = data
-    return data
-
-
-@chat_router.get("/market-prices/entity/{entity_id}/recent")
-async def entity_market_prices(entity_id: int, days: int = 30):
-    data = _generate_market_data(entity_id)
-    items = data[-days:] if days < len(data) else data
-    return {"items": items}
-
-
-@chat_router.get("/market-prices/entity/{entity_id}/latest")
-async def entity_latest_price(entity_id: int):
-    data = _generate_market_data(entity_id)
-    if not data:
-        raise HTTPException(status_code=404, detail="No data")
-    return data[-1]
-
-
-@chat_router.post("/analyze")
-async def analyze(body: dict):
-    text = body.get("text", "")
-    symbol = body.get("ticker") or _pick_symbol(text)
-
-    q = text.lower()
-    if any(w in q for w in ["energy", "oil", "gas", "xle"]):
-        momentum = round(random.uniform(0.03, 0.12), 4)
-        risk = round(random.uniform(0.5, 0.85), 4)
-        action = "BUY"
-        action_reason = "Energy sector strengthening amid geopolitical supply concerns."
-    elif any(w in q for w in ["tech", "semiconductor", "xlk", "qqq"]):
-        momentum = round(random.uniform(-0.03, 0.06), 4)
-        risk = round(random.uniform(0.3, 0.6), 4)
-        action = "HOLD" if risk < 0.5 else "SELL"
-        action_reason = "Tech sector mixed with regulatory headwinds and valuation concerns."
-    elif any(w in q for w in ["defense", "ita", "military"]):
-        momentum = round(random.uniform(0.02, 0.10), 4)
-        risk = round(random.uniform(0.4, 0.7), 4)
-        action = "BUY"
-        action_reason = "Defense spending outlook positive given geopolitical tensions."
-    elif any(w in q for w in ["safe", "haven", "gold", "gld"]):
-        momentum = round(random.uniform(0.01, 0.05), 4)
-        risk = round(random.uniform(0.2, 0.4), 4)
-        action = "BUY"
-        action_reason = "Safe-haven demand increasing amid global uncertainty."
-    else:
-        momentum = round(random.uniform(-0.05, 0.08), 4)
-        risk = round(random.uniform(0.3, 0.7), 4)
-        action = "BUY" if momentum > 0 else "SELL"
-        action_reason = "Mixed signals based on current market conditions."
-
-    return {
-        "snapshot": {
-            "symbol": symbol,
-            "momentum": momentum,
-            "volatility": round(random.uniform(0.015, 0.05), 4),
-            "volume_status": random.choice(["surge", "normal", "thin"]),
-        },
-        "impact": {
-            "composite_risk": risk,
-            "local_severity": round(random.uniform(0.2, 0.8), 4),
-            "entity_count": random.randint(3, 10),
-            "relations": [
-                {"source": "Russia", "target": "Oil", "label": "sanction"},
-                {"source": "China", "target": "Tech", "label": "restriction"},
-            ],
-        },
-        "recommendation": {
-            "action": action,
-            "reason": action_reason,
-            "confidence": round(random.uniform(0.6, 0.95), 4),
-        },
-    }
-
-
 @chat_router.get("/risk/{ticker}")
 async def get_risk_index(ticker: str):
     from ..agents.risk_agent import RiskAgent
@@ -476,29 +493,6 @@ async def risk_index(body: RiskIndexRequest):
     agent = RiskAgent()
     risk = await agent._compute_risk_index(body.ticker.upper())
     return risk.model_dump()
-
-
-def _pick_symbol(text: str) -> str:
-    text_lower = text.lower()
-    if "energy" in text_lower or "oil" in text_lower or "gas" in text_lower:
-        return "XLE"
-    if "tech" in text_lower or "semiconductor" in text_lower:
-        return "XLK"
-    if "defense" in text_lower or "military" in text_lower:
-        return "ITA"
-    if "gold" in text_lower or "safe" in text_lower:
-        return "GLD"
-    if "financial" in text_lower or "bank" in text_lower:
-        return "XLF"
-    country_map = {
-        "US": "SPY", "JP": "EWJ", "CN": "FXI", "GB": "EWU", "DE": "EWG",
-        "IN": "INDA", "BR": "EWZ", "KR": "EWY", "TW": "EWT", "SG": "EWS",
-        "AU": "EWA", "CA": "EWC", "MX": "EWW", "ZA": "EZA", "RU": "RSX",
-    }
-    for name, ticker in country_map.items():
-        if name.lower() in text_lower:
-            return ticker
-    return random.choice(["SPY", "QQQ", "EEM", "XLE", "XLK", "GLD"])
 
 
 @chat_router.get("/health")
