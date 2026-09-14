@@ -36,6 +36,7 @@ export interface CausalGraph {
   nodes: CausalNode[]
   edges: CausalEdge[]
   reasoning_summary: string
+  synthetic?: boolean
 }
 
 const SEED_CAUSAL_GRAPHS: Record<string, CausalGraph> = {
@@ -308,10 +309,21 @@ export async function fetchCausalGraph(ticker: string): Promise<CausalGraph> {
   const clean = ticker.trim().toUpperCase()
   try {
     const { data } = await api.get<CausalGraph>(`/predict/causal-graph/${encodeURIComponent(clean)}`)
-    return data && data.nodes?.length > 0 ? data : (SEED_CAUSAL_GRAPHS[clean] ?? createFallbackGraph(clean))
+    if (data && data.nodes?.length > 0) return data
+    return seedCausalGraph(clean)
   } catch {
-    return SEED_CAUSAL_GRAPHS[clean] ?? createFallbackGraph(clean)
+    return seedCausalGraph(clean)
   }
+}
+
+function seedCausalGraph(ticker: string): CausalGraph {
+  const seed = SEED_CAUSAL_GRAPHS[cleanTicker(ticker)]
+  if (seed) return { ...seed, synthetic: true }
+  return { ...createFallbackGraph(ticker), synthetic: true }
+}
+
+function cleanTicker(ticker: string): string {
+  return ticker.trim().toUpperCase()
 }
 
 function createFallbackGraph(ticker: string): CausalGraph {

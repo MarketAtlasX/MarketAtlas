@@ -33,6 +33,7 @@ export interface LedgerRecord {
   directional_accurate?: boolean
   brier_score?: number
   key_drivers?: KeyDriverItem[]
+  synthetic?: boolean
 }
 
 export interface BacktestMetrics {
@@ -44,6 +45,7 @@ export interface BacktestMetrics {
   profit_factor: number
   avg_realized_return_pct: number
   avg_expected_return_pct: number
+  synthetic?: boolean
 }
 
 export interface ReliabilityBucket {
@@ -71,6 +73,7 @@ export interface CalibrationSummary {
       base_weight: number
     }
   >
+  synthetic?: boolean
 }
 
 // ── Seed Fallback for Offline / Standalone Runtime ────────────────────────────
@@ -225,6 +228,7 @@ const SEEDED_METRICS: BacktestMetrics = {
   profit_factor: 2.34,
   avg_realized_return_pct: 5.89,
   avg_expected_return_pct: 6.48,
+  synthetic: true,
 }
 
 const SEEDED_CALIBRATION: CalibrationSummary = {
@@ -232,6 +236,7 @@ const SEEDED_CALIBRATION: CalibrationSummary = {
   expected_calibration_error: 0.086,
   mean_brier_score: 0.142,
   sample_size: 274,
+  synthetic: true,
   reliability_curve: [
     { bucket: '0% - 20%', bin_center: 0.1, observed_frequency: 0.12, sample_count: 28 },
     { bucket: '20% - 40%', bin_center: 0.3, observed_frequency: 0.29, sample_count: 42 },
@@ -297,15 +302,19 @@ const SEEDED_CALIBRATION: CalibrationSummary = {
   },
 }
 
+function seededLedger(): LedgerRecord[] {
+  return SEEDED_LEDGER.map(r => ({ ...r, synthetic: true }))
+}
+
 export async function fetchLedger(ticker?: string, status?: string): Promise<LedgerRecord[]> {
   try {
     const params: Record<string, string> = {}
     if (ticker) params.ticker = ticker
     if (status) params.status = status
     const { data } = await api.get<LedgerRecord[]>('/predict/ledger', { params })
-    return Array.isArray(data) && data.length > 0 ? data : SEEDED_LEDGER
+    return Array.isArray(data) && data.length > 0 ? data : seededLedger()
   } catch {
-    let res = SEEDED_LEDGER
+    let res = seededLedger()
     if (ticker) res = res.filter(r => r.ticker.toUpperCase() === ticker.toUpperCase())
     if (status) res = res.filter(r => r.status.toUpperCase() === status.toUpperCase())
     return res
