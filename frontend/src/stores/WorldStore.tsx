@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { events } from '../data/events'
 import { worldStates } from '../data/worldState'
 import type { LiveEvent, MarketSignal, GraphLink, RiskUpdate, AgentStatus, WorldRisk, WorldStoreState } from '../types'
@@ -78,20 +78,6 @@ function seedGraph(): GraphLink[] {
   ]
 }
 
-const LIVE_STORY = [
-  { title: 'NATO redeploys air-defense battery to Baltic corridor', countryCode: 'DE', type: 'military', severity: 5 },
-  { title: 'Chile copper miners vote to strike over wage dispute', countryCode: 'CL', type: 'economic', severity: 4 },
-  { title: 'EU drafts new sanctions package on Russian LNG', countryCode: 'FR', type: 'sanction', severity: 6 },
-  { title: 'Korea records strongest chip export month in two years', countryCode: 'KR', type: 'trade', severity: 3 },
-] as const
-
-function countryCoords(code: string): { lat: number; lng: number } {
-  const c = worldStates.find(w => w.code === code)
-  const idx = worldStates.findIndex(w => w.code === code)
-  const seed = idx >= 0 ? idx * 47 : code.charCodeAt(0)
-  return { lat: (c ? (idx * 13) % 70 - 35 : 20), lng: (c ? (seed * 31) % 360 - 180 : 80) }
-}
-
 interface WorldStoreApi {
   state: WorldStoreState
   selectEntity: (entity: string | null) => void
@@ -113,69 +99,30 @@ export function WorldProvider({ children }: { children: ReactNode }) {
       agents: buildInitialAgents(),
       worldRisk: computeWorldRisk(risk),
       selectedEntity: null,
+      dataMode: 'simulated',
+      updatedAt: null,
       forecast: { symbol: 'NVDA', bullish: 14.2, base: 6.8, bearish: -11.4, confidence: 82 },
     }
   }, [])
 
   const [state, setState] = useState<WorldStoreState>(initial)
-  const tickRef = useRef(0)
-
   const pushEvent = useCallback((e: LiveEvent) => {
-    setState(s => ({ ...s, events: [e, ...s.events].slice(0, 40) }))
+    setState(s => ({ ...s, events: [e, ...s.events].slice(0, 40), dataMode: 'live', updatedAt: e.timestamp }))
   }, [])
 
   const pushRisk = useCallback((r: RiskUpdate) => {
     setState(s => {
       const next = [r, ...s.riskUpdates.filter(x => x.entity !== r.entity)].slice(0, 10)
-      return { ...s, riskUpdates: next, worldRisk: computeWorldRisk(next) }
+      return { ...s, riskUpdates: next, worldRisk: computeWorldRisk(next), dataMode: 'live', updatedAt: r.timestamp }
     })
   }, [])
 
   const pushForecast = useCallback((f: WorldStoreState['forecast']) => {
-    setState(s => ({ ...s, forecast: f }))
+    setState(s => ({ ...s, forecast: f, dataMode: 'live', updatedAt: new Date().toISOString() }))
   }, [])
 
   const selectEntity = useCallback((entity: string | null) => {
     setState(s => ({ ...s, selectedEntity: entity }))
-  }, [])
-
-  useEffect(() => {
-    const sim = setInterval(() => {
-      tickRef.current += 1
-      const t = tickRef.current
-      const story = LIVE_STORY[t % LIVE_STORY.length]
-      const coords = countryCoords(story.countryCode)
-      const ev: LiveEvent = {
-        id: `live-${t}-${Date.now()}`,
-        title: story.title,
-        countryCode: story.countryCode,
-        country: countryName(story.countryCode),
-        type: story.type,
-        severity: story.severity,
-        lat: coords.lat,
-        lng: coords.lng,
-        timestamp: new Date().toISOString(),
-        summary: story.title,
-        sectors: [],
-      }
-      setState(s => ({
-        ...s,
-        events: [ev, ...s.events].slice(0, 40),
-        agents: s.agents.map(a => ({ ...a, state: 'analyzing' as const })),
-      }))
-
-      setTimeout(() => {
-        setState(s => ({
-          ...s,
-          agents: s.agents.map(a => {
-            const boosted = a.state === 'analyzing' ? Math.min(98, a.consensus + Math.round(Math.random() * 4)) : a.consensus
-            return { ...a, consensus: boosted, state: 'active' as const, lastInsight: a.name === 'Risk' ? 'Risk cascade detected' : a.lastInsight }
-          }),
-        }))
-      }, 1600)
-    }, 9000)
-
-    return () => clearInterval(sim)
   }, [])
 
   return (

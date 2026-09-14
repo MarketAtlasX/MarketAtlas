@@ -58,5 +58,7 @@ export interface WorldStoreState {
   agents: AgentStatus[]
   worldRisk: WorldRisk
   selectedEntity: string | null
+  dataMode: 'live' | 'delayed' | 'cached' | 'historical' | 'simulated' | 'degraded'
+  updatedAt: string | null
   forecast: { symbol: string; bullish: number; base: number; bearish: number; confidence: number }
 }
