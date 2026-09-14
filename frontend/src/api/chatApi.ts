@@ -39,6 +39,18 @@ export interface ChatResponse {
   visualization?: VisualizationIntent | null
 }
 
+export interface AtlasAgentMessage {
+  role: 'user' | 'assistant' | 'tool'
+  content: string | null
+  tool_calls?: Array<{ id: string; type: 'function'; function: { name: string; arguments: string } }>
+  tool_call_id?: string
+}
+
+export interface AtlasAgentTurnResponse {
+  message: AtlasAgentMessage
+  provider: string
+}
+
 export interface IntelligenceReport {
   title: string
   event: string
@@ -93,9 +105,7 @@ export function resetConversation(): void {
 
 export async function sendChat(query: string): Promise<ChatResponse> {
   const online = await backendOnline()
-  if (!online) {
-    return mockChatResponse(query)
-  }
+  if (!online) throw new Error('Atlas intelligence unavailable: backend is offline')
   try {
     const { getUserId } = await import('../simulation/auth')
     const res = await fetch('/api/chat', {
@@ -116,49 +126,24 @@ export async function sendChat(query: string): Promise<ChatResponse> {
     return data
   } catch {
     backendAvailable = null
-    return mockChatResponse(query)
+    throw new Error('Atlas intelligence unavailable: service request failed')
   }
 }
 
-function mockChatResponse(query: string): ChatResponse {
-  const q = query.toLowerCase()
-  let intent = 'IMPACT'
-  let agents = ['ImpactAgent', 'NewsAgent', 'MarketAgent']
-  let response = ''
-
-  if (q.includes('oil') || q.includes('energy')) {
-    intent = 'IMPACT'
-    response = 'Oil markets are experiencing upward pressure due to geopolitical tensions in key producing regions. Supply constraints and rising risk premiums are driving prices higher.'
-  } else if (q.includes('stock') || q.includes('buy') || q.includes('invest')) {
-    intent = 'RECOMMENDATION'
-    agents = ['RecommendationAgent', 'ImpactAgent']
-    response = 'Based on current geopolitical analysis, defense and energy sectors show strong momentum. Consider XLE for energy exposure and LMT for defense. Safe-haven assets like gold (GLD) are also recommended.'
-  } else if (q.includes('sanction') || q.includes('tariff')) {
-    intent = 'NEWS'
-    agents = ['NewsAgent']
-    response = 'Recent sanctions developments are impacting global trade flows. Affected sectors include energy, finance, and technology. Supply chain reconfiguration is expected.'
-  } else if (q.includes('blockade') || q.includes('taiwan') || q.includes('conflict')) {
-    intent = 'IMPACT'
-    response = 'Escalating geopolitical tensions are driving safe-haven demand. Defense stocks, energy commodities, and gold are expected to benefit. Monitor developments closely.'
-  } else if (q.includes('simulate') || q.includes('what if')) {
-    intent = 'SIMULATION'
-    agents = ['SimulationAgent', 'ImpactAgent']
-    response = 'Scenario analysis indicates significant market disruption potential. Key consequences include supply chain impacts, inflationary pressure, and sector-specific volatility.'
-  } else if (q.includes('report') || q.includes('brief')) {
-    intent = 'REPORT'
-    agents = ['ReportAgent', 'ImpactAgent']
-    response = '# MarketAtlas Intelligence Report\n\nGeopolitical risk assessment completed. Multiple factors indicate elevated uncertainty across global markets. Key recommendations include portfolio diversification and hedging strategies.'
-  } else {
-    response = 'Analysis complete. Based on available geopolitical intelligence, moderate risk levels are detected across affected markets. Monitor sector-specific developments for trading opportunities.'
-  }
-
-  return {
-    conversation_id: crypto.randomUUID(),
-    query,
-    response,
-    intent,
-    agents_used: agents,
-    confidence: 0.75 + Math.random() * 0.15,
-    sources: ['MarketAtlas Intelligence', 'Reuters', 'Bloomberg'],
-  }
+export async function runAtlasAgentTurn(
+  messages: AtlasAgentMessage[],
+  tools: unknown[],
+  context: Record<string, unknown>,
+  signal?: AbortSignal,
+): Promise<AtlasAgentTurnResponse> {
+  const { ensureAuth } = await import('../simulation/auth')
+  const token = await ensureAuth()
+  const response = await fetch('/api/chat/agent/turn', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ messages, tools, context }),
+    signal,
+  })
+  if (!response.ok) throw new Error('Structured Atlas provider unavailable')
+  return response.json() as Promise<AtlasAgentTurnResponse>
 }
