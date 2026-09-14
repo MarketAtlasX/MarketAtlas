@@ -54,19 +54,39 @@ class SimulationService:
         await self.db.refresh(run)
         return run
 
-    async def execute_run(self, run: SimulationRun) -> SimulationRun:
-        """Run the simulation synchronously and persist the result."""
+    async def execute_run(
+        self,
+        run: SimulationRun,
+        progress_callback: Any | None = None,
+    ) -> SimulationRun:
+        """Run the simulation synchronously and persist the result.
+
+        `progress_callback` is an optional async callable ``async (percent: int,
+        stage: str) -> None`` invoked at execution milestones so callers can
+        stream progress to connected clients.
+        """
+        async def _emit(percent: int, stage: str) -> None:
+            if progress_callback is not None:
+                try:
+                    await progress_callback(percent, stage)
+                except Exception:
+                    logger.warning("Progress callback failed (non-fatal): stage=%s", stage, exc_info=True)
+
         run.status = "running"
         await self.db.commit()
+        await _emit(5, "queued")
 
         try:
             allocation = await self._allocation_for(run.portfolio_id)
+            await _emit(20, "allocation")
             sector_snapshot = await self.sectors.get_snapshot()
+            await _emit(45, "sectors")
             scenario = run.scenario or {}
 
             created = await simulator_client.create_scenario(
                 self._build_scenario_payload(scenario)
             )
+            await _emit(65, "scenario")
             scenario_id = created.get("scenario_id", "")
             if not scenario_id:
                 raise RuntimeError("Simulator failed to create scenario")
@@ -76,7 +96,9 @@ class SimulationService:
                 "portfolio_allocation": allocation,
                 "sector_data": sector_snapshot.get("sectors", {}),
             }
+            await _emit(80, "simulating")
             sim_result = await simulator_client.run_simulation(run_payload)
+            await _emit(92, "simulating")
             if not sim_result:
                 raise RuntimeError("Simulator failed to run simulation")
 
@@ -85,6 +107,7 @@ class SimulationService:
             run.completed_at = datetime.utcnow()
             run.market_snapshot_time = datetime.utcnow()
             run.sector_data_version = int(sector_snapshot.get("version", 1))
+            await _emit(100, "complete")
         except Exception as e:
             logger.exception("Simulation run %s failed", run.id)
             run.status = "failed"

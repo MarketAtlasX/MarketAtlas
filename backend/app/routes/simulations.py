@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.portfolio import SimulationCreate, SimulationRead
 from app.services.auth_service import get_current_user
+from app.services.event_broadcaster import get_broadcaster
 from app.services.simulation_service import SimulationService
 
 router = APIRouter(prefix="/simulations", tags=["simulations"])
@@ -19,16 +20,34 @@ async def create_simulation(
     """Queue a simulation for a portfolio and execute it synchronously.
 
     The simulation is run inline for now (the simulator is fast enough for an
-    MVP). The API shape is designed so this can switch to a Celery worker +
-    WebSocket notification later without changing the client contract.
+    MVP). Progress milestones are streamed to ``/ws/simulation`` so the client
+    sees live status even during the synchronous run.
     """
+    broadcaster = get_broadcaster()
+
+    async def _publish_progress(percent: int, stage: str) -> None:
+        max_horizon = int((body.scenario or {}).get("duration_days", 365))
+        await broadcaster.broadcast(
+            f"simulation:{current_user.id}",
+            {"type": "progress", "progress": percent, "horizon_days": max_horizon, "stage": stage},
+        )
+
     service = SimulationService(db)
     try:
         run = await service.create_run(body.portfolio_id, current_user.id, body.model_dump())
     except LookupError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    run = await service.execute_run(run)
+    run = await service.execute_run(run, progress_callback=_publish_progress)
+    await broadcaster.broadcast(
+        f"simulation:{current_user.id}",
+        {
+            "type": "simulation_complete" if run.status == "completed" else "simulation_error",
+            "run_id": run.id,
+            "status": run.status,
+            **({"error": run.error} if run.status == "failed" else {}),
+        },
+    )
     return SimulationRead.model_validate(run)
 
 
