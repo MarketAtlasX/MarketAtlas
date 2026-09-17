@@ -152,6 +152,17 @@ class EventIngestionService:
             event_date = _parse_date(article.date) or datetime.utcnow()
             event_type = _classify_event(article.title, article.content)
 
+            from app.repositories.raw_event import RawEventRepository
+            raw_event = await RawEventRepository(self._session).create({
+                "source": (article.source or "knowledge-graph-agent")[:50],
+                "source_url": article.url,
+                "title": article.title[:500],
+                "description": (article.content or article.title)[:5000],
+                "content": article.content,
+                "raw_json": article.model_dump() if hasattr(article, "model_dump") else {},
+            })
+            await self._session.flush()
+
             event = await self._event_repo.create({
                 "title": article.title[:255],
                 "description": (article.content or article.title)[:5000],
@@ -166,7 +177,9 @@ class EventIngestionService:
             await self._event_entity_repo.create_link(event.id, entity_id)
             created.append((event.id, entity_id))
 
-            await self._create_live_event(entity, event_date, event_type, article)
+            await self._create_live_event(entity, event_date, event_type, article, raw_event.id)
+            raw_event.processed = True
+            raw_event.processed_at = datetime.utcnow()
 
         await self._session.commit()
 
@@ -184,6 +197,7 @@ class EventIngestionService:
         event_date: datetime,
         event_type: str,
         article,
+        raw_event_id: int,
     ) -> None:
         """Mirror a KG-ingested article into a geo-tagged LiveEvent row."""
         from app.schemas.live_event import LiveEventCreate
@@ -213,6 +227,7 @@ class EventIngestionService:
                 lng=lng,
                 country_code=country_code,
                 event_date=event_date,
+                extra_meta={"raw_event_id": raw_event_id, "provenance_status": "provider-backed"},
             ))
         except Exception:
             logger.exception("Failed to persist live event for '%s'", article.title)
