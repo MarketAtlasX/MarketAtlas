@@ -37,12 +37,14 @@ import { intelligenceBus } from '../../services/intelligenceBus'
 import { visualizationBus } from '../../assistant/commands/visualizationBus'
 import { createIntent } from '../globe/visualizationIntent'
 import { resolveCompanyLocation } from '../../data/companyLocations'
-import { fetchCausalGraph } from './causalGraphApi'
+import { fetchProductionCausalGraph } from './causalGraphApi'
 import {
   fetchLedger,
   fetchBacktestMetrics,
+  fetchCalibrationSummary,
   type LedgerRecord,
   type BacktestMetrics,
+  type CalibrationSummary,
 } from './predictionLedgerApi'
 import type { PredictionResult } from '../../api/client'
 
@@ -65,13 +67,13 @@ const SCENARIO_COLORS: Record<string, string> = {
   'Tail-Risk': '#b359ff',
 }
 
-const AGENT_META: Record<string, { color: string; label: string; weight: string }> = {
-  GeopoliticalAgent: { color: '#f5b941', label: 'GEO', weight: '22%' },
-  ImpactAgent: { color: '#ff8a3d', label: 'IMPACT', weight: '18%' },
-  ForecastAgent: { color: '#2ee6a8', label: 'FORECAST', weight: '18%' },
-  HistoricalAgent: { color: '#b359ff', label: 'HISTORICAL', weight: '16%' },
-  MarketAgent: { color: '#38e8ff', label: 'MARKET', weight: '14%' },
-  RiskAgent: { color: '#ff4d5e', label: 'RISK', weight: '12%' },
+const AGENT_META: Record<string, { color: string; label: string }> = {
+  GeopoliticalAgent: { color: '#f5b941', label: 'GEO' },
+  ImpactAgent: { color: '#ff8a3d', label: 'IMPACT' },
+  ForecastAgent: { color: '#2ee6a8', label: 'FORECAST' },
+  HistoricalAgent: { color: '#b359ff', label: 'HISTORICAL' },
+  MarketAgent: { color: '#38e8ff', label: 'MARKET' },
+  RiskAgent: { color: '#ff4d5e', label: 'RISK' },
 }
 
 const HORIZON_LABELS: Record<string, string> = {
@@ -115,6 +117,7 @@ export default function PredictionSpace({
   const [showFactors, setShowFactors] = useState(false)
   const [ledgerRecords, setLedgerRecords] = useState<LedgerRecord[]>([])
   const [backtestMetrics, setBacktestMetrics] = useState<BacktestMetrics | null>(null)
+  const [calibration, setCalibration] = useState<CalibrationSummary | null>(null)
   const [isProjectingCausal, setIsProjectingCausal] = useState(false)
 
   const abortRef = useRef(0)
@@ -131,9 +134,10 @@ export default function PredictionSpace({
   // ── Load backtest ledger records ───────────────────────────────────────
   const loadBacktestData = useCallback(async () => {
     try {
-      const [ledger, metrics] = await Promise.all([fetchLedger(), fetchBacktestMetrics()])
+      const [ledger, metrics, cal] = await Promise.all([fetchLedger(), fetchBacktestMetrics(), fetchCalibrationSummary()])
       setLedgerRecords(ledger)
       setBacktestMetrics(metrics)
+      setCalibration(cal)
     } catch (err) {
       console.warn('[PredictionSpace] Failed to load ledger data:', err)
     }
@@ -222,7 +226,7 @@ export default function PredictionSpace({
     const t = activeTicker || prediction?.ticker || 'NVDA'
     setIsProjectingCausal(true)
     try {
-      const graph = await fetchCausalGraph(t)
+      const graph = await fetchProductionCausalGraph(t)
       intelligenceBus.emit('CAUSAL_GRAPH_PROJECTED', graph)
     } catch (err) {
       console.warn('[PredictionSpace] Causal projection failed:', err)
@@ -248,14 +252,14 @@ export default function PredictionSpace({
   )
 
   // ── Derive agent confidences ───────────────────────────────────────────
-  const agentScores: Record<string, number> = prediction
-    ? prediction.agent_scores ?? {
-        MarketAgent: 0.78,
-        HistoricalAgent: prediction.historical_output?.confidence ?? 0.74,
-        GeopoliticalAgent: prediction.geopolitical_output?.confidence ?? 0.81,
-        ImpactAgent: 0.79,
-        ForecastAgent: prediction.confidence,
-        RiskAgent: 0.68,
+  const agentScores: Record<string, number | null> = prediction
+    ? {
+        MarketAgent: prediction.agent_scores?.MarketAgent ?? null,
+        HistoricalAgent: prediction.agent_scores?.HistoricalAgent ?? prediction.historical_output?.confidence ?? null,
+        GeopoliticalAgent: prediction.agent_scores?.GeopoliticalAgent ?? prediction.geopolitical_output?.confidence ?? null,
+        ImpactAgent: prediction.agent_scores?.ImpactAgent ?? null,
+        ForecastAgent: prediction.agent_scores?.ForecastAgent ?? prediction.confidence ?? null,
+        RiskAgent: prediction.agent_scores?.RiskAgent ?? null,
       }
     : {}
 
@@ -435,8 +439,7 @@ export default function PredictionSpace({
                                 (prediction.expected_return_pct ?? 0) >= 0 ? 'var(--positive)' : 'var(--critical)',
                             }}
                           >
-                            {(prediction.expected_return_pct ?? 0) >= 0 ? '+' : ''}
-                            {(prediction.expected_return_pct ?? 8.4).toFixed(1)}%
+                            {prediction.expected_return_pct == null ? '--' : `${prediction.expected_return_pct >= 0 ? '+' : ''}${prediction.expected_return_pct.toFixed(1)}%`}
                           </span>
                         </div>
 
@@ -477,28 +480,41 @@ export default function PredictionSpace({
 
                   {/* Model Calibration Section */}
                   <Panel title="Model Calibration">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-[var(--text-mid)] flex items-center gap-1">
-                          <ShieldCheck size={12} className="text-[#2ee6a8]" />
-                          CALIBRATION INDEX
+                    {calibration?.synthetic && (
+                      <div className="mb-2 px-2 py-1 rounded bg-[rgba(245,185,65,0.08)] border border-[rgba(245,185,65,0.3)] text-center">
+                        <span className="text-[9px] font-semibold tracking-widest text-[#f5b941]">
+                          SIMULATED OFFLINE DATA — NOT LIVE CALIBRATION
                         </span>
-                        <span className="text-[#2ee6a8] font-bold">91.4% (Brier: 0.142)</span>
                       </div>
-                      <ProgressBar value={91.4} color="#2ee6a8" />
-                      <div className="flex justify-between text-[8px] text-[var(--text-lo)] pt-0.5">
-                        <span>Low Error: ±3.8%</span>
-                        <span>5 Reliability Buckets</span>
-                        <span>N=274 Evaluated</span>
+                    )}
+                    {calibration ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-[var(--text-mid)] flex items-center gap-1">
+                            <ShieldCheck size={12} className="text-[#2ee6a8]" />
+                            CALIBRATION INDEX
+                          </span>
+                          <span className="text-[#2ee6a8] font-bold">
+                            {calibration.calibration_index_pct.toFixed(1)}% (Brier: {calibration.mean_brier_score.toFixed(3)})
+                          </span>
+                        </div>
+                        <ProgressBar value={calibration.calibration_index_pct} color="#2ee6a8" />
+                        <div className="flex justify-between text-[8px] text-[var(--text-lo)] pt-0.5">
+                          <span>MCE: ±{(calibration.expected_calibration_error * 100).toFixed(1)}%</span>
+                          <span>{calibration.reliability_curve.length} Reliability Buckets</span>
+                          <span>N={calibration.sample_size} Evaluated</span>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <p className="text-[10px] text-[var(--text-lo)]">Calibration data unavailable.</p>
+                    )}
                   </Panel>
 
                   {/* 6-Agent Consensus Breakdown */}
-                  <Panel title="Agent Consensus & Dynamic Weights">
+                  <Panel title="Agent Consensus">
                     <div className="space-y-2.5">
                       {Object.entries(AGENT_META).map(([key, meta]) => {
-                        const val = agentScores[key] ?? 0.72
+                        const val = agentScores[key] ?? null
                         return (
                           <div key={key}>
                             <div className="flex items-center justify-between mb-1">
@@ -510,15 +526,16 @@ export default function PredictionSpace({
                                 <span className="text-[9px] tracking-wider text-[var(--text-mid)]">
                                   {meta.label}
                                 </span>
-                                <span className="text-[8px] text-[var(--text-lo)] border border-[var(--line)] px-1 rounded">
-                                  {meta.weight}
-                                </span>
                               </div>
-                              <span className="text-[10px] font-semibold text-[var(--text-hi)]">
-                                {(val * 100).toFixed(0)}%
-                              </span>
+                              {val == null ? (
+                                <span className="text-[8px] text-[var(--text-lo)]">UNAVAILABLE</span>
+                              ) : (
+                                <span className="text-[10px] font-semibold text-[var(--text-hi)]">
+                                  {(val * 100).toFixed(0)}%
+                                </span>
+                              )}
                             </div>
-                            <ProgressBar value={val * 100} color={meta.color} />
+                            <ProgressBar value={val == null ? 0 : val * 100} color={meta.color} />
                           </div>
                         )
                       })}
