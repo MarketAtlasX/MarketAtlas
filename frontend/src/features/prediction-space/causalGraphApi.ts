@@ -37,6 +37,31 @@ export interface CausalGraph {
   edges: CausalEdge[]
   reasoning_summary: string
   synthetic?: boolean
+  status?: 'supported' | 'insufficient_evidence' | 'unavailable'
+  provenance?: string
+  limitations?: string[]
+}
+
+export interface CanonicalCausalEdge {
+  source: string
+  target: string
+  relationship: string
+  confidence: number | null
+  provenance: 'direct_evidence' | 'derived_relationship' | 'model_inference'
+  provider: string | null
+  observed_at: string | null
+  evidence_reference: string | null
+  status: 'supported' | 'derived' | 'inferred'
+}
+
+export interface CanonicalCausalSubgraph {
+  status: 'supported' | 'insufficient_evidence' | 'unavailable'
+  ticker?: string
+  query?: string
+  nodes: Array<Record<string, unknown>>
+  edges: CanonicalCausalEdge[]
+  evidence: Array<Record<string, unknown>>
+  limitations: string[]
 }
 
 const SEED_CAUSAL_GRAPHS: Record<string, CausalGraph> = {
@@ -313,6 +338,45 @@ export async function fetchCausalGraph(ticker: string): Promise<CausalGraph> {
     return seedCausalGraph(clean)
   } catch {
     return seedCausalGraph(clean)
+  }
+}
+
+export async function fetchCanonicalCausalSubgraph(ticker: string, signal?: AbortSignal): Promise<CanonicalCausalSubgraph> {
+  const response = await fetch(`/api/predict/causal-subgraph/${encodeURIComponent(ticker)}`, { signal })
+  if (!response.ok) throw new Error(`Canonical causal graph unavailable (${response.status})`)
+  return response.json() as Promise<CanonicalCausalSubgraph>
+}
+
+export async function fetchProductionCausalGraph(ticker: string, signal?: AbortSignal): Promise<CausalGraph> {
+  const graph = await fetchCanonicalCausalSubgraph(ticker, signal)
+  return {
+    ticker: graph.ticker ?? ticker.toUpperCase(),
+    asset_name: ticker.toUpperCase(),
+    primary_risk_vector: graph.edges[0]?.relationship ?? 'Insufficient persisted evidence',
+    nodes: graph.nodes.map(node => ({
+      id: String(node.id),
+      label: String(node.label),
+      type: node.type === 'event' || node.type === 'geography' ? 'geopolitical_risk' : node.type === 'asset' ? 'market_index' : node.type === 'company' ? 'company_hq' : 'supply_chain',
+      city: String(node.label),
+      country: String(node.country_code ?? ''),
+      coords: { lat: Number(node.lat ?? 0), lng: Number(node.lng ?? 0) },
+      risk_level: Number(node.confidence ?? 0),
+      color: node.type === 'event' || node.type === 'geography' ? '#ff4d5e' : node.type === 'asset' ? '#2ee6a8' : '#38e8ff',
+    })),
+    edges: graph.edges.map(edge => ({
+      source: edge.source,
+      target: edge.target,
+      relationship: edge.relationship,
+      strength: edge.confidence ?? 0,
+      direction: edge.status === 'inferred' ? 'negative' : 'positive',
+      confidence: edge.confidence ?? 0,
+      tone: edge.provenance === 'direct_evidence' ? 'red' : edge.provenance === 'model_inference' ? 'gold' : 'cyan',
+      evidence: `${edge.provenance}${edge.provider ? ` · ${edge.provider}` : ''}${edge.evidence_reference ? ` · ${edge.evidence_reference}` : ''}`,
+    })),
+    reasoning_summary: graph.limitations.join(' '),
+    synthetic: false,
+    status: graph.status,
+    limitations: graph.limitations,
   }
 }
 
