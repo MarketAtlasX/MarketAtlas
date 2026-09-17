@@ -206,6 +206,7 @@ async def get_price_history(ticker: str, interval: str = "daily", outputsize: st
                 "low": float(vals.get("3. low", 0)),
                 "close": float(vals.get("4. close", 0)),
                 "volume": int(vals.get("5. volume", 0)),
+                "provider": "alphavantage",
             })
         await cache.set(_cache_key("history", f"{ticker}_{interval}"), records, ttl=3600)
         return records
@@ -223,6 +224,7 @@ async def get_price_history(ticker: str, interval: str = "daily", outputsize: st
                     "low": round(float(row["Low"]), 2),
                     "close": round(float(row["Close"]), 2),
                     "volume": int(row["Volume"]),
+                    "provider": "yfinance",
                 })
             await cache.set(_cache_key("history", f"{ticker}_{interval}"), records, ttl=3600)
             return records
