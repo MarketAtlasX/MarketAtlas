@@ -1,12 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Command, Check, Network, FlaskConical, LineChart, Loader2, Brain, ScrollText } from 'lucide-react'
-import { sendChat, backendOnline, type VisualizationIntent } from '../../../api/chatApi'
-import { visualizationBus } from '../../../assistant/commands/visualizationBus'
+import { backendOnline } from '../../../api/chatApi'
 import { intelligenceBus } from '../../../services/intelligenceBus'
-import { createIntent } from '../../globe/visualizationIntent'
-import { resolveCompanyLocation } from '../../../data/companyLocations'
-import { fetchCausalGraph } from '../../prediction-space/causalGraphApi'
 import { useAtlasAgent } from '../../../assistant/agent/useAtlasAgent'
 import { AGENT_DEFINITIONS } from '../../agents/agents'
 import StatusDot from '../../../components/ui/StatusDot'
@@ -32,23 +28,6 @@ const ORCHESTRATION_STEPS = [
 ]
 
 const TICKERS = ['NVDA', 'AAPL', 'MSFT', 'TSLA', 'AMZN', 'GOOGL', 'META', 'XOM', 'SHEL', 'TSM', 'TSMC', 'GC']
-const COUNTRIES = [
-  'Taiwan',
-  'China',
-  'USA',
-  'United States',
-  'Russia',
-  'Ukraine',
-  'Israel',
-  'Iran',
-  'Germany',
-  'France',
-  'Japan',
-  'Netherlands',
-  'United Kingdom',
-  'Saudi Arabia',
-]
-
 export default function AtlasConsole() {
   const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
@@ -82,47 +61,6 @@ export default function AtlasConsole() {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [])
-
-  const orchestrateAcrossSystems = async (q: string, responseText: string) => {
-    const allText = (q + ' ' + responseText).toUpperCase()
-    const detectedTickers = TICKERS.filter(t => allText.includes(t))
-    const primaryTicker = detectedTickers[0]
-
-    // 1. Ticker & Stock Geolocation Broadcast
-    if (primaryTicker) {
-      const company = resolveCompanyLocation(primaryTicker)
-      if (company) {
-        intelligenceBus.emit('STOCK_SELECTED', { ticker: primaryTicker, company })
-      } else {
-        intelligenceBus.emit('TICKER_REQUESTED', { ticker: primaryTicker })
-      }
-
-      // 2. Causal Graph Projection to Globe
-      try {
-        const causalGraph = await fetchCausalGraph(primaryTicker)
-        if (causalGraph && causalGraph.nodes.length > 0) {
-          intelligenceBus.emit('CAUSAL_GRAPH_PROJECTED', causalGraph)
-        }
-      } catch (err) {
-        console.warn('[AtlasConsole] Causal graph projection error:', err)
-      }
-    }
-
-    // 3. Country Vectoring in Globe
-    const lowerQ = q.toLowerCase()
-    const country = COUNTRIES.find(c => lowerQ.includes(c.toLowerCase()))
-    if (country) {
-      visualizationBus.drive(
-        createIntent({
-          mode: 'country',
-          scale: 'country',
-          focus: [country],
-          camera: 'zoom_in',
-          caption: `ATLAS :: FOCUS ${country.toUpperCase()}`,
-        }),
-      )
-    }
-  }
 
   const submit = async () => {
     const q = query.trim()
@@ -171,7 +109,6 @@ export default function AtlasConsole() {
         role: 'atlas',
         text: 'Atlas could not reach the intelligence service. I did not generate a market conclusion. The interface may still be navigated with available local context.',
         timestamp: Date.now(),
-        confidence: 0.78,
         agents: ['LocalRuntime', 'GeopoliticalEngine'],
       }
       setMessages(prev => [...prev.slice(-19), errorMsg])
