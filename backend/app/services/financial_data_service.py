@@ -5,6 +5,7 @@ with yfinance as a free fallback for non-US markets. Caches results in Redis.
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import httpx
@@ -33,6 +34,16 @@ def _is_us_ticker(ticker: str) -> bool:
 
 def _cache_key(prefix: str, key: str) -> str:
     return f"finsvc:{prefix}:{key.upper()}"
+
+
+def _parse_change_percent(value) -> Optional[float]:
+    """Parse a provider change-percent like '4.1234%' or 1.23 into a float (or None)."""
+    if value is None:
+        return None
+    try:
+        return float(str(value).replace("%", "").strip())
+    except (TypeError, ValueError):
+        return None
 
 
 async def _av_get(params: dict[str, str], ttl: int = 300) -> Optional[dict[str, Any]]:
@@ -66,12 +77,14 @@ async def get_stock_quote(ticker: str) -> Optional[dict[str, Any]]:
             "symbol": q.get("01. symbol", ticker),
             "price": float(q.get("05. price", 0)),
             "change": float(q.get("09. change", 0)),
-            "change_percent": q.get("10. change percent", "0%"),
+            "change_percent": _parse_change_percent(q.get("10. change percent")),
+            "currency": None,
             "high": float(q.get("03. high", 0)),
             "low": float(q.get("04. low", 0)),
             "volume": int(float(q.get("06. volume", 0))),
             "previous_close": float(q.get("08. previous close", 0)),
             "source": "alphavantage",
+            "observed_at": datetime.now(timezone.utc).isoformat(),
         }
         await cache.set(_cache_key("quote", ticker), result, ttl=60)
         return result
@@ -84,12 +97,14 @@ async def get_stock_quote(ticker: str) -> Optional[dict[str, Any]]:
                 "symbol": ticker.upper(),
                 "price": float(info.get("regularMarketPrice", 0)),
                 "change": float(info.get("regularMarketChange", 0)),
-                "change_percent": f"{info.get('regularMarketChangePercent', 0):.2f}%",
+                "change_percent": _parse_change_percent(info.get("regularMarketChangePercent")),
+                "currency": info.get("currency"),
                 "high": float(info.get("regularMarketDayHigh", 0)),
                 "low": float(info.get("regularMarketDayLow", 0)),
                 "volume": int(info.get("regularMarketVolume", 0)),
                 "previous_close": float(info.get("regularMarketPreviousClose", 0)),
                 "source": "yfinance",
+                "observed_at": datetime.now(timezone.utc).isoformat(),
             }
             await cache.set(_cache_key("quote", ticker), result, ttl=60)
             return result
