@@ -81,17 +81,17 @@ export default function ForecastChart({ symbol, history, bull, base, bear, width
         <line key={t} x1={0} x2={width} y1={height * t} y2={height * t} stroke="rgba(84,128,158,0.08)" strokeWidth={1} />
       ))}
 
-      <path
+      {bull.length > 0 && bear.length > 0 && <path
         d={`${geom.line(bear, geom.historyN)} L${endX},${geom.y(bear[bear.length - 1])} L${geom.x(geom.historyN)},${geom.y(bull[0])} L${geom.x(geom.historyN)},${geom.y(bull[0])} ${geom.line(bull, geom.historyN).replace('M', 'L')} Z`}
         fill={`url(#band-${symbol})`}
-      />
+      />}
 
       <path d={`${geom.line(history)} L${nowX},${height - 10} L${geom.x(0)},${height - 10} Z`} fill={`url(#area-${symbol})`} />
 
-      <path d={geom.line(bull, geom.historyN)} fill="none" stroke="#2ee6a8" strokeWidth={1.2} strokeDasharray="3 4" opacity={0.85} />
-      <path d={geom.line(bear, geom.historyN)} fill="none" stroke="#ff4d5e" strokeWidth={1.2} strokeDasharray="3 4" opacity={0.85} />
+      {bull.length > 0 && <path d={geom.line(bull, geom.historyN)} fill="none" stroke="#2ee6a8" strokeWidth={1.2} strokeDasharray="3 4" opacity={0.85} />}
+      {bear.length > 0 && <path d={geom.line(bear, geom.historyN)} fill="none" stroke="#ff4d5e" strokeWidth={1.2} strokeDasharray="3 4" opacity={0.85} />}
       <path d={geom.line(history)} fill="none" stroke="#38e8ff" strokeWidth={1.8} style={{ filter: 'drop-shadow(0 0 5px rgba(56,232,255,0.5))' }} />
-      <path d={geom.line(base, geom.historyN)} fill="none" stroke="#f5b941" strokeWidth={1.6} strokeDasharray="6 5" />
+      {base.length > 0 && <path d={geom.line(base, geom.historyN)} fill="none" stroke="#f5b941" strokeWidth={1.6} strokeDasharray="6 5" />}
 
       <line x1={nowX} x2={nowX} y1={6} y2={height - 8} stroke="rgba(230,241,248,0.4)" strokeWidth={1} strokeDasharray="3 3" />
       <text x={nowX} y={height - 2} textAnchor="middle" fill="var(--text-mid)" fontSize={9} fontFamily="var(--font-mono)">
@@ -100,13 +100,9 @@ export default function ForecastChart({ symbol, history, bull, base, bear, width
       <text x={6} y={height - 2} textAnchor="start" fill="var(--text-lo)" fontSize={9} fontFamily="var(--font-mono)">
         PAST
       </text>
-      <text x={endX} y={height - 2} textAnchor="end" fill="var(--accent)" fontSize={9} fontFamily="var(--font-mono)">
-        +30D
-      </text>
+      {base.length > 0 && <text x={endX} y={height - 2} textAnchor="end" fill="var(--accent)" fontSize={9} fontFamily="var(--font-mono)">+30D</text>}
 
-      <text x={width - 8} y={12} textAnchor="end" fill="var(--positive)" fontSize={9} fontFamily="var(--font-mono)">bull</text>
-      <text x={width - 8} y={24} textAnchor="end" fill="#f5b941" fontSize={9} fontFamily="var(--font-mono)">base</text>
-      <text x={width - 8} y={36} textAnchor="end" fill="var(--critical)" fontSize={9} fontFamily="var(--font-mono)">bear</text>
+      {base.length > 0 && <><text x={width - 8} y={12} textAnchor="end" fill="var(--positive)" fontSize={9} fontFamily="var(--font-mono)">bull</text><text x={width - 8} y={24} textAnchor="end" fill="#f5b941" fontSize={9} fontFamily="var(--font-mono)">base</text><text x={width - 8} y={36} textAnchor="end" fill="var(--critical)" fontSize={9} fontFamily="var(--font-mono)">bear</text></>}
     </svg>
   )
 }
