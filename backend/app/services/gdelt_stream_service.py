@@ -121,6 +121,7 @@ class GDELTStreamService:
         from app.repositories.entity import EntityRepository
         from app.repositories.event import EventRepository
         from app.repositories.event_entity import EventEntityRepository
+        from app.repositories.raw_event import RawEventRepository
         from app.schemas.live_event import LiveEventCreate
         from app.services.live_event_service import LiveEventService
 
@@ -138,10 +139,21 @@ class GDELTStreamService:
             event_repo = EventRepository(db)
             entity_repo = EntityRepository(db)
             ee_repo = EventEntityRepository(db)
+            raw_repo = RawEventRepository(db)
 
             existing = await event_repo.get_by_source_url(source_url)
             if existing is not None:
                 return None
+
+            raw_event = await raw_repo.create({
+                "source": "gdelt",
+                "source_url": source_url,
+                "title": title,
+                "description": str(content)[:5000],
+                "content": str(content),
+                "raw_json": article,
+            })
+            await db.flush()
 
             event = await event_repo.create({
                 "title": title,
@@ -178,12 +190,17 @@ class GDELTStreamService:
                     country_code=geo["country_code"],
                     region=geo["region"],
                     event_date=event_date,
+                    extra_meta={"raw_event_id": raw_event.id, "provenance_status": "provider-backed"},
                 ))
             except Exception:
                 logger.exception("Failed to persist live event for '%s'", title)
 
             for entity_id in matched:
                 self._dispatch_analysis(event.id, entity_id)
+
+            raw_event.processed = True
+            raw_event.processed_at = datetime.utcnow()
+            await db.commit()
 
             return {
                 "id": event.id,
@@ -243,18 +260,7 @@ class GDELTStreamService:
         self, title: str, content: str, repo: "EntityRepository",  # noqa: F821
     ) -> list[int]:
         text = (title + " " + content).lower()
-        from sqlalchemy import select
-
-        from app.models.entity import Entity as EntityModel
-
-        result = await repo.session.execute(
-            select(EntityModel.id, EntityModel.name).where(EntityModel.ticker_symbols.isnot(None))
-        )
-        matched_ids: list[int] = []
-        for row in result.all():
-            if row.name.lower() in text:
-                matched_ids.append(row.id)
-        return matched_ids
+        return await repo.match_mentions(text)
 
     def _dispatch_analysis(self, event_id: int, entity_id: int) -> None:
         from app.workers.analysis_tasks import analyze_event_task
