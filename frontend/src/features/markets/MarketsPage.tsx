@@ -3,10 +3,12 @@ import { useSearchParams } from 'react-router-dom'
 import { ArrowDown, TrendingUp, ChevronRight, Search, Activity } from 'lucide-react'
 import { useWorldStore } from '../../stores/WorldStore'
 import { getPrediction, type PredictionResult } from '../../api/client'
-import ForecastChart, { generateSymbolData } from './ForecastChart'
+import ForecastChart from './ForecastChart'
 import Panel from '../../components/ui/Panel'
 import ProgressBar from '../../components/ui/ProgressBar'
 import Badge from '../../components/ui/Badge'
+import { fetchCanonicalCausalSubgraph, type CanonicalCausalSubgraph } from '../prediction-space/causalGraphApi'
+import { fetchMarketHistory, fetchMarketObservation, type MarketHistoryObservation, type MarketObservation } from '../../api/marketDataApi'
 
 const WATCHLIST = ['NVDA', 'TSMC', 'XOM', 'SHEL', 'AAPL', 'GC']
 
@@ -21,69 +23,40 @@ const SECTOR_TO_SYMBOL: Record<string, string> = {
   tech: 'NVDA',
 }
 
-const CAUSAL: Record<string, string[]> = {
-  NVDA: ['Taiwan', 'TSMC', 'Chip supply', 'AI demand', 'NVIDIA'],
-  TSMC: ['Taiwan', 'Strait risk', 'Chip supply', 'Foundry output', 'TSMC'],
-  XOM: ['Iran', 'Oil', 'Energy', 'Refining margins', 'XOM'],
-  SHEL: ['Iran', 'Oil', 'LNG', 'European energy', 'SHEL'],
-  AAPL: ['Taiwan', 'TSMC', 'Chip supply', 'Device demand', 'AAPL'],
-  GC: ['Iran', 'Geopolitical risk', 'Risk-off flows', 'Real yields', 'Gold'],
-}
-
-function ForecastStats({ symbol, data, confidence }: { symbol: string; data: ReturnType<typeof generateSymbolData>; confidence: number }) {
-  const last = data.history[data.history.length - 1]
-  const lastBase = data.base[data.base.length - 1]
-  const lastBull = data.bull[data.bull.length - 1]
-  const lastBear = data.bear[data.bear.length - 1]
-  const pct = (a: number, b: number) => ((a - b) / b) * 100
-  const rows = [
-    { label: 'Bull', value: pct(lastBull, last), color: 'var(--positive)' },
-    { label: 'Base', value: pct(lastBase, last), color: '#f5b941' },
-    { label: 'Bear', value: pct(lastBear, last), color: 'var(--critical)' },
-  ]
-
+function MarketStats({ observation, prediction }: { observation: MarketObservation; prediction: PredictionResult | null }) {
   return (
-    <Panel title={`FORECAST · ${symbol}`} corners>
-      <div className="space-y-2">
-        {rows.map(r => (
-          <div key={r.label} className="flex items-center gap-3">
-            <span className="w-10 text-[10px] uppercase tracking-wider text-[var(--text-mid)]">{r.label}</span>
-            <span className="font-mono text-sm font-semibold" style={{ color: r.color }}>
-              {r.value > 0 ? '+' : ''}
-              {r.value.toFixed(1)}%
-            </span>
-            <div className="flex-1 h-1.5 rounded-full bg-[rgba(95,125,153,0.12)] overflow-hidden">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(100, Math.abs(r.value) * 2.5)}%`,
-                  background: r.color,
-                  boxShadow: `0 0 8px ${r.color}44`,
-                }}
-              />
-            </div>
-          </div>
-        ))}
+    <Panel title={`MARKET OBSERVATION · ${observation.symbol}`} corners>
+      <div className="space-y-2 text-[10px] font-mono">
+        <div className="flex justify-between"><span className="text-[var(--text-mid)]">Status</span><span className={observation.status === 'provider-backed' ? 'text-[var(--positive)]' : 'text-[var(--warning)]'}>{observation.status.toUpperCase()}</span></div>
+        <div className="flex justify-between"><span className="text-[var(--text-mid)]">Provider</span><span className="text-[var(--text-hi)]">{observation.provider ?? 'UNKNOWN'}</span></div>
+        <div className="flex justify-between"><span className="text-[var(--text-mid)]">Observed</span><span className="text-[var(--text-hi)]">{observation.timestamp ?? 'UNKNOWN'}</span></div>
+        <div className="flex justify-between"><span className="text-[var(--text-mid)]">Last move</span><span className={observation.changePercent == null ? 'text-[var(--text-lo)]' : observation.changePercent >= 0 ? 'text-[var(--positive)]' : 'text-[var(--critical)]'}>{observation.changePercent == null ? 'UNAVAILABLE' : `${observation.changePercent >= 0 ? '+' : ''}${observation.changePercent.toFixed(2)}%`}</span></div>
+        <div className="flex justify-between"><span className="text-[var(--text-mid)]">Currency</span><span className="text-[var(--text-hi)]">{observation.currency ?? 'UNKNOWN'}</span></div>
+        {prediction && <div className="flex justify-between"><span className="text-[var(--text-mid)]">Model forecast</span><span className="text-[var(--warning)]">{prediction.direction} · {Math.round(prediction.confidence * 100)}%</span></div>}
       </div>
       <div className="mt-4">
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-[10px] uppercase tracking-wider text-[var(--text-mid)]">Confidence</span>
-          <span className="font-mono text-[11px] text-[var(--accent)]">{confidence}%</span>
-        </div>
-        <ProgressBar value={confidence} color="var(--accent)" shimmer />
-        <p className="text-[9px] text-[var(--text-lo)] mt-1.5 leading-relaxed">
-          Derived from world-state propagation, supply-chain graph and agent consensus.
-        </p>
+        <p className="text-[9px] text-[var(--text-lo)] leading-relaxed">Observed market data and model inference are shown separately.</p>
       </div>
     </Panel>
   )
 }
 
 function CausalChain({ symbol }: { symbol: string }) {
-  const chain = CAUSAL[symbol] ?? CAUSAL.NVDA
+  const [graph, setGraph] = useState<CanonicalCausalSubgraph | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    setGraph(null)
+    void fetchCanonicalCausalSubgraph(symbol, controller.signal).then(setGraph).catch(() => setGraph({ status: 'unavailable', nodes: [], edges: [], evidence: [], limitations: ['Canonical causal graph unavailable.'] }))
+    return () => controller.abort()
+  }, [symbol])
+
+  const nodeLabels = new Map((graph?.nodes ?? []).map(node => [String(node.id), String(node.label)]))
+  const chain = graph?.edges.flatMap(edge => [nodeLabels.get(edge.source), nodeLabels.get(edge.target)]).filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index) ?? []
   return (
     <Panel title="WHY?" corners>
-      <div className="flex flex-col">
+      {graph?.status !== 'supported' ? (
+        <p className="text-[10px] text-[var(--text-lo)]">{graph?.limitations?.[0] ?? 'Loading canonical evidence...'}</p>
+      ) : <div className="flex flex-col">
         {chain.map((node, i) => (
           <div key={node} className="flex flex-col items-center">
             <span
@@ -100,7 +73,7 @@ function CausalChain({ symbol }: { symbol: string }) {
             {i < chain.length - 1 && <ArrowDown size={13} className="my-1 text-[var(--text-lo)]" />}
           </div>
         ))}
-      </div>
+      </div>}
     </Panel>
   )
 }
@@ -118,6 +91,8 @@ export default function MarketsPage() {
   const [symbol, setSymbol] = useState(requestedSymbol ?? 'NVDA')
   const [prediction, setPrediction] = useState<PredictionResult | null>(null)
   const [predictionState, setPredictionState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [marketObservation, setMarketObservation] = useState<MarketObservation>({ symbol: symbol, assetType: 'equity', price: null, change: null, changePercent: null, timestamp: null, provider: null, freshness: 'unknown', status: 'unavailable' })
+  const [marketHistory, setMarketHistory] = useState<MarketHistoryObservation | null>(null)
 
   useEffect(() => {
     if (requestedSymbol) setSymbol(requestedSymbol)
@@ -142,11 +117,19 @@ export default function MarketsPage() {
     }
   }, [symbol])
 
-  const data = useMemo(() => generateSymbolData(symbol), [symbol])
-  const price = data.history[data.history.length - 1]
-  const confidence = prediction ? Math.round(prediction.confidence * 100) : state.forecast.confidence
+  useEffect(() => {
+    const controller = new AbortController()
+    setMarketObservation({ symbol, assetType: 'equity', price: null, change: null, changePercent: null, timestamp: null, provider: null, freshness: 'unknown', status: 'unavailable' })
+    setMarketHistory(null)
+    void Promise.all([fetchMarketObservation(symbol, controller.signal), fetchMarketHistory(symbol, 'daily', controller.signal)])
+      .then(([quote, history]) => { if (!controller.signal.aborted) { setMarketObservation(quote); setMarketHistory(history) } })
+    return () => controller.abort()
+  }, [symbol])
+
+  const history = useMemo(() => (marketHistory?.history ?? []).slice().reverse().map(row => row.close), [marketHistory])
+  const price = marketObservation.price
   const signal = state.signals.find(s => s.symbol === symbol)
-  const directionLabel = prediction?.direction ?? (signal?.direction === 'UP' ? 'BULLISH' : 'NEUTRAL')
+  const directionLabel = prediction?.direction ?? null
 
   return (
     <div className="h-full flex flex-col p-5 gap-4 overflow-y-auto bg-command">
@@ -185,9 +168,9 @@ export default function MarketsPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-px border border-[var(--line)] bg-[var(--line)]">
         {[
-          ['Risk regime', directionLabel, prediction?.direction === 'BEARISH' ? 'var(--critical)' : 'var(--accent)'],
-          ['Last price', `$${price.toFixed(2)}`, 'var(--text-hi)'],
-          ['Confidence', `${confidence}%`, 'var(--positive)'],
+          ['Risk regime', prediction?.direction ?? 'UNAVAILABLE', prediction?.direction === 'BEARISH' ? 'var(--critical)' : prediction ? 'var(--accent)' : 'var(--text-lo)'],
+          ['Last price', price == null ? 'UNAVAILABLE' : `$${price.toFixed(2)}${marketObservation.currency && marketObservation.currency !== 'USD' ? ` ${marketObservation.currency}` : ''}`, 'var(--text-hi)'],
+          ['Observed move', marketObservation.changePercent == null ? 'UNAVAILABLE' : `${marketObservation.changePercent >= 0 ? '+' : ''}${marketObservation.changePercent.toFixed(2)}%`, marketObservation.changePercent != null && marketObservation.changePercent >= 0 ? 'var(--positive)' : 'var(--critical)'],
           ['Horizon', prediction?.time_horizon ?? '30-DAY', 'var(--text-mid)'],
         ].map(([label, value, color]) => (
           <div key={label} className="bg-[var(--bg-raised)] px-4 py-3">
@@ -201,7 +184,7 @@ export default function MarketsPage() {
         <Panel
           title={`${symbol} · ${prediction ? directionLabel : 'FORECAST'}`}
           right={
-            signal ? (
+            signal && directionLabel ? (
               <Badge tone={prediction?.direction === 'BEARISH' ? 'critical' : 'positive'}>
                 {prediction?.direction === 'BEARISH' ? <ArrowDown size={10} /> : <TrendingUp size={10} />}
                 {directionLabel}
@@ -211,16 +194,16 @@ export default function MarketsPage() {
           className="xl:col-span-2 flex flex-col min-h-[420px]"
         >
           <div className="flex items-baseline gap-2 mb-1">
-            <span className="font-mono text-3xl font-semibold text-[var(--text-hi)]">${price.toFixed(2)}</span>
-            <span className="font-mono text-[11px] text-[var(--text-lo)]">USD · {prediction?.time_horizon ?? '30-DAY'} HORIZON</span>
+            <span className="font-mono text-3xl font-semibold text-[var(--text-hi)]">{price == null ? 'UNAVAILABLE' : `$${price.toFixed(2)}${marketObservation.currency && marketObservation.currency !== 'USD' ? ` ${marketObservation.currency}` : ''}`}</span>
+            <span className="font-mono text-[11px] text-[var(--text-lo)]">{marketObservation.provider ?? 'NO PROVIDER'} · {marketObservation.timestamp ?? 'NO TIMESTAMP'}</span>
           </div>
           <div className="flex-1 min-h-0">
-            <ForecastChart symbol={symbol} history={data.history} bull={data.bull} base={data.base} bear={data.bear} />
+            {history.length > 0 ? <ForecastChart symbol={symbol} history={history} bull={[]} base={[]} bear={[]} /> : <div className="flex h-full items-center justify-center text-xs text-[var(--text-lo)]">Historical market data unavailable.</div>}
           </div>
         </Panel>
 
         <div className="flex flex-col gap-3">
-          <ForecastStats symbol={symbol} data={data} confidence={confidence} />
+          <MarketStats observation={marketObservation} prediction={prediction} />
           <Panel title="ANALYST OUTLOOK" corners>
             {predictionState === 'loading' && <p className="text-xs text-[var(--text-mid)]">Running historical and geopolitical agents...</p>}
             {predictionState === 'error' && <p className="text-xs text-[var(--critical)]">Prediction service unavailable. Check backend and agent health.</p>}
