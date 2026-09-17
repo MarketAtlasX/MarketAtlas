@@ -162,9 +162,21 @@ async def get_calibration_metrics():
 @router.get("/causal-graph/{ticker}")
 async def get_causal_graph(
     ticker: str = Path(..., min_length=1, max_length=15, description="Asset ticker for causal chain analysis"),
+    db: AsyncSession = Depends(get_db),
 ):
-    """Retrieve multi-hop causal reasoning chain (Geopolitical Risk -> Supply Chain -> Asset HQ -> Market)."""
-    from app.services.causal_graph_service import causal_graph_service
+    """Compatibility alias for the canonical evidence-backed causal subgraph."""
+    from app.services.canonical_causal_graph import canonical_causal_graph_service
 
-    return causal_graph_service.build_causal_graph(ticker)
+    return await canonical_causal_graph_service.retrieve(db, ticker=ticker)
+
+
+@router.get("/causal-subgraph/{ticker}")
+async def get_canonical_causal_subgraph(
+    ticker: str = Path(..., min_length=1, max_length=15, description="Asset ticker for evidence-backed causal retrieval"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve only persisted, evidence-backed causal relationships for Atlas."""
+    from app.services.canonical_causal_graph import canonical_causal_graph_service
+
+    return await canonical_causal_graph_service.retrieve(db, ticker=ticker)
 
