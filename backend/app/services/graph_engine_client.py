@@ -36,10 +36,6 @@ class GraphEngineClient:
         result = await self._get("/api/graph/forecast", params={"symbol": symbol, "company_name": company_name, "current_price": current_price})
         return result or {}
 
-    async def causal(self, root_event: str = "Iran Conflict", target_asset: str = "NVIDIA", max_paths: int = 5) -> dict[str, Any]:
-        result = await self._get("/api/graph/causal", params={"root_event": root_event, "target_asset": target_asset, "max_paths": max_paths})
-        return result or {}
-
     async def reasoning(self, target: str = "NVIDIA") -> dict[str, Any]:
         result = await self._get("/api/graph/reasoning", params={"target": target})
         return result or {}
