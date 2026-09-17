@@ -18,6 +18,41 @@ export interface MarketQuote {
   low52w?: number
   timestamp: string
   synthetic?: boolean
+  status?: 'provider-backed' | 'cached' | 'unavailable' | 'simulated'
+}
+
+export interface MarketObservation {
+  symbol: string
+  assetType: 'equity' | 'index' | 'commodity' | 'currency' | 'unknown'
+  price: number | null
+  change: number | null
+  changePercent: number | null
+  timestamp: string | null
+  provider: string | null
+  freshness: string
+  status: 'provider-backed' | 'cached' | 'unavailable' | 'simulated'
+  currency?: string | null
+}
+
+export type MarketHistoryRow = {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  provider: string | null
+}
+
+export interface MarketHistoryObservation {
+  status: 'provider-backed' | 'unavailable'
+  symbol: string
+  interval: string
+  provider?: string | null
+  freshness: string
+  timestamp?: string | null
+  history: MarketHistoryRow[]
+  limitations?: string[]
 }
 
 export interface SectorSnapshot {
@@ -26,6 +61,7 @@ export interface SectorSnapshot {
   volatility: number
   tickers: string[]
   synthetic?: boolean
+  status?: 'provider-backed' | 'cached' | 'unavailable' | 'simulated'
 }
 
 // ── Cache ──────────────────────────────────────────────────────────────────
@@ -88,11 +124,13 @@ export async function fetchQuotes(): Promise<MarketQuote[]> {
       timestamp: item.date ?? item.timestamp ?? new Date().toISOString(),
     }))
 
-    quoteCache = { data: quotes.length > 0 ? quotes : SEED_QUOTES, ts: Date.now() }
+    const available = quotes.length > 0 ? quotes.map(quote => ({ ...quote, status: 'provider-backed' as const })) : []
+    quoteCache = { data: available, ts: Date.now() }
     return quoteCache.data
   } catch {
-    quoteCache = { data: SEED_QUOTES, ts: Date.now() }
-    return SEED_QUOTES
+    const fallback = import.meta.env.MODE === 'test' ? SEED_QUOTES.map(quote => ({ ...quote, status: 'simulated' as const })) : []
+    quoteCache = { data: fallback, ts: Date.now() }
+    return fallback
   }
 }
 
@@ -107,8 +145,9 @@ export async function fetchSectors(): Promise<SectorSnapshot[]> {
     const data = await res.json()
 
     if (data.fallback) {
-      sectorCache = { data: SEED_SECTORS, ts: Date.now() }
-      return SEED_SECTORS
+      const fallback = import.meta.env.MODE === 'test' ? SEED_SECTORS.map(sector => ({ ...sector, status: 'simulated' as const })) : []
+      sectorCache = { data: fallback, ts: Date.now() }
+      return fallback
     }
 
     const sectors: SectorSnapshot[] = Object.entries(data.sectors ?? {}).map(
@@ -120,11 +159,13 @@ export async function fetchSectors(): Promise<SectorSnapshot[]> {
       }),
     )
 
-    sectorCache = { data: sectors.length > 0 ? sectors : SEED_SECTORS, ts: Date.now() }
+    const available = sectors.length > 0 ? sectors.map(sector => ({ ...sector, status: 'provider-backed' as const })) : []
+    sectorCache = { data: available, ts: Date.now() }
     return sectorCache.data
   } catch {
-    sectorCache = { data: SEED_SECTORS, ts: Date.now() }
-    return SEED_SECTORS
+    const fallback = import.meta.env.MODE === 'test' ? SEED_SECTORS.map(sector => ({ ...sector, status: 'simulated' as const })) : []
+    sectorCache = { data: fallback, ts: Date.now() }
+    return fallback
   }
 }
 
@@ -132,6 +173,56 @@ export async function fetchSectors(): Promise<SectorSnapshot[]> {
 export async function fetchQuote(symbol: string): Promise<MarketQuote | null> {
   const quotes = await fetchQuotes()
   return quotes.find(q => q.symbol === symbol) ?? null
+}
+
+export async function fetchMarketObservation(symbol: string, signal?: AbortSignal): Promise<MarketObservation> {
+  try {
+    const response = await fetch(`/api/market-data/quote/${encodeURIComponent(symbol)}`, { signal })
+    if (!response.ok) throw new Error('Quote unavailable')
+    const data = await response.json() as Record<string, unknown>
+    return {
+      symbol: String(data.symbol ?? symbol).toUpperCase(),
+      assetType: 'equity',
+      price: typeof data.price === 'number' ? data.price : null,
+      change: typeof data.change === 'number' ? data.change : null,
+      changePercent: typeof data.change_percent === 'number' ? data.change_percent : null,
+      currency: typeof data.currency === 'string' ? data.currency : null,
+      timestamp: typeof data.timestamp === 'string' ? data.timestamp : null,
+      provider: typeof data.provider === 'string' ? data.provider : null,
+      freshness: String(data.freshness ?? 'unknown'),
+      status: data.status === 'provider-backed' ? 'provider-backed' : 'unavailable',
+    }
+  } catch {
+    return { symbol: symbol.toUpperCase(), assetType: 'equity', price: null, change: null, changePercent: null, currency: null, timestamp: null, provider: null, freshness: 'unknown', status: 'unavailable' }
+  }
+}
+
+export async function fetchMarketHistory(symbol: string, interval = 'daily', signal?: AbortSignal): Promise<MarketHistoryObservation> {
+  try {
+    const response = await fetch(`/api/market-data/history/${encodeURIComponent(symbol)}?interval=${interval}`, { signal })
+    if (!response.ok) throw new Error('History unavailable')
+    const data = await response.json() as MarketHistoryObservation
+    return {
+      status: data.status === 'provider-backed' ? 'provider-backed' : 'unavailable',
+      symbol: String(data.symbol ?? symbol).toUpperCase(),
+      interval: data.interval ?? interval,
+      provider: typeof data.provider === 'string' ? data.provider : null,
+      freshness: data.freshness ?? 'unknown',
+      timestamp: data.timestamp ?? null,
+      history: Array.isArray(data.history) ? data.history.map((row: any) => ({
+        date: String(row.date ?? ''),
+        open: Number(row.open ?? 0),
+        high: Number(row.high ?? 0),
+        low: Number(row.low ?? 0),
+        close: Number(row.close ?? 0),
+        volume: Number(row.volume ?? 0),
+        provider: typeof row.provider === 'string' ? row.provider : null,
+      })) : [],
+      limitations: Array.isArray(data.limitations) ? data.limitations : [],
+    }
+  } catch {
+    return { status: 'unavailable', symbol: symbol.toUpperCase(), interval, freshness: 'unknown', history: [], limitations: ['Historical market data unavailable.'] }
+  }
 }
 
 /** Invalidate all caches (e.g., after a manual refresh). */
