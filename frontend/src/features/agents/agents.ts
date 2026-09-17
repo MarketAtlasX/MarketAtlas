@@ -14,7 +14,7 @@ export function buildInitialAgents(): AgentStatus[] {
   return AGENT_DEFINITIONS.map(a => ({
     name: a.name,
     state: 'active' as const,
-    consensus: 70 + Math.round(Math.random() * 20),
+    consensus: null,
     lastInsight: undefined,
   }))
 }
