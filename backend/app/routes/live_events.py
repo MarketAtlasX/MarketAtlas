@@ -258,6 +258,39 @@ async def live_event_observation(
     }
 
 
+@router.get("/feed")
+async def live_event_feed(
+    request: Request,
+    service: LiveEventService = Depends(get_live_event_service),
+):
+    """Server-Sent Events stream of live events (polls every 10s)."""
+    async def event_generator():
+        last_id = None
+        while True:
+            if await request.is_disconnected():
+                break
+            try:
+                page = await service.search(
+                    skip=0, limit=20,
+                    sort_by="first_seen_at", sort_desc=True,
+                )
+                items = [LiveEventRead.model_validate(e) for e in page.items]
+                if items:
+                    current_id = items[0].id
+                    if current_id != last_id:
+                        last_id = current_id
+                        for item in items:
+                            yield f"data: {json.dumps(item.model_dump())}\n\n"
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.warning("SSE feed error (non-fatal): %s", exc)
+                await asyncio.sleep(5)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
 @router.get("/{event_id}", response_model=LiveEventFullRead)
 async def get_live_event(
     event_id: str = Path(...),
@@ -341,33 +374,3 @@ async def add_event_news(
     service: LiveEventService = Depends(get_live_event_service),
 ):
     return await service.add_news_article(event_id, news_in)
-
-
-@router.get("/feed")
-async def live_event_feed(
-    request: Request,
-    service: LiveEventService = Depends(get_live_event_service),
-):
-    async def event_generator():
-        last_id = None
-        while True:
-            try:
-                page = await service.search(
-                    skip=0, limit=20,
-                    sort_by="first_seen_at", sort_desc=True,
-                )
-                items = [LiveEventRead.model_validate(e) for e in page.items]
-                if items:
-                    current_id = items[0].id
-                    if current_id != last_id:
-                        last_id = current_id
-                        for item in items:
-                            yield f"data: {json.dumps(item.model_dump())}\n\n"
-                await asyncio.sleep(10)
-            except asyncio.CancelledError:
-                break
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-
-

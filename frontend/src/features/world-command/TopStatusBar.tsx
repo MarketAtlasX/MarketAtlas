@@ -1,17 +1,24 @@
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Mic, MicOff } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useWorldStore } from '../../stores/WorldStore'
 import StatusDot from '../../components/ui/StatusDot'
 import { useClock, formatCommandTime } from '../../hooks/useClock'
 import { riskColor } from '../../stores/WorldStore'
+import { useAssistantState } from '../../assistant/state/AssistantStateContext'
+import { useVoiceAssistant } from '../../assistant/voice/useVoiceAssistant'
+import { ASSISTANT_STATE_TONE } from '../../assistant/state/assistantState'
 
 export default function TopStatusBar() {
-  const { state } = useWorldStore()
+  const { state: worldState } = useWorldStore()
   const location = useLocation()
   const navigate = useNavigate()
   const now = useClock()
-  const risk = state.worldRisk
+  const risk = worldState.worldRisk
   const isDashboard = location.pathname === '/dashboard'
+
+  const { state, overlayOpen, setOverlayOpen } = useAssistantState()
+  const { active, start, stop } = useVoiceAssistant()
+  const tone = ASSISTANT_STATE_TONE[state]
 
   const handleBack = () => {
     const idx = typeof window !== 'undefined' ? window.history.state?.idx : undefined
@@ -20,6 +27,16 @@ export default function TopStatusBar() {
       return
     }
     navigate('/dashboard')
+  }
+
+  const toggleAtlas = () => {
+    if (!overlayOpen) {
+      setOverlayOpen(true)
+      if (!active) void start()
+    } else {
+      setOverlayOpen(false)
+      if (active) stop()
+    }
   }
 
   return (
@@ -53,8 +70,8 @@ export default function TopStatusBar() {
         </span>
       </div>
 
-      <div className="flex items-center gap-4">
-        {state.dataMode === 'live' ? (
+      <div className="flex items-center gap-3">
+        {worldState.dataMode === 'live' ? (
           <div className="flex items-center gap-2 px-2.5 py-1.5 border border-[rgba(46,230,168,0.3)] bg-[rgba(46,230,168,0.06)]">
             <StatusDot tone="positive" />
             <span className="text-[11px] font-semibold tracking-[0.2em] text-[var(--positive)]">LIVE</span>
@@ -86,6 +103,35 @@ export default function TopStatusBar() {
           <StatusDot tone="accent" pulse={false} />
           <span>{formatCommandTime(now).toUpperCase()}</span>
         </div>
+
+        {/* Atlas AI voice button — persistent across all pages */}
+        <button
+          type="button"
+          onClick={toggleAtlas}
+          title={overlayOpen ? 'Close Atlas AI' : 'Open Atlas AI voice control'}
+          aria-label={overlayOpen ? 'Close Atlas AI' : 'Open Atlas AI'}
+          className={`atlas-topbar-btn relative flex items-center gap-2 rounded border px-3 py-1.5 text-[10px] font-mono tracking-[0.2em] transition-all duration-200 ${
+            overlayOpen || active
+              ? 'border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.1)] text-[var(--accent)] shadow-[0_0_14px_rgba(56,232,255,0.2)]'
+              : 'border-[var(--line)] text-[var(--text-mid)] hover:border-[rgba(56,232,255,0.4)] hover:text-[var(--accent)] hover:bg-[rgba(56,232,255,0.07)]'
+          }`}
+        >
+          {/* State indicator dot */}
+          <span className="relative inline-flex h-1.5 w-1.5">
+            {active && (
+              <span
+                className="absolute inline-flex h-full w-full rounded-full opacity-70"
+                style={{ background: tone, animation: 'pulse-dot 1.4s ease-in-out infinite' }}
+              />
+            )}
+            <span
+              className="relative inline-flex rounded-full h-1.5 w-1.5"
+              style={{ background: active ? tone : 'var(--text-lo)' }}
+            />
+          </span>
+          {active ? <MicOff size={12} /> : <Mic size={12} />}
+          <span className="hidden sm:inline">ATLAS AI</span>
+        </button>
       </div>
     </header>
   )

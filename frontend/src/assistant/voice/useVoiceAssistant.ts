@@ -59,7 +59,7 @@ export function useVoiceAssistant(): VoiceAssistantApi {
         }, 500)
       })
     },
-    [execute, setMode, setState],
+    [execute, setState],
   )
 
   const startOffline = useCallback(async () => {

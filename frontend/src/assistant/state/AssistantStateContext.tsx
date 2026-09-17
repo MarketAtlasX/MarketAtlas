@@ -8,6 +8,8 @@ interface AssistantContextValue {
   setMode: (mode: AtlasVisualMode) => void
   amplitudeRef: MutableRefObject<number>
   setAmplitude: (value: number) => void
+  overlayOpen: boolean
+  setOverlayOpen: (open: boolean) => void
 }
 
 const AssistantStateContext = createContext<AssistantContextValue | null>(null)
@@ -15,6 +17,7 @@ const AssistantStateContext = createContext<AssistantContextValue | null>(null)
 export function AssistantStateProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AssistantState>('IDLE')
   const [mode, setMode] = useState<AtlasVisualMode>('orb')
+  const [overlayOpen, setOverlayOpen] = useState(false)
   const amplitudeRef = useRef(0)
 
   const setAmplitude = useCallback((value: number) => {
@@ -22,8 +25,8 @@ export function AssistantStateProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ state, setState, mode, setMode, amplitudeRef, setAmplitude }),
-    [state, mode, setAmplitude],
+    () => ({ state, setState, mode, setMode, amplitudeRef, setAmplitude, overlayOpen, setOverlayOpen }),
+    [state, mode, setAmplitude, overlayOpen],
   )
 
   return <AssistantStateContext.Provider value={value}>{children}</AssistantStateContext.Provider>

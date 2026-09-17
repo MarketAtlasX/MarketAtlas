@@ -39,22 +39,22 @@ export function AtlasCommandHandler() {
   const { selectEntity } = useWorldStore()
   const { update, setCamera, reset } = useAtlasStore()
 
-  const driveVisual = (intent: VisualizationIntent) => {
-    visualizationBus.drive(intent)
-    if (intent.focus?.[0]) selectEntity(intent.focus[0])
-    update({
-      execution: 'executing',
-      activeLayer: (intent.mode === 'risk' ? 'risk' : intent.mode === 'supply' ? 'supply-chain' : intent.mode === 'map' ? 'world' : 'geopolitics') as AtlasLayer,
-      highlightedEntities: intent.focus ?? [],
-      lastCommand: intent.caption ?? intent.mode,
-    })
-    navigate('/dashboard')
-  }
-
   useEffect(
     () =>
       commandBus.subscribe((command: AtlasCommand) => {
         const payload = command.payload
+
+        const driveVisual = (intent: VisualizationIntent) => {
+          visualizationBus.drive(intent)
+          if (intent.focus?.[0]) selectEntity(intent.focus[0])
+          update({
+            execution: 'executing',
+            activeLayer: (intent.mode === 'risk' ? 'risk' : intent.mode === 'supply' ? 'supply-chain' : intent.mode === 'map' ? 'world' : 'geopolitics') as AtlasLayer,
+            highlightedEntities: intent.focus ?? [],
+            lastCommand: intent.caption ?? intent.mode,
+          })
+          navigate('/dashboard')
+        }
 
         switch (command.type) {
           case 'FOCUS_COUNTRY': {
@@ -218,7 +218,7 @@ export function AtlasCommandHandler() {
           }
         }
       }),
-    [navigate, selectEntity],
+    [navigate, selectEntity, update, reset, setCamera],
   )
 
   return null
