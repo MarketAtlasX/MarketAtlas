@@ -2,6 +2,7 @@ import { commandBus } from '../commands/commandBus'
 import { createCommand, type AtlasCommand } from '../commands/commandTypes'
 import { resolveCoords } from '../../features/globe/globeData'
 import { resolveCompanyLocation } from '../../data/companyLocations'
+import { intelligenceBus } from '../../services/intelligenceBus'
 
 export interface AtlasToolContext {
   currentQuery: string
@@ -164,6 +165,7 @@ const EVIDENCE_TOOLS = new Set([
   'analyze_company_exposure',
   'summarize_market',
 ])
+const MARKET_TOOLS = new Set(['show_stock', 'show_stock_chart', 'compare_stocks', 'show_index', 'show_commodity', 'show_currency'])
 
 export async function executeAtlasToolAsync(
   name: string,
@@ -172,7 +174,7 @@ export async function executeAtlasToolAsync(
   signal?: AbortSignal,
 ): Promise<AtlasToolResult> {
   const localResult = executeAtlasTool(name, args, context)
-  if (!localResult.ok || !EVIDENCE_TOOLS.has(name)) return localResult
+  if (!localResult.ok || (!EVIDENCE_TOOLS.has(name) && !MARKET_TOOLS.has(name))) return localResult
 
   const params = new URLSearchParams()
   const query = String(args.event ?? args.entity ?? args.company ?? args.region ?? args.query ?? '')
@@ -181,12 +183,58 @@ export async function executeAtlasToolAsync(
   if (ticker) params.set('ticker', ticker)
 
   try {
+    if (MARKET_TOOLS.has(name) && ticker) {
+      const quoteResponse = await fetch(`/api/market-data/quote/${encodeURIComponent(ticker)}`, { signal })
+      const marketObservation = await quoteResponse.json() as Record<string, unknown>
+      return {
+        ...localResult,
+        message: marketObservation.status === 'unavailable' ? `${localResult.message} Market quote unavailable.` : `${localResult.message} Provider-backed quote attached.`,
+        observation: { ...localResult.observation, marketObservation },
+      }
+    }
     const response = await fetch(`/api/live-events/observation?${params.toString()}`, { signal })
     const observation = await response.json() as AtlasEvidenceObservation
+    let canonicalGraph: Record<string, unknown> | undefined
+    if (name === 'trace_market_impact' || name === 'analyze_company_exposure') {
+      const graphTicker = ticker || String(args.entity ?? args.company ?? '')
+      if (graphTicker) {
+        try {
+          const graphResponse = await fetch(`/api/predict/causal-subgraph/${encodeURIComponent(graphTicker)}`, { signal })
+          if (graphResponse.ok) {
+            canonicalGraph = await graphResponse.json() as Record<string, unknown>
+            const graphNodes = Array.isArray(canonicalGraph.nodes) ? canonicalGraph.nodes as Array<Record<string, unknown>> : []
+            const graphEdges = Array.isArray(canonicalGraph.edges) ? canonicalGraph.edges as Array<Record<string, unknown>> : []
+            intelligenceBus.emit('CAUSAL_GRAPH_PROJECTED', {
+              ticker: graphTicker.toUpperCase(),
+              asset_name: graphTicker.toUpperCase(),
+              primary_risk_vector: graphEdges[0]?.relationship ?? 'Evidence-backed causal subgraph',
+              nodes: graphNodes.map(node => ({
+                id: String(node.id), label: String(node.label),
+                type: node.type === 'event' || node.type === 'geography' ? 'geopolitical_risk' : node.type === 'asset' ? 'market_index' : node.type === 'company' ? 'company_hq' : 'supply_chain',
+                city: String(node.label), country: String(node.country_code ?? ''),
+                coords: { lat: Number(node.lat ?? 0), lng: Number(node.lng ?? 0) },
+                risk_level: Number(node.confidence ?? 0), color: node.type === 'event' || node.type === 'geography' ? '#ff4d5e' : '#38e8ff',
+              })),
+              edges: graphEdges.map(edge => ({
+                source: edge.source, target: edge.target, relationship: edge.relationship,
+                strength: edge.confidence ?? 0, direction: edge.status === 'inferred' ? 'negative' : 'positive',
+                confidence: edge.confidence ?? 0,
+                tone: edge.provenance === 'direct_evidence' ? 'red' : edge.provenance === 'model_inference' ? 'gold' : 'cyan',
+                evidence: `${edge.provenance}${edge.provider ? ` · ${edge.provider}` : ''}`,
+              })),
+              reasoning_summary: Array.isArray(canonicalGraph.limitations) ? canonicalGraph.limitations.join(' ') : '',
+              synthetic: false,
+            })
+          }
+        } catch {
+          // The event observation remains useful when the graph service is unavailable.
+        }
+      }
+    }
     return {
       ...localResult,
       message: observation.status === 'unavailable' ? `${localResult.message} Live evidence unavailable.` : `${localResult.message} Evidence attached.`,
-      observation: { ...localResult.observation, evidenceBundle: observation },
+      observation: { ...localResult.observation, evidenceBundle: observation, ...(canonicalGraph ? { canonicalGraph } : {}) },
     }
   } catch (error) {
     return {
