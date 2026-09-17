@@ -3,7 +3,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.services.canonical_causal_graph import canonical_causal_graph_service
 
 from app.services.graph_engine_client import graph_engine_client
 
@@ -31,8 +35,9 @@ async def get_causal(
     root_event: str = Query("Iran Conflict"),
     target_asset: str = Query("NVIDIA"),
     max_paths: int = Query(5, ge=1, le=20),
+    db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    return await graph_engine_client.causal(root_event, target_asset, max_paths)
+    return await canonical_causal_graph_service.retrieve(db, ticker=target_asset, query=root_event, limit=max_paths)
 
 
 @router.get("/reasoning")
@@ -58,5 +63,10 @@ async def get_all(
     current_price: float = Query(880.0),
     root_event: str = Query("Iran Conflict"),
     target_asset: str = Query("NVIDIA"),
+    db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    return await graph_engine_client.all(symbol, company_name, current_price, root_event, target_asset)
+    forecast = await graph_engine_client.forecast(symbol, company_name, current_price)
+    reasoning = await graph_engine_client.reasoning(target_asset)
+    confidence = await graph_engine_client.confidence(target_asset)
+    causal = await canonical_causal_graph_service.retrieve(db, ticker=symbol, query=root_event)
+    return {"forecast": forecast, "reasoning": reasoning, "confidence": confidence, "causal": causal}
