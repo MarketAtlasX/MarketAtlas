@@ -3,7 +3,6 @@ import type { VisualizationIntent } from './visualizationIntent'
 import { resolveCoords } from './globeData'
 import { worldStates } from '../../data/worldState'
 import { tradeRoutes, militaryRelations, type TradeRoute, type MilitaryRelation } from '../../data/relations'
-import { supplyChainPaths } from '../../data/supplyChains'
 
 export interface CoreTransition {
   detach: number
@@ -132,24 +131,10 @@ export function buildTradeFlows(): RouteFlow[] {
 }
 
 export function buildSupplyFlows(): RouteFlow[] {
-  const flows: RouteFlow[] = []
-  for (const path of supplyChainPaths) {
-    for (const link of path.links) {
-      const a = resolveCoords(hubName(link.fromCountry))
-      const b = resolveCoords(hubName(link.toCountry))
-      if (!a || !b) continue
-      flows.push({
-        startLat: a.lat,
-        startLng: a.lng,
-        endLat: b.lat,
-        endLng: b.lng,
-        color: '#38e8ff',
-        intensity: link.criticality / 10,
-        tone: 'cyan',
-      })
-    }
-  }
-  return flows
+  // Supply-chain routes are rendered only from the canonical evidence graph.
+  // Keeping this base layer empty avoids presenting static seed relationships
+  // as current intelligence.
+  return []
 }
 
 export function buildConflictFlows(): RouteFlow[] {
