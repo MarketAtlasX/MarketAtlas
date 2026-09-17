@@ -4,7 +4,8 @@ import StatusDot from '../../components/ui/StatusDot'
 
 export default function AgentStatusMatrix() {
   const { state } = useWorldStore()
-  const avgConsensus = Math.round(state.agents.reduce((s, a) => s + a.consensus, 0) / Math.max(1, state.agents.length))
+  const withConsensus = state.agents.filter(a => a.consensus != null)
+  const avgConsensus = withConsensus.length > 0 ? Math.round(withConsensus.reduce((s, a) => s + (a.consensus ?? 0), 0) / withConsensus.length) : null
 
   return (
     <div className="h-full flex flex-col p-3 gap-2 overflow-y-auto">
@@ -12,7 +13,9 @@ export default function AgentStatusMatrix() {
         <span className="panel-title">AI Network</span>
         <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-mid)]">
           Consensus
-          <span className="font-mono font-semibold text-[var(--positive)]">{avgConsensus}%</span>
+          <span className={`font-mono font-semibold ${avgConsensus == null ? 'text-[var(--text-lo)]' : 'text-[var(--positive)]'}`}>
+            {avgConsensus == null ? '--' : `${avgConsensus}%`}
+          </span>
         </div>
       </div>
 
