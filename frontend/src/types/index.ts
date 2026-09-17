@@ -40,7 +40,7 @@ export interface GraphLink {
 export interface AgentStatus {
   name: string
   state: 'active' | 'analyzing' | 'insight'
-  consensus: number
+  consensus: number | null
   lastInsight?: string
 }
 
