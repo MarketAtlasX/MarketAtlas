@@ -295,6 +295,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
 
   useEffect(() => {
     if (!containerRef.current || globeRef.current) return
+    if (typeof window === 'undefined' || typeof WebGLRenderingContext === 'undefined') return
 
     const globe = new (Globe as any)(containerRef.current, { animateIn: false })
       .width(containerRef.current.clientWidth)
