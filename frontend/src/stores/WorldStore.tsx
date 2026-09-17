@@ -90,12 +90,13 @@ const WorldContext = createContext<WorldStoreApi | null>(null)
 
 export function WorldProvider({ children }: { children: ReactNode }) {
   const initial = useMemo<WorldStoreState>(() => {
-    const risk = seedRisk()
+    const isTest = import.meta.env.MODE === 'test'
+    const risk = isTest ? seedRisk() : []
     return {
-      events: seedEvents(),
-      signals: seedSignals(),
+      events: isTest ? seedEvents() : [],
+      signals: isTest ? seedSignals() : [],
       riskUpdates: risk,
-      graphLinks: seedGraph(),
+      graphLinks: isTest ? seedGraph() : [],
       agents: buildInitialAgents(),
       worldRisk: computeWorldRisk(risk),
       selectedEntity: null,
