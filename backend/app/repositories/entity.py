@@ -1,5 +1,7 @@
 from typing import List, Optional
 
+import re
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -63,12 +65,25 @@ class EntityRepository(BaseRepository[Entity]):
         Note: this is a substring search and has known limitations. A proper
         solution requires migrating ticker_symbols to a dedicated join table.
         """
-        query = (
-            select(self.model)
-            .where(self.model.ticker_symbols.contains(ticker))
-        )
-        result = await self.session.execute(query)
-        return result.scalars().first()
+        clean = ticker.strip().upper()
+        result = await self.session.execute(select(self.model).where(self.model.ticker_symbols.isnot(None)))
+        for entity in result.scalars().all():
+            tickers = {value.strip().upper() for value in (entity.ticker_symbols or '').split(',')}
+            if clean in tickers:
+                return entity
+        return None
+
+    async def match_mentions(self, text: str) -> list[int]:
+        """Resolve exact entity names and ticker tokens without substring collisions."""
+        normalized = text.casefold()
+        result = await self.session.execute(select(self.model))
+        matched: list[int] = []
+        for entity in result.scalars().all():
+            names = [entity.name]
+            tickers = (entity.ticker_symbols or '').split(',')
+            if any(re.search(rf"(?<!\w){re.escape(value.strip())}(?!\w)", normalized, re.IGNORECASE) for value in [*names, *tickers] if value.strip()):
+                matched.append(entity.id)
+        return matched
 
     async def get_with_events(self, entity_id: int) -> Optional[Entity]:
         """Get entity with all related events eagerly loaded."""
