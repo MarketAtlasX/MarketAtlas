@@ -7,9 +7,8 @@ New Event → Embedding Model → Qdrant Search → Top 20 Similar Events
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
 
-from pipelines.core.base import Pipeline, PipelineStage
+from pipelines.core.base import Pipeline
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
 from pipelines.similarity.embedding import SimilarityEmbeddingStage
 from pipelines.similarity.qdrant import QdrantSearchStage
