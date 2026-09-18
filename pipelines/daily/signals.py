@@ -14,7 +14,6 @@ class DailySignalStage(PipelineStage):
 
     async def run(self, event: Event, context: Context) -> Event:
         aggregates = event.data.get("daily_feature_aggregates", {})
-        features = event.data.get("features", [])
         signals = []
 
         avg_sent = aggregates.get("avg_sentiment", 0)

@@ -6,7 +6,6 @@ The user's specified Daily Pipeline flow.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
 
 from pipelines.core.base import Pipeline
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
