@@ -9,9 +9,8 @@ Tests:
 """
 
 import asyncio
-import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Ensure backend and monorepo root on sys.path
 _ROOT = Path(__file__).resolve().parents[2]
@@ -27,14 +26,14 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from app.chatbot.agents.final_prediction_agent import FinalPredictionAgent
-from app.chatbot.agents.geopolitical_agent import GeopoliticalAgent
-from app.chatbot.agents.historical_agent import HistoricalAgent
-from app.main import app
-from app.schemas.prediction import PredictionRequest
-from app.services.prediction_service import prediction_service
+from app.chatbot.agents.final_prediction_agent import FinalPredictionAgent  # noqa: E402
+from app.chatbot.agents.geopolitical_agent import GeopoliticalAgent  # noqa: E402
+from app.chatbot.agents.historical_agent import HistoricalAgent  # noqa: E402
+from app.main import app  # noqa: E402
+from app.schemas.prediction import PredictionRequest  # noqa: E402
+from app.services.prediction_service import prediction_service  # noqa: E402
 
 
 def print_section(title: str):

@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.services.sector_data_service import SectorDataService
 from app.services.financial_data_service import get_price_history, get_stock_quote
+from app.services.sector_data_service import SectorDataService
 
 router = APIRouter(prefix="/market-data", tags=["market-data"])
 

@@ -3,8 +3,8 @@ Safe test: never prints secret keys or sensitive tokens.
 """
 
 import asyncio
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Ensure paths
 _ROOT = Path(__file__).resolve().parents[2]
@@ -19,10 +19,10 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
-import httpx
-from app.config import settings
-from app.chatbot.llm.provider import get_llm, PerplexityLLM, HybridLLM, MarketAtlasLLM
-from app.services.financial_data_service import FinancialDataService
+import httpx  # noqa: E402
+
+from app.chatbot.llm.provider import HybridLLM, MarketAtlasLLM, PerplexityLLM, get_llm  # noqa: E402
+from app.config import settings  # noqa: E402
 
 
 def mask_key(k: str) -> str:
@@ -37,14 +37,14 @@ async def test_llm_providers():
     print("=" * 60)
 
     # Check Perplexity
-    print(f"\n[Perplexity API]")
+    print("\n[Perplexity API]")
     print(f"  Key Configured : {mask_key(settings.perplexity_api_key)}")
     print(f"  Model          : {settings.perplexity_model}")
     if settings.perplexity_api_key:
         try:
             llm = PerplexityLLM()
             resp = llm.generate("State in 5 words: Perplexity API connected and online.", temperature=0.1)
-            print(f"  Connection     : SUCCESS [LIVE]")
+            print("  Connection     : SUCCESS [LIVE]")
             print(f"  Response       : {resp.strip()[:100]}")
         except Exception as e:
             print(f"  Connection     : FAILED -> {e}")
@@ -52,13 +52,13 @@ async def test_llm_providers():
         print("  Connection     : SKIPPED (No API key)")
 
     # Check Gemini / Hybrid
-    print(f"\n[Gemini API]")
+    print("\n[Gemini API]")
     print(f"  Key Configured : {mask_key(settings.gemini_api_key)}")
     if settings.gemini_api_key:
         try:
             llm = HybridLLM()
             resp = llm.generate("Say 'MarketAtlas Gemini Connected' in 4 words.", temperature=0.1)
-            print(f"  Connection     : SUCCESS [LIVE]")
+            print("  Connection     : SUCCESS [LIVE]")
             print(f"  Response       : {resp.strip()[:100]}")
         except Exception as e:
             print(f"  Connection     : FAILED -> {e}")
@@ -66,13 +66,13 @@ async def test_llm_providers():
         print("  Connection     : SKIPPED (No API key)")
 
     # Check OpenAI
-    print(f"\n[OpenAI API]")
+    print("\n[OpenAI API]")
     print(f"  Key Configured : {mask_key(settings.openai_api_key)}")
     if settings.openai_api_key:
         try:
             llm = MarketAtlasLLM()
             resp = llm.generate("Say 'MarketAtlas OpenAI Connected' in 4 words.", temperature=0.1)
-            print(f"  Connection     : SUCCESS [LIVE]")
+            print("  Connection     : SUCCESS [LIVE]")
             print(f"  Response       : {resp.strip()[:100]}")
         except Exception as e:
             print(f"  Connection     : FAILED -> {e}")
@@ -80,12 +80,12 @@ async def test_llm_providers():
         print("  Connection     : SKIPPED (No API key)")
 
     # Check Default LLM Hierarchy Dispatch
-    print(f"\n[Primary System LLM Dispatcher (get_llm())]")
+    print("\n[Primary System LLM Dispatcher (get_llm())]")
     try:
         default_llm = get_llm()
         print(f"  Active Provider: {default_llm.__class__.__name__}")
         resp = default_llm.generate("Ping test for MarketAtlas 3-Agent system.", temperature=0.1)
-        print(f"  Dispatch Status: SUCCESS [LIVE]")
+        print("  Dispatch Status: SUCCESS [LIVE]")
         print(f"  Sample Output  : {resp.strip()[:120]}...")
     except Exception as e:
         print(f"  Dispatch Status: FAILED -> {e}")
@@ -102,7 +102,7 @@ async def test_market_data_api():
         if quote and quote.get("price"):
             print(f"  Live Quote (AAPL): SUCCESS [LIVE] -> ${quote.get('price'):.2f} (Source: {quote.get('source')})")
         else:
-            print(f"  Live Quote (AAPL): Offline / Default data")
+            print("  Live Quote (AAPL): Offline / Default data")
     except Exception as e:
         print(f"  Market Data API  : {e}")
 
@@ -113,26 +113,27 @@ async def test_infrastructure():
     print("=" * 60)
 
     # Redis
-    print(f"\n[Redis Cache]")
+    print("\n[Redis Cache]")
     print(f"  URL: {settings.redis_url}")
     try:
         import redis.asyncio as aioredis
         r = aioredis.from_url(settings.redis_url, decode_responses=True, socket_connect_timeout=2)
         await r.ping()
         await r.aclose()
-        print(f"  Status: CONNECTED [ONLINE]")
+        print("  Status: CONNECTED [ONLINE]")
     except Exception as e:
         print(f"  Status: OFFLINE / In-Memory Fallback Active ({e})")
 
     # PostgreSQL Database
-    print(f"\n[PostgreSQL Database]")
+    print("\n[PostgreSQL Database]")
     print(f"  Host: {settings.db_host}:{settings.db_port}, DB: {settings.db_name}, User: {settings.db_user}")
     try:
-        from app.database import engine
         from sqlalchemy import text
+
+        from app.database import engine
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-        print(f"  Status: CONNECTED [ONLINE]")
+        print("  Status: CONNECTED [ONLINE]")
     except Exception as e:
         print(f"  Status: OFFLINE / Mock DB Fallback Active ({e})")
 
@@ -150,7 +151,7 @@ async def test_infrastructure():
                 res = await client.get(f"{svc_url}/docs")
                 print(f"  Status: CONNECTED [ONLINE] (HTTP {res.status_code})")
         except Exception:
-            print(f"  Status: OFFLINE (Graceful fallback active)")
+            print("  Status: OFFLINE (Graceful fallback active)")
 
 
 async def main():

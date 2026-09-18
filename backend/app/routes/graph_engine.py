@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.services.canonical_causal_graph import canonical_causal_graph_service
-
 from app.services.graph_engine_client import graph_engine_client
 
 logger = logging.getLogger(__name__)
