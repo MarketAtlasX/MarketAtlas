@@ -7,10 +7,10 @@ Create Date: 2026-07-30 12:00:00.000000
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
+from alembic import op
 
 revision: str = "6e7f8a9b0c1d"
 down_revision: Union[str, Sequence[str], None] = "4159c18327f5"

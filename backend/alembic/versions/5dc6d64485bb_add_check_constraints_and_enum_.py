@@ -21,8 +21,6 @@ the FastAPI application (e.g., direct SQL, scripts, migrations).
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
-
 
 # revision identifiers, used by Alembic.
 revision: str = '5dc6d64485bb'

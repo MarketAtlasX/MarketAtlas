@@ -1,7 +1,7 @@
 """initial_schema
 
 Revision ID: a3468edd5ab1
-Revises: 
+Revises:
 Create Date: 2026-06-02
 
 Single authoritative baseline migration. Replaces two prior broken migrations:
@@ -14,9 +14,9 @@ CheckConstraints for categorical fields.
 
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'a3468edd5ab1'

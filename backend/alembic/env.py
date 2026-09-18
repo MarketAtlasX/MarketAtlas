@@ -3,6 +3,7 @@ import sys
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
+
 from alembic import context
 
 # ---------------------------------------------------------------------------
@@ -12,31 +13,37 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.config import settings
 from app.database import Base
+from app.models.chat import (
+    ChatMessage,  # noqa: F401
+    Conversation,  # noqa: F401
+)
+from app.models.country import Country  # noqa: F401
+from app.models.entity import Entity  # noqa: F401
+from app.models.entity_relationship import EntityRelationship  # noqa: F401
 
 # Import all models so that Base.metadata is fully populated for autogenerate
 from app.models.event import Event  # noqa: F401
-from app.models.entity import Entity  # noqa: F401
 from app.models.event_entity import EventEntity  # noqa: F401
-from app.models.live_event import LiveEvent  # noqa: F401
-from app.models.live_event import EventImpact  # noqa: F401
-from app.models.live_event import EventAffectedAsset  # noqa: F401
-from app.models.live_event import EventNewsArticle  # noqa: F401
-from app.models.live_event import EventAlert  # noqa: F401
-from app.models.live_event import UserEventFilter  # noqa: F401
+from app.models.live_event import (
+    EventAffectedAsset,  # noqa: F401
+    EventAlert,  # noqa: F401
+    EventImpact,  # noqa: F401
+    EventNewsArticle,  # noqa: F401
+    LiveEvent,  # noqa: F401
+    UserEventFilter,  # noqa: F401
+)
 from app.models.market_price import MarketPrice  # noqa: F401
-from app.models.signal import Signal  # noqa: F401
-from app.models.country import Country  # noqa: F401
-from app.models.trade_route import TradeRoute  # noqa: F401
 from app.models.military_relation import MilitaryRelation  # noqa: F401
 from app.models.port import Port  # noqa: F401
-from app.models.user import User  # noqa: F401
+from app.models.portfolio import (
+    Portfolio,  # noqa: F401
+    SectorCache,  # noqa: F401
+    SimulationRun,  # noqa: F401
+)
 from app.models.raw_event import RawEvent  # noqa: F401
-from app.models.entity_relationship import EntityRelationship  # noqa: F401
-from app.models.portfolio import Portfolio  # noqa: F401
-from app.models.portfolio import SimulationRun  # noqa: F401
-from app.models.portfolio import SectorCache  # noqa: F401
-from app.models.chat import Conversation  # noqa: F401
-from app.models.chat import ChatMessage  # noqa: F401
+from app.models.signal import Signal  # noqa: F401
+from app.models.trade_route import TradeRoute  # noqa: F401
+from app.models.user import User  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Alembic configuration
