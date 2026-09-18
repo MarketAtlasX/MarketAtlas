@@ -1,10 +1,9 @@
 """Prediction Ledger Model — Tracks forecasts, horizons, and realized outcomes."""
 
 from datetime import datetime
-from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, JSON, Numeric, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base

@@ -10,12 +10,11 @@ Defines validated data transfer objects for:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 def _naive_utc_now() -> datetime:

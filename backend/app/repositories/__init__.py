@@ -4,8 +4,11 @@ from app.repositories.entity import EntityRepository
 from app.repositories.event import EventRepository
 from app.repositories.event_entity import EventEntityRepository
 from app.repositories.live_event import (
-    EventAlertRepository, EventImpactRepository, EventNewsArticleRepository,
-    LiveEventRepository, UserEventFilterRepository,
+    EventAlertRepository,
+    EventImpactRepository,
+    EventNewsArticleRepository,
+    LiveEventRepository,
+    UserEventFilterRepository,
 )
 from app.repositories.market_price import MarketPriceRepository
 from app.repositories.military_relation_repository import MilitaryRelationRepository
