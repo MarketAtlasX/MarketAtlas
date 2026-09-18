@@ -4,9 +4,8 @@ import abc
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-import httpx
 
 from pipelines.core.types import Event
 

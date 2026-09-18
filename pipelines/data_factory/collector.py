@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import abc
 import asyncio
-import hashlib
 import logging
-from datetime import datetime, timedelta
-from typing import Any, AsyncIterator, Dict, List, Optional
+from datetime import datetime
+from typing import Any, AsyncIterator, Dict, List
 
 import httpx
 
@@ -109,7 +108,6 @@ class RSSCollector(Collector):
                     resp = await client.get(feed_url)
                     resp.raise_for_status()
                     root = ET.fromstring(resp.text)
-                    ns = {"atom": "http://www.w3.org/2005/Atom"}
                     for entry in root.findall(".//item"):
                         yield Event(
                             source="rss",

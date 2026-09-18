@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import abc
-import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from pipelines.core.types import Event
 

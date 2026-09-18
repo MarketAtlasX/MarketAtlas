@@ -4,8 +4,7 @@ import abc
 import hashlib
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import List, Optional, Set
 
 from pipelines.core.types import Event
 
