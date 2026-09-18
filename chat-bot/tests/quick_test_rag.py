@@ -1,5 +1,7 @@
 """Quick tests for RAG pipeline modules - designed to work offline."""
-import sys, asyncio, os
+import sys
+import asyncio
+import os
 sys.path.insert(0, "D:\\MY WORK\\MarketAtlas\\chat-bot")
 
 # Block network-heavy initializations
@@ -21,7 +23,6 @@ def test_chunker():
 
 def test_embeddings():
     emb = BGEMModel()
-    vec = emb.embed("test")
     print(f"[OK] Embeddings: dim={emb.dim}, available={emb.available}")
 
 def test_intent():

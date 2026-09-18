@@ -1,4 +1,6 @@
-import sys, asyncio, os
+import sys
+import asyncio
+import os
 sys.path.insert(0, "D:\\MY WORK\\MarketAtlas\\chat-bot")
 os.environ["HF_HUB_OFFLINE"] = "1"
 
