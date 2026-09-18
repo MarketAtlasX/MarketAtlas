@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import List
 
 from rag.embeddings import get_embedding_model
 from rag.retrievers.base import BaseRetriever, RetrievalResult, RetrieverType
@@ -130,7 +130,6 @@ class MarketRetriever(BaseRetriever):
             score = 0.0
             event_text = f"{reaction['event']} {reaction['asset']} {reaction['reaction']} {reaction['sector']}"
             query_terms = query_lower.split()
-            event_terms = event_text.lower().split()
             matches = sum(1 for qt in query_terms if qt in event_text.lower())
             score = matches / max(len(query_terms), 1) * 0.8
             entity_matches = 0

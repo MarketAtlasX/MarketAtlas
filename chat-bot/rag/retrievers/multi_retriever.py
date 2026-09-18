@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional
 
 from rag.retrievers.base import BaseRetriever, RetrievalResult, RetrieverType
 from rag.retrievers.graph_retriever import GraphRetriever

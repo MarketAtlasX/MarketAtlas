@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import List
 
 from rag.embeddings import get_embedding_model
 from rag.retrievers.base import BaseRetriever, RetrievalResult, RetrieverType

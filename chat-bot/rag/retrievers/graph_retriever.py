@@ -261,35 +261,3 @@ class GraphRetriever(BaseRetriever):
             "sectors": list(sectors),
             "neo4j_available": self._neo4j_driver is not None,
         }
-
-        if self._neo4j_driver:
-            try:
-                with self._neo4j_driver.session() as session:
-                    entities = self._find_entities(query)
-                    for entity in entities[:3]:
-                        result = session.run(
-                            "MATCH (e)-[r]->(t) WHERE e.name = $name RETURN e.name as source, type(r) as rel, t.name as target",
-                            name=entity,
-                        )
-                        for record in result:
-                            content = f"Graph: {record['source']} -[{record['rel']}]-> {record['target']}"
-                            results.append(
-                                RetrievalResult(
-                                    content=content,
-                                    score=0.8,
-                                    source="neo4j",
-                                    retriever_type=RetrieverType.GRAPH,
-                                    metadata={
-                                        "source": record["source"],
-                                        "relation": record["rel"],
-                                        "target": record["target"],
-                                    },
-                                )
-                            )
-            except Exception as e:
-                logger.warning(f"Neo4j query failed: {e}")
-        dedup = {}
-        for r in results:
-            if r.content not in dedup:
-                dedup[r.content] = r
-        return list(dedup.values())[:limit]

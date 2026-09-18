@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List
 
-from rag.retrievers.market_retriever import MarketRetriever, MARKET_REACTIONS
+from rag.retrievers.market_retriever import MarketRetriever
 from rag.historical_memory.event_similarity import EventSimilarity
 
 logger = logging.getLogger(__name__)

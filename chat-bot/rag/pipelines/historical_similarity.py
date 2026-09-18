@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
-from rag.historical_memory.analog_retriever import AnalogRetriever, AnalogResult
-from rag.historical_memory.event_similarity import EventSimilarity, SimilarityScore
+from rag.historical_memory.analog_retriever import AnalogRetriever
+from rag.historical_memory.event_similarity import EventSimilarity
 from rag.retrievers.historical_retriever import HistoricalRetriever
 
 logger = logging.getLogger(__name__)

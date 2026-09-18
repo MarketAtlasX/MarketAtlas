@@ -7,7 +7,6 @@ from typing import List, Optional
 from rag.embeddings import get_embedding_model
 from rag.ingestion import Document, NewsIngestor
 from rag.retrievers.news_retriever import NewsRetriever
-from rag.vectorstore import get_vector_store
 
 logger = logging.getLogger(__name__)
 

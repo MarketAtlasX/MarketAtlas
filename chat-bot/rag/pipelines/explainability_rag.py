@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 
 from rag.historical_memory.analog_retriever import AnalogRetriever
 from rag.graph_retrieval.graph_paths import GraphPathExtractor
@@ -120,15 +120,15 @@ class ExplainabilityRAGPipeline:
         )
         extra_lines = []
         if analogs_result.analogs:
-            extra_lines.append(f"\n\nHistorical Analogs:")
+            extra_lines.append("\n\nHistorical Analogs:")
             for a in analogs_result.analogs[:3]:
                 extra_lines.append(f"  - {a['event_name']} (similarity: {a['score']:.2f}): {a['description'][:100]}")
         if graph_paths:
-            extra_lines.append(f"\n\nGraph Relationships:")
+            extra_lines.append("\n\nGraph Relationships:")
             for p in graph_paths[:3]:
                 extra_lines.append(f"  - {p.path_string}")
         if market_result.reactions:
-            extra_lines.append(f"\n\nMarket Reactions:")
+            extra_lines.append("\n\nMarket Reactions:")
             for r in market_result.reactions[:3]:
                 extra_lines.append(f"  - {r['event']}: {r['reaction'][:100]}")
         explanation = explanation_template + "\n".join(extra_lines)
