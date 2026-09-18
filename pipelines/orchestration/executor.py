@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pipelines.core.base import Pipeline
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus

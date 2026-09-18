@@ -3,8 +3,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import logging
-from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List
 
 from pipelines.core.types import Event
 
