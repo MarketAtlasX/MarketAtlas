@@ -7,10 +7,6 @@ from pydantic import BaseModel, Field
 
 from world_state.core.types import (
     WORLD_STATE_KEYS,
-    EconomicState,
-    GeopoliticalState,
-    InfrastructureState,
-    MarketState,
     MultiScaleState,
     StateVector,
 )

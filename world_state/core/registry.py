@@ -6,7 +6,6 @@ Every agent reads from this. Every event writes to this.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from world_state.core.types import (
