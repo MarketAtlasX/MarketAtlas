@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from simulator.models.agents import AgentReport, ChiefReport
-from simulator.models.scenario import AssumptionGraph, Scenario
-from simulator.models.simulation import HorizonResult, SimulationRun
+from simulator.models.scenario import AssumptionGraph
+from simulator.models.simulation import SimulationRun
 
 
 class ConfidenceAnalyzer:

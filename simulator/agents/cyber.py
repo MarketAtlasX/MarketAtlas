@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import List
 
 from simulator.agents.base import BaseAgent
 from simulator.models.agents import AgentReport, AgentType, ImpactMetric
@@ -43,7 +43,7 @@ class CyberAgent(BaseAgent):
             round(effective_cyber_risk, 4),
             "up",
             confidence=0.65,
-            reasoning=f"Infrastructure at risk from cyber operations",
+            reasoning="Infrastructure at risk from cyber operations",
         ))
 
         if cyber_probability > 0.4:

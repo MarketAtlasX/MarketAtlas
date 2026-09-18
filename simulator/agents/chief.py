@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from simulator.models.agents import (
     AgentReport,
@@ -9,7 +9,6 @@ from simulator.models.agents import (
     ImpactMetric,
 )
 from simulator.models.scenario import Scenario
-from simulator.models.world import SimulationWorld
 
 
 class ChiefIntelligenceAgent:
@@ -41,7 +40,6 @@ class ChiefIntelligenceAgent:
                 all_impacts[impact.name].append(impact)
 
         top_risks = self._deduplicate(all_risks)[:5]
-        top_opportunities = self._deduplicate(all_opportunities)[:3]
 
         sector_winners, sector_losers = self._extract_sectors(agent_reports)
 

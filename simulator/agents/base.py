@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
 
 from simulator.models.agents import AgentReport, AgentType, ImpactMetric
 from simulator.models.scenario import Scenario, AssumptionGraph

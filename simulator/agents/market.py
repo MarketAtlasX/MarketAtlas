@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from simulator.agents.base import BaseAgent
 from simulator.models.agents import AgentReport, AgentType, ImpactMetric

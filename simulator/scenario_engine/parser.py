@@ -3,12 +3,10 @@ from __future__ import annotations
 import logging
 import re
 import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from simulator.models.scenario import (
     Assumption,
-    AssumptionGraph,
     EventType,
     InjectedEvent,
     Scenario,

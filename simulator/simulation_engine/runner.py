@@ -17,10 +17,10 @@ from simulator.agents import (
     TradeAgent,
 )
 from simulator.config import settings
-from simulator.models.agents import AgentReport, AgentType, ChiefReport
+from simulator.models.agents import AgentReport, AgentType
 from simulator.models.scenario import Scenario
-from simulator.models.simulation import HorizonResult, Simulation, SimulationRun
-from simulator.models.world import SimulationWorld, WorldClone
+from simulator.models.simulation import HorizonResult, SimulationRun
+from simulator.models.world import SimulationWorld
 from simulator.propagation_engine.propagator import RiskPropagator
 from simulator.simulation_engine.monte_carlo import MonteCarloEngine
 from simulator.world_clone.cloner import WorldCloner

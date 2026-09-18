@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from simulator.models.propagation import InfluenceEdge, PropagationPath, RiskDelta
+from simulator.models.propagation import InfluenceEdge, RiskDelta
 from simulator.propagation_engine.graph import KnowledgeGraphTraverser
 from simulator.propagation_engine.propagator import RiskPropagator
 

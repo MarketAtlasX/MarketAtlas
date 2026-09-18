@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from simulator.models.agents import AgentReport, AgentType, ChiefReport
+from simulator.models.agents import AgentReport, AgentType
 from simulator.models.scenario import Scenario
 
 

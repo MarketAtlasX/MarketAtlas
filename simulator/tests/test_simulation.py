@@ -3,13 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from simulator.models.agents import AgentReport, AgentType, ChiefReport, ImpactMetric
 from simulator.models.scenario import (
-    Assumption,
     AssumptionGraph,
     EventType,
     InjectedEvent,
     Scenario,
 )
-from simulator.models.simulation import HorizonResult, Simulation, SimulationRun
+from simulator.models.simulation import HorizonResult, Simulation
 from simulator.simulation_engine.runner import SimulationRunner
 
 

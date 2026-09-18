@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import timedelta
+from typing import Any, Dict, Optional
 
 from simulator.models.scenario import Scenario
 from simulator.models.timeline import SimulationTimeline, TimelineStep

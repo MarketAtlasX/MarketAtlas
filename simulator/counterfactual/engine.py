@@ -3,10 +3,9 @@ from __future__ import annotations
 import copy
 import logging
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from simulator.models.scenario import Assumption, AssumptionGraph, Scenario
+from simulator.models.scenario import Scenario
 from simulator.models.simulation import SimulationRun
 from simulator.simulation_engine.runner import SimulationRunner
 

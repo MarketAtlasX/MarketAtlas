@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import List
 
 from simulator.agents.base import BaseAgent
 from simulator.models.agents import AgentReport, AgentType, ImpactMetric
-from simulator.models.scenario import EventType, Scenario
+from simulator.models.scenario import Scenario
 from simulator.models.world import SimulationWorld
 
 

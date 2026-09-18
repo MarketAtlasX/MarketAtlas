@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from simulator.models.propagation import InfluenceEdge, RiskDelta
 from simulator.propagation_engine.graph import KnowledgeGraphTraverser

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from simulator.confidence.analyzer import ConfidenceAnalyzer
 from simulator.explainability.graph import CausalChainBuilder, ReasoningGraph
-from simulator.models.agents import AgentReport, AgentType, ChiefReport
+from simulator.models.agents import AgentType
 from simulator.models.scenario import Scenario
 from simulator.models.simulation import Simulation, SimulationRun
 from simulator.portfolio_engine.impact import PortfolioImpactEngine

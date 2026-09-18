@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -24,7 +24,7 @@ from simulator.models.scenario import (
     InjectedEvent,
     Scenario,
 )
-from simulator.models.simulation import Simulation, SimulationEpisode
+from simulator.models.simulation import Simulation
 from simulator.portfolio_engine.impact import PortfolioImpactEngine
 from simulator.reports.generator import ReportGenerator
 from simulator.scenario_engine.builder import ScenarioBuilder

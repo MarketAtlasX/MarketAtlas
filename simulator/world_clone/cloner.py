@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -8,7 +7,7 @@ from typing import Any, Dict, Optional
 import httpx
 
 from simulator.config import settings
-from simulator.models.world import SimulationWorld, WorldClone
+from simulator.models.world import WorldClone
 
 logger = logging.getLogger(__name__)
 
