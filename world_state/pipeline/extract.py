@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import logging
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from world_state.core.registry import StateRegistry
 from world_state.core.types import NodeType, StateDelta
@@ -70,7 +69,6 @@ class EventExtractor:
         title = event_data.get("title", "")
         content = event_data.get("content", "") or event_data.get("summary", "")
         text = f"{title} {content}".lower()
-        source = event_data.get("source", "unknown")
         event_id = event_data.get("id")
         severity = self._infer_severity(text)
 

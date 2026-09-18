@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from world_state.core.registry import StateRegistry
-from world_state.core.types import NodeType, WorldSnapshot
 from world_state.risk.engine import WorldRiskEngine
 from world_state.temporal.memory import TemporalMemory
 

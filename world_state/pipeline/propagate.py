@@ -7,7 +7,7 @@ Commodity → Sector → Market
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 from world_state.core.registry import StateRegistry
 from world_state.core.types import NodeType, StateDelta

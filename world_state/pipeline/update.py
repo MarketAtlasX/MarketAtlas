@@ -8,13 +8,13 @@ News Event → Entity Extraction → Knowledge Graph → Feature Extraction
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
 
 from world_state.core.registry import StateRegistry
-from world_state.core.types import NodeType, StateDelta, WorldSnapshot
+from world_state.core.types import StateDelta
 from world_state.pipeline.extract import EventExtractor
 from world_state.pipeline.propagate import RiskPropagator
 from world_state.pipeline.snapshot import SnapshotManager

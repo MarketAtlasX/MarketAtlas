@@ -7,11 +7,11 @@ Perfect for LSTM.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from world_state.core.registry import StateRegistry
-from world_state.core.types import Snapshot, WorldSnapshot
+from world_state.core.types import WorldSnapshot
 
 logger = logging.getLogger(__name__)
 
