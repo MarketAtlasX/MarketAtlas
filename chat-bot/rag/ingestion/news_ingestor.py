@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
-from rag.chunking import TextChunker, ChunkResult
+from rag.chunking import TextChunker
 from rag.embeddings import get_embedding_model
 from rag.vectorstore import get_vector_store
 

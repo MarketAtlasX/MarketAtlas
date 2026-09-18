@@ -17,8 +17,6 @@ from rag.rerankers import BGEReranker, RerankResult, get_reranker
 from rag.historical_memory import EventEmbedder, EventSimilarity, SimilarityScore, AnalogRetriever, AnalogResult
 from rag.graph_retrieval import GraphDBClient, GraphQueryEngine, GraphQueryResult, GraphPathExtractor, GraphPath
 from rag.geo_rag import GeoIntentClassifier, GeoIntent, IntentResult, GeoContextBuilder, GeoRAGPipeline, GeoRAGResult
-from rag.embeddings import get_embedding_model
-from rag.ingestion import Document, NewsIngestor
 from rag.pipelines import (
     NewsRAGPipeline,
     HistoricalSimilarityPipeline,
