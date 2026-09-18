@@ -1,4 +1,3 @@
-from typing import Optional
 
 from episodic_memory.models import Episode
 from episodic_memory.storage import PostgresStore, QdrantStore, Neo4jStore

@@ -4,7 +4,6 @@ from episodic_memory.models import (
     Episode,
     Outcome,
     OutcomeCategory,
-    OutcomeSeverity,
     Participant,
     ParticipantRole,
     ParticipantType,

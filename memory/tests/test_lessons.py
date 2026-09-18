@@ -5,14 +5,14 @@ def test_lesson_engine_generates(sample_episode_with_outcomes):
     engine = LessonEngine()
     lessons = engine.generate(sample_episode_with_outcomes)
     assert len(lessons) > 0
-    assert all(isinstance(l, str) for l in lessons)
+    assert all(isinstance(lesson, str) for lesson in lessons)
 
 
 def test_lesson_templates_market(sample_episode_with_outcomes):
     templates = LessonTemplates()
     lessons = templates.apply_market_lessons(sample_episode_with_outcomes)
     assert len(lessons) > 0
-    assert any("Brent Crude" in l for l in lessons)
+    assert any("Brent Crude" in lesson for lesson in lessons)
 
 
 def test_lesson_templates_conflict(sample_episode_with_outcomes):

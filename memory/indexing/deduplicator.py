@@ -1,5 +1,4 @@
 from hashlib import sha256
-from typing import Any
 
 import numpy as np
 

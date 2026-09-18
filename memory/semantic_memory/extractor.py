@@ -1,6 +1,5 @@
 import re
 import uuid
-from typing import Any
 
 from .models import Fact, FactCategory
 

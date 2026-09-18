@@ -1,7 +1,6 @@
 from collections import Counter, defaultdict
-from typing import Any
 
-from episodic_memory.models import Episode, Outcome, OutcomeCategory
+from episodic_memory.models import Episode, OutcomeCategory
 from .templates import LessonTemplates
 
 
@@ -20,7 +19,7 @@ class LessonEngine:
         lessons.extend(derived)
 
         seen = set()
-        return [l for l in lessons if not (l in seen or seen.add(l))]
+        return [lesson for lesson in lessons if not (lesson in seen or seen.add(lesson))]
 
     def generate_cross_episode(
         self, episodes: list[Episode], min_occurrences: int = 2
