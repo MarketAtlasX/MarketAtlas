@@ -13,7 +13,6 @@ class PostgresStore:
 
     async def initialize(self):
         from sqlalchemy import Column, String, Float, DateTime, Text, Integer, JSON, Boolean
-        from sqlalchemy import select, delete, and_
         from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
         from sqlalchemy.orm import DeclarativeBase
 
@@ -63,7 +62,6 @@ class PostgresStore:
             await self._engine.dispose()
 
     async def store_episode(self, episode) -> None:
-        from sqlalchemy import select
 
         record = self._to_record(episode)
         async with self._session_factory() as session:
@@ -104,7 +102,6 @@ class PostgresStore:
         offset: int = 0,
     ):
         from sqlalchemy import select, and_
-        import json
 
         conditions = []
         if locations:

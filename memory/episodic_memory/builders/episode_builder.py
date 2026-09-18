@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
-from episodic_memory.models import Episode, Participant, Timeline, TimelineEvent
+from episodic_memory.models import Episode, Participant
 
 from .timeline_builder import TimelineBuilder
 from .lesson_builder import LessonBuilder

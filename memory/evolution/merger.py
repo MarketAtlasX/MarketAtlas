@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from episodic_memory.models import Episode, Participant, Timeline, TimelineEvent
+from episodic_memory.models import Episode, Participant
 
 
 class EpisodeMerger:

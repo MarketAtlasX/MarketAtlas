@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, Optional
 
 from episodic_memory.models import Episode, Outcome, TimelineEvent
 

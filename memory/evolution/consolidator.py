@@ -1,6 +1,4 @@
-from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Optional
+from datetime import timedelta
 
 from episodic_memory.models import Episode
 from similarity.weighted import WeightedSimilarity

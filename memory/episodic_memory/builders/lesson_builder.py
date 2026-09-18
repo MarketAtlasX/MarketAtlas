@@ -1,7 +1,6 @@
 from collections import defaultdict
-from typing import Any
 
-from episodic_memory.models import Episode, Outcome
+from episodic_memory.models import Episode
 
 
 class LessonBuilder:

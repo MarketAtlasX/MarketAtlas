@@ -1,4 +1,3 @@
-from typing import Optional
 
 from episodic_memory.models import Episode
 from episodic_memory.storage import PostgresStore, QdrantStore, Neo4jStore
@@ -96,7 +95,7 @@ class AnalogSearch:
             if not episode:
                 continue
 
-            if locations and not any(l in episode.locations for l in locations):
+            if locations and not any(loc in episode.locations for loc in locations):
                 continue
             if sectors and not any(s in episode.sectors for s in sectors):
                 continue
