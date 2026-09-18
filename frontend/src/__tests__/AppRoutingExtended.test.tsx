@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
-import { WorldProvider } from '../stores/WorldStore'
+import { withProviders } from './harness'
 import AppLayout from '../components/AppLayout'
 
 function TestPage() {
@@ -11,13 +10,12 @@ function TestPage() {
 describe('AppLayout routing integration', () => {
   it('wraps children and renders top bar across all routes', () => {
     render(
-      <MemoryRouter initialEntries={['/markets']}>
-        <WorldProvider>
-          <AppLayout>
-            <TestPage />
-          </AppLayout>
-        </WorldProvider>
-      </MemoryRouter>,
+      withProviders(
+        <AppLayout>
+          <TestPage />
+        </AppLayout>,
+        ['/markets'],
+      ),
     )
     expect(screen.getByTestId('test-page')).toBeInTheDocument()
     const brand = screen.getByTitle('Go to dashboard')
@@ -27,26 +25,24 @@ describe('AppLayout routing integration', () => {
 
   it('renders back button on memory route', () => {
     render(
-      <MemoryRouter initialEntries={['/memory']}>
-        <WorldProvider>
-          <AppLayout>
-            <TestPage />
-          </AppLayout>
-        </WorldProvider>
-      </MemoryRouter>,
+      withProviders(
+        <AppLayout>
+          <TestPage />
+        </AppLayout>,
+        ['/memory'],
+      ),
     )
     expect(screen.getByTitle('Go back')).toBeInTheDocument()
   })
 
   it('does not render back button on dashboard route', () => {
     render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <WorldProvider>
-          <AppLayout>
-            <TestPage />
-          </AppLayout>
-        </WorldProvider>
-      </MemoryRouter>,
+      withProviders(
+        <AppLayout>
+          <TestPage />
+        </AppLayout>,
+        ['/dashboard'],
+      ),
     )
     expect(screen.queryByTitle('Go back')).not.toBeInTheDocument()
   })

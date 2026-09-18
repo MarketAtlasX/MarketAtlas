@@ -1,32 +1,27 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { WorldProvider } from '../stores/WorldStore'
+import { withProviders } from './harness'
 import AppLayout from '../components/AppLayout'
 
 describe('AppLayout', () => {
   it('renders children inside the layout', () => {
     render(
-      <MemoryRouter>
-        <WorldProvider>
-          <AppLayout>
-            <div data-testid="child">Hello</div>
-          </AppLayout>
-        </WorldProvider>
-      </MemoryRouter>,
+      withProviders(
+        <AppLayout>
+          <div data-testid="child">Hello</div>
+        </AppLayout>,
+      ),
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
   })
 
   it('renders the top status bar', () => {
     render(
-      <MemoryRouter>
-        <WorldProvider>
-          <AppLayout>
-            <div>Content</div>
-          </AppLayout>
-        </WorldProvider>
-      </MemoryRouter>,
+      withProviders(
+        <AppLayout>
+          <div>Content</div>
+        </AppLayout>,
+      ),
     )
     const brand = screen.getByTitle('Go to dashboard')
     expect(brand.textContent).toContain('MARKET')

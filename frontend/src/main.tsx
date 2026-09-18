@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { WorldProvider } from './stores/WorldStore'
 import { AtlasProvider } from './stores/AtlasStore'
 import { AssistantStateProvider } from './assistant/state/AssistantStateContext'
+import { VoiceAssistantProvider } from './assistant/voice/useVoiceAssistant'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/index.css'
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')!).render(
           <WorldProvider>
             <AtlasProvider>
               <AssistantStateProvider>
-                <App />
+                <VoiceAssistantProvider>
+                  <App />
+                </VoiceAssistantProvider>
               </AssistantStateProvider>
             </AtlasProvider>
           </WorldProvider>

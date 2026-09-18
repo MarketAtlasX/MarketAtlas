@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Mic, MicOff, Globe, TrendingUp, Radio, Orbit } from 'lucide-react'
+import { X, Mic, MicOff, RadioTower, Globe, TrendingUp, Radio, Orbit } from 'lucide-react'
 import { useAssistantState } from '../state/AssistantStateContext'
 import { useVoiceAssistant } from '../voice/useVoiceAssistant'
 import { ASSISTANT_STATE_LABEL, ASSISTANT_STATE_TONE } from '../state/assistantState'
@@ -30,7 +30,7 @@ const SUBSYSTEMS = [
 
 export function AtlasOverlay() {
   const { state, overlayOpen, setOverlayOpen } = useAssistantState()
-  const { active, start, stop } = useVoiceAssistant()
+  const { active, wake, wakeEnabled, setWakeEnabled, start, stop } = useVoiceAssistant()
   const [lines, setLines] = useState<TranscriptLine[]>(transcriptBus.current)
   const [showGuide, setShowGuide] = useState(false)
   const location = useLocation()
@@ -54,6 +54,7 @@ export function AtlasOverlay() {
   const visible = lines.slice(-4)
   const hints = getPageHints(location.pathname)
   const analysing = state === 'THINKING' || state === 'ANALYZING' || state === 'SIMULATING'
+  const wakeStandby = !active && wake === 'listening'
 
   const toggle = () => {
     if (active) stop()
@@ -128,11 +129,29 @@ export function AtlasOverlay() {
             </div>
 
             <span className="text-[9px] font-mono tracking-[0.22em] text-[var(--text-lo)] uppercase text-center">
-              {active ? 'Listening…' : 'Tap to speak'}
+              {active ? 'Listening…' : wakeStandby ? 'Say hey atlas' : 'Tap to speak'}
             </span>
 
             {/* Waveform */}
             <VoiceWaveform className="w-full" />
+
+            {/* Wake-word toggle */}
+            <button
+              onClick={() => setWakeEnabled(!wakeEnabled)}
+              title={wakeEnabled ? 'Disable always-on wake word' : 'Enable always-on wake word'}
+              className={`flex items-center gap-1.5 rounded border px-2 py-1 text-[8px] font-mono tracking-[0.18em] transition-colors ${
+                wakeEnabled
+                  ? 'border-[rgba(56,232,255,0.35)] bg-[rgba(56,232,255,0.08)] text-[var(--accent)]'
+                  : 'border-[var(--line)] text-[var(--text-lo)] hover:border-[rgba(56,232,255,0.25)]'
+              }`}
+              aria-pressed={wakeEnabled}
+            >
+              <RadioTower
+                size={9}
+                className={wakeEnabled && wake === 'listening' ? 'animate-pulse' : ''}
+              />
+              WAKE {wakeEnabled ? 'ON' : 'OFF'}
+            </button>
 
             {/* Subsystem chips */}
             <div className="flex flex-wrap gap-1 justify-center">
@@ -166,7 +185,9 @@ export function AtlasOverlay() {
                       <p className="text-[10px] text-[var(--text-mid)]">
                         {active
                           ? 'Speak now — Atlas is listening and will control the app based on your commands.'
-                          : 'Press the microphone button or click the mic in the top bar to activate Atlas voice control.'}
+                          : wakeStandby
+                            ? 'Always listening. Say "Hey Atlas" and I will take your command.'
+                            : 'Say "Hey Atlas" or press the microphone to activate Atlas voice control.'}
                       </p>
                     </div>
                   ) : (
@@ -215,7 +236,8 @@ export function AtlasOverlay() {
         <div className="px-5 pb-3 flex items-center gap-3">
           <div className="flex-1 h-px bg-[var(--line)]" />
           <span className="text-[8px] font-mono tracking-[0.22em] text-[var(--text-lo)]">
-            ATLAS VOICE ENGINE · {active ? 'BROWSER SPEECH' : 'STANDBY'}
+            ATLAS VOICE ENGINE ·{' '}
+            {active ? 'SESSION ACTIVE' : wakeStandby ? 'WAKE ARMED' : wakeEnabled ? 'WAKE STATIC' : 'STANDBY'}
           </span>
           <div className="flex-1 h-px bg-[var(--line)]" />
         </div>

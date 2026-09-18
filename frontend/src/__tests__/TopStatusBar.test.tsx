@@ -1,18 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { WorldProvider } from '../stores/WorldStore'
+import { withProviders } from './harness'
 import TopStatusBar from '../features/world-command/TopStatusBar'
 
 describe('TopStatusBar', () => {
   it('renders the brand and truthful data-mode indicator', () => {
-    render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <WorldProvider>
-          <TopStatusBar />
-        </WorldProvider>
-      </MemoryRouter>,
-    )
+    render(withProviders(<TopStatusBar />, ['/dashboard']))
     expect(screen.getByText('Geopolitical Intelligence')).toBeInTheDocument()
     expect(screen.getByText('SIMULATED')).toBeInTheDocument()
     expect(screen.queryByText('LIVE')).not.toBeInTheDocument()
@@ -20,25 +13,13 @@ describe('TopStatusBar', () => {
   })
 
   it('renders the world risk score and level', () => {
-    render(
-      <MemoryRouter initialEntries={['/dashboard']}>
-        <WorldProvider>
-          <TopStatusBar />
-        </WorldProvider>
-      </MemoryRouter>,
-    )
+    render(withProviders(<TopStatusBar />, ['/dashboard']))
     expect(screen.getByText('World Risk')).toBeInTheDocument()
     expect(screen.getByText(/^(LOW|ELEVATED|HIGH|CRITICAL)$/)).toBeInTheDocument()
   })
 
   it('renders a back button outside the dashboard', () => {
-    render(
-      <MemoryRouter initialEntries={['/graph']}>
-        <WorldProvider>
-          <TopStatusBar />
-        </WorldProvider>
-      </MemoryRouter>,
-    )
+    render(withProviders(<TopStatusBar />, ['/graph']))
     expect(screen.getByTitle('Go back')).toBeInTheDocument()
   })
 })

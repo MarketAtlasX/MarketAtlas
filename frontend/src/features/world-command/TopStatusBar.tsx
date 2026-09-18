@@ -1,4 +1,4 @@
-import { ChevronLeft, Mic, MicOff } from 'lucide-react'
+import { ChevronLeft, Mic, MicOff, RadioTower } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useWorldStore } from '../../stores/WorldStore'
 import StatusDot from '../../components/ui/StatusDot'
@@ -17,8 +17,10 @@ export default function TopStatusBar() {
   const isDashboard = location.pathname === '/dashboard'
 
   const { state, overlayOpen, setOverlayOpen } = useAssistantState()
-  const { active, start, stop } = useVoiceAssistant()
+  const { active, wake, wakeEnabled, setWakeEnabled, start, stop } = useVoiceAssistant()
   const tone = ASSISTANT_STATE_TONE[state]
+  const wakeStandby = !active && (wake === 'listening')
+  const dotTone = active ? tone : wakeStandby ? 'var(--accent)' : 'var(--text-lo)'
 
   const handleBack = () => {
     const idx = typeof window !== 'undefined' ? window.history.state?.idx : undefined
@@ -108,29 +110,43 @@ export default function TopStatusBar() {
         <button
           type="button"
           onClick={toggleAtlas}
-          title={overlayOpen ? 'Close Atlas AI' : 'Open Atlas AI voice control'}
+          title={
+            overlayOpen
+              ? 'Close Atlas AI'
+              : wakeStandby
+                ? 'Always on — say "Hey Atlas" to speak'
+                : 'Open Atlas AI voice control'
+          }
           aria-label={overlayOpen ? 'Close Atlas AI' : 'Open Atlas AI'}
           className={`atlas-topbar-btn relative flex items-center gap-2 rounded border px-3 py-1.5 text-[10px] font-mono tracking-[0.2em] transition-all duration-200 ${
             overlayOpen || active
               ? 'border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.1)] text-[var(--accent)] shadow-[0_0_14px_rgba(56,232,255,0.2)]'
-              : 'border-[var(--line)] text-[var(--text-mid)] hover:border-[rgba(56,232,255,0.4)] hover:text-[var(--accent)] hover:bg-[rgba(56,232,255,0.07)]'
+              : wakeStandby
+                ? 'border-[rgba(56,232,255,0.35)] bg-[rgba(56,232,255,0.05)] text-[var(--accent)]'
+                : 'border-[var(--line)] text-[var(--text-mid)] hover:border-[rgba(56,232,255,0.4)] hover:text-[var(--accent)] hover:bg-[rgba(56,232,255,0.07)]'
           }`}
         >
           {/* State indicator dot */}
           <span className="relative inline-flex h-1.5 w-1.5">
-            {active && (
+            {(active || wakeStandby) && (
               <span
-                className="absolute inline-flex h-full w-full rounded-full opacity-70"
-                style={{ background: tone, animation: 'pulse-dot 1.4s ease-in-out infinite' }}
+                className="absolute inline-flex h-full w-full rounded-full opacity-60"
+                style={{ background: dotTone, animation: 'pulse-dot 1.6s ease-in-out infinite' }}
               />
             )}
             <span
               className="relative inline-flex rounded-full h-1.5 w-1.5"
-              style={{ background: active ? tone : 'var(--text-lo)' }}
+              style={{ background: dotTone }}
             />
           </span>
-          {active ? <MicOff size={12} /> : <Mic size={12} />}
-          <span className="hidden sm:inline">ATLAS AI</span>
+          {wakeEnabled && !active && wakeStandby ? (
+            <RadioTower size={11} className="animate-pulse" />
+          ) : overlayOpen || active ? (
+            <MicOff size={11} />
+          ) : (
+            <Mic size={11} />
+          )}
+          <span className="hidden sm:inline">{wakeStandby ? 'WAKE' : 'ATLAS AI'}</span>
         </button>
       </div>
     </header>

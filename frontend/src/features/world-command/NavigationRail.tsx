@@ -17,7 +17,8 @@ export default function NavigationRail() {
   const { state: worldState, selectEntity } = useWorldStore()
   const navigate = useNavigate()
   const { overlayOpen, setOverlayOpen, state: assistantState } = useAssistantState()
-  const { active, start, stop } = useVoiceAssistant()
+  const { active, wake, start, stop } = useVoiceAssistant()
+  const wakeStandby = !active && wake === 'listening'
 
   const toggleAtlas = () => {
     if (!overlayOpen) {
@@ -61,6 +62,12 @@ export default function NavigationRail() {
                 <span className="absolute -top-1 -right-1 flex h-2 w-2">
                   <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--positive)] opacity-70 pulse-dot" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--positive)]" />
+                </span>
+              )}
+              {item.isAtlas && !active && wakeStandby && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-50 pulse-dot" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
                 </span>
               )}
             </span>

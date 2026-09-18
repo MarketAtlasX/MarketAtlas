@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useAssistantState } from '../state/AssistantStateContext'
 import { RealtimeVoice } from './RealtimeVoice'
 import type { AtlasEvent } from './atlasEvents'
@@ -8,16 +8,35 @@ import { transcriptBus } from '../brain/transcriptBus'
 import { getSpeechRecognition, speak, warmUpVoices } from './browserSpeech'
 import { visualizationBus } from '../commands/visualizationBus'
 import { useAtlasAgent } from '../agent/useAtlasAgent'
+import { WakeWordDetector, type WakeWordStatus } from './wakeWord'
+
+export type VoiceSource = 'offline' | 'realtime'
 
 export interface VoiceAssistantApi {
   active: boolean
-  source: 'offline' | 'realtime'
+  source: VoiceSource
+  wake: WakeWordStatus
+  wakeEnabled: boolean
+  setWakeEnabled: (enabled: boolean) => void
   start: () => Promise<void>
   stop: () => void
 }
 
-export function useVoiceAssistant(): VoiceAssistantApi {
-  const { setState, setAmplitude, setMode } = useAssistantState()
+const GREETINGS: string[] = [
+  'Atlas here. What would you like me to investigate?',
+  'I am listening. How can I help?',
+  'Atlas at your command. Tell me what you need.',
+  'Ready. What should I focus the atlas on?',
+]
+
+function pickGreeting(): string {
+  return GREETINGS[Math.floor(Math.random() * GREETINGS.length)]
+}
+
+const VoiceAssistantContext = createContext<VoiceAssistantApi | null>(null)
+
+export function VoiceAssistantProvider({ children }: { children: ReactNode }) {
+  const { setState, setAmplitude, setMode, setOverlayOpen } = useAssistantState()
   const { execute } = useAtlasAgent()
   const voiceRef = useRef<RealtimeVoice | null>(null)
   const recognitionRef = useRef<SpeechRecognition | null>(null)
@@ -26,8 +45,16 @@ export function useVoiceAssistant(): VoiceAssistantApi {
   const cancelSpeechRef = useRef<(() => void) | null>(null)
   const realtimeTranscriptRef = useRef('')
   const activeRef = useRef(false)
+  const wakeDetectorRef = useRef<WakeWordDetector | null>(null)
   const [active, setActive] = useState(false)
-  const [source, setSource] = useState<'offline' | 'realtime'>('offline')
+  const [source, setSource] = useState<VoiceSource>('offline')
+  const [wake, setWake] = useState<WakeWordStatus>('inactive')
+  const [wakeEnabled, setWakeEnabledState] = useState(true)
+
+  const wakeEnabledRef = useRef(wakeEnabled)
+  wakeEnabledRef.current = wakeEnabled
+  const handleWakeRef = useRef<() => void>(() => {})
+  const startRef = useRef<() => Promise<void>>(async () => {})
 
   const startMeter = useCallback(
     (stream: MediaStream) => {
@@ -37,6 +64,27 @@ export function useVoiceAssistant(): VoiceAssistantApi {
     },
     [setAmplitude],
   )
+
+  const stopWakeDetector = useCallback(() => {
+    wakeDetectorRef.current?.stop()
+    wakeDetectorRef.current = null
+    setWake('inactive')
+  }, [])
+
+  const startWakeDetector = useCallback(() => {
+    if (!wakeEnabledRef.current || activeRef.current) return
+    if (wakeDetectorRef.current?.isActive()) return
+    const detector = new WakeWordDetector({
+      onStatusChange: setWake,
+      onWake: () => handleWakeRef.current(),
+    })
+    wakeDetectorRef.current = detector
+    detector.start()
+  }, [])
+
+  const resumeWake = useCallback(() => {
+    startWakeDetector()
+  }, [startWakeDetector])
 
   const handleUtterance = useCallback(
     (transcript: string) => {
@@ -163,11 +211,12 @@ export function useVoiceAssistant(): VoiceAssistantApi {
           break
       }
     },
-    [setMode, setState],
+    [execute, setMode, setState],
   )
 
   const start = useCallback(async () => {
     if (activeRef.current) return
+    stopWakeDetector()
     activeRef.current = true
     setActive(true)
     setState('LISTENING')
@@ -194,7 +243,23 @@ export function useVoiceAssistant(): VoiceAssistantApi {
         setState('ERROR')
       }
     }
-  }, [handleAtlasEvent, setState, startMeter, startOffline])
+  }, [handleAtlasEvent, setState, startMeter, startOffline, stopWakeDetector])
+
+  startRef.current = start
+
+  const handleWake = useCallback(() => {
+    stopWakeDetector()
+    setOverlayOpen(true)
+    cancelSpeechRef.current = speak(pickGreeting(), {
+      onStart: () => setState('SPEAKING'),
+      onEnd: () => {
+        cancelSpeechRef.current = null
+        void startRef.current()
+      },
+    })
+  }, [setOverlayOpen, setState, stopWakeDetector])
+
+  handleWakeRef.current = handleWake
 
   const stop = useCallback(() => {
     activeRef.current = false
@@ -212,9 +277,48 @@ export function useVoiceAssistant(): VoiceAssistantApi {
     realtimeTranscriptRef.current = ''
     setAmplitude(0)
     setState('IDLE')
-  }, [setAmplitude, setState])
+    resumeWake()
+  }, [resumeWake, setAmplitude, setState])
 
-  useEffect(() => stop, [stop])
+  useEffect(() => {
+    startWakeDetector()
+    return () => {
+      stopWakeDetector()
+    }
+  }, [startWakeDetector, stopWakeDetector])
 
-  return { active, source, start, stop }
+  useEffect(() => {
+    if (wakeEnabled) {
+      startWakeDetector()
+    } else {
+      stopWakeDetector()
+    }
+  }, [wakeEnabled, startWakeDetector, stopWakeDetector])
+
+  const setWakeEnabled = useCallback((enabled: boolean) => {
+    setWakeEnabledState(enabled)
+  }, [])
+
+  const value = useMemo<VoiceAssistantApi>(
+    () => ({
+      active,
+      source,
+      wake,
+      wakeEnabled,
+      setWakeEnabled,
+      start,
+      stop,
+    }),
+    [active, source, wake, wakeEnabled, setWakeEnabled, start, stop],
+  )
+
+  return <VoiceAssistantContext.Provider value={value}>{children}</VoiceAssistantContext.Provider>
+}
+
+export function useVoiceAssistant(): VoiceAssistantApi {
+  const context = useContext(VoiceAssistantContext)
+  if (!context) {
+    throw new Error('useVoiceAssistant must be used inside VoiceAssistantProvider')
+  }
+  return context
 }
