@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional
 
 from rag.geo_rag.context_builder import GeoContext, GeoContextBuilder
 from rag.geo_rag.intent_classifier import GeoIntent, GeoIntentClassifier, IntentResult
