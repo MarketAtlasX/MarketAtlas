@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
 
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix
