@@ -1,8 +1,7 @@
 from collections import Counter
 from datetime import datetime
-from typing import Any, Optional
 
-from episodic_memory.models import Episode, Outcome, TimelineEvent
+from episodic_memory.models import Episode, TimelineEvent
 
 
 class MemoryCompressor:

@@ -11,8 +11,7 @@ This service provides a unified interface for:
 - Memory Consolidation
 """
 
-from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from config import settings
 

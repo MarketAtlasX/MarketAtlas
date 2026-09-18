@@ -1,11 +1,10 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .dependencies import get_memory_service
 from .memory_service import MemoryService
-from episodic_memory.models import Episode
 
 router = APIRouter(prefix="/api/v1/memory", tags=["memory"])
 

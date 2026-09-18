@@ -1,8 +1,6 @@
-import json
 from datetime import datetime
 
-from fastapi import WebSocket, WebSocketDisconnect, Depends
-from typing import Any
+from fastapi import WebSocket, WebSocketDisconnect
 
 from .memory_service import MemoryService
 
