@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 from rag.historical_memory.event_similarity import EventSimilarity, SimilarityScore
 from rag.retrievers.base import RetrievalResult, RetrieverType
