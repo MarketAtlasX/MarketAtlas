@@ -1,7 +1,6 @@
 """Integration tests for the Dynamic World State system."""
 
 import asyncio
-from datetime import datetime
 
 from pipelines.core.types import Context, Event, PipelineType
 from world_state.core.registry import StateRegistry
@@ -243,8 +242,6 @@ def test_temporal_memory():
 
 
 def test_full_pipeline():
-    import asyncio
-
     async def run():
         StateRegistry.reset()
         stage = StateUpdateStage()

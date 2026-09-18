@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from world_state.core.registry import StateRegistry
-from world_state.core.types import NodeType, StateDelta
 from world_state.dashboard.models import DashboardState
 from world_state.pipeline.extract import EventExtractor
 from world_state.pipeline.propagate import RiskPropagator

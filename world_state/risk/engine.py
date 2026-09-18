@@ -6,12 +6,11 @@ Computes composite risk scores from the Dynamic World State.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
 from world_state.core.registry import StateRegistry
-from world_state.core.types import NodeType
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +36,6 @@ class WorldRiskEngine:
         }
 
     def compute_global_risk(self) -> Dict[str, Any]:
-        world = self.registry.world
-
         geopolitical_risk = self._score_geopolitical()
         economic_risk = self._score_economic()
         market_risk = self._score_market()
