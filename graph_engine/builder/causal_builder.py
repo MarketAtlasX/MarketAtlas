@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from graph_engine.models.graph_models import (
     CausalGraph,
@@ -136,8 +136,6 @@ NODE_TYPE_MAP: Dict[str, NodeType] = {
     "Economic Growth": NodeType.concept,
     "Automotive": NodeType.sector,
     "China Manufacturing": NodeType.concept,
-    "Tech Sector": NodeType.sector,
-    "Energy Sector": NodeType.sector,
 }
 
 

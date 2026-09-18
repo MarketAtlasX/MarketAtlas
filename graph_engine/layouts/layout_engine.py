@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
-from graph_engine.models.graph_models import GraphData, GraphNode, NodeType
+from graph_engine.models.graph_models import GraphData
 
 
 class LayoutEngine:
@@ -26,7 +26,6 @@ class LayoutEngine:
         for node_id, level in levels.items():
             level_widths[level] = level_widths.get(level, 0) + 1
 
-        level_positions: Dict[int, float] = {}
         level_counts: Dict[int, int] = {}
         for node in graph.nodes:
             level = levels.get(node.id, 0)
@@ -42,7 +41,6 @@ class LayoutEngine:
 
     def _radial_layout(self, graph: GraphData) -> GraphData:
         levels = self._assign_levels(graph)
-        max_level = max(levels.values()) if levels else 1
         level_counts: Dict[int, int] = {}
         level_positions: Dict[int, int] = {}
 

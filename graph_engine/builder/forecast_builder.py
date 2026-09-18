@@ -13,8 +13,6 @@ from graph_engine.models.graph_models import (
     EdgeType,
     NodeType,
     GraphData,
-    CausalPath,
-    CausalGraph,
 )
 
 
