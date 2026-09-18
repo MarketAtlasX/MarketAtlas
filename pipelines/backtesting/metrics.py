@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import numpy as np
 
@@ -18,7 +18,6 @@ class RiskMetricsStage(PipelineStage):
     async def run(self, event: Event, context: Context) -> Event:
         backtest = event.data.get("backtest", {})
         trades = backtest.get("trades", [])
-        forecast = event.data.get("forecast", {}).get("projections", [])
 
         returns = self._compute_returns(trades)
         metrics = {
