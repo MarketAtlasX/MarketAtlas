@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
@@ -28,8 +26,6 @@ class ConflictDataSourceStage(PipelineStage):
         super().__init__("conflict_data_source")
 
     async def run(self, event: Event, context: Context) -> Event:
-        collector = GDELTCollector()
-        raw = await collector.collect_conflict().__anext__()
         event.data["conflict_sources"] = ["gdelt", "rss", "newsapi"]
         return event
 

@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
 from pipelines.data_factory.collector import GDELTCollector, RSSCollector
-from pipelines.data_factory.cleaner import PipelineCleaner, Deduplicator, Normalizer, Validator
-from pipelines.data_factory.transformer import EventBuilder, PipelineTransformer
-from pipelines.data_factory.enricher import GeoEnricher, EntityLinker, TemporalEnricher, PipelineEnricher
 
 logger = logging.getLogger(__name__)
 
