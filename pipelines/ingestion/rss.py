@@ -6,7 +6,6 @@ from typing import List
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
 from pipelines.data_factory.collector import RSSCollector
-from pipelines.data_factory.cleaner import PipelineCleaner
 from pipelines.data_factory.transformer import EventBuilder, PipelineTransformer
 from pipelines.data_factory.enricher import TemporalEnricher
 

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
 from pipelines.data_factory.collector import GDELTCollector
 from pipelines.data_factory.cleaner import PipelineCleaner
-from pipelines.data_factory.store import PostgresStore, S3Store
 
 logger = logging.getLogger(__name__)
 

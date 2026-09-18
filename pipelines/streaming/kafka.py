@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, List
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
