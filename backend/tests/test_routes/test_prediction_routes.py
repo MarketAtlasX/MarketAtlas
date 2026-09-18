@@ -1,10 +1,9 @@
 """Integration Tests for 3-Agent Prediction API Endpoints."""
 
-import asyncio
-from pathlib import Path
 import sys
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path
+from unittest.mock import AsyncMock
 
 # Ensure paths
 _ROOT = Path(__file__).resolve().parents[3]
@@ -13,11 +12,12 @@ for _p in [str(_ROOT), str(_BACKEND)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from fastapi.testclient import TestClient
-from app.database import get_db
-from app.main import app
-from app.models.user import User
-from app.services.auth_service import get_current_user
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.database import get_db  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models.user import User  # noqa: E402
+from app.services.auth_service import get_current_user  # noqa: E402
 
 
 class TestPredictionRoutes(unittest.TestCase):

@@ -1,8 +1,7 @@
-import asyncio
-from pathlib import Path
 import sys
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path
+from unittest.mock import patch
 
 # Ensure monorepo root and backend are on sys.path
 _ROOT = Path(__file__).resolve().parents[3]
@@ -11,12 +10,11 @@ for _p in [str(_ROOT), str(_BACKEND)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-from app.chatbot.agents.final_prediction_agent import FinalPredictionAgent
-from app.chatbot.agents.geopolitical_agent import GeopoliticalAgent
-from app.chatbot.agents.historical_agent import HistoricalAgent
-from app.schemas.prediction import (
+from app.chatbot.agents.final_prediction_agent import FinalPredictionAgent  # noqa: E402
+from app.chatbot.agents.geopolitical_agent import GeopoliticalAgent  # noqa: E402
+from app.chatbot.agents.historical_agent import HistoricalAgent  # noqa: E402
+from app.schemas.prediction import (  # noqa: E402
     AgentStatus,
-    AlternativeScenario,
     EvidenceItem,
     FinalPredictionOutput,
     GeopoliticalAgentOutput,
@@ -30,7 +28,7 @@ from app.schemas.prediction import (
     ScenarioType,
     SourceType,
 )
-from app.services.prediction_service import PredictionService
+from app.services.prediction_service import PredictionService  # noqa: E402
 
 
 class TestHistoricalAgent(unittest.IsolatedAsyncioTestCase):
@@ -221,7 +219,7 @@ class TestFinalPredictionAgent(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(result.confidence, 0.5)
         self.assertLessEqual(result.confidence, 1.0)
         self.assertTrue(len(result.alternative_scenarios) >= 4)
-        
+
         # Verify scenario types
         scenario_types = [s.scenario_name for s in result.alternative_scenarios]
         self.assertIn(ScenarioType.BASE, scenario_types)
@@ -278,7 +276,7 @@ class TestFinalPredictionAgent(unittest.IsolatedAsyncioTestCase):
         """Test FinalPredictionAgent explicitly reports insufficient evidence when both agents fail."""
         failed_hist = HistoricalAgentOutput(agent="HistoricalAgent", status=AgentStatus.FAILED, target="X", analysis="", confidence=0.0)
         failed_geo = GeopoliticalAgentOutput(agent="GeopoliticalAgent", status=AgentStatus.FAILED, target="X", analysis="", confidence=0.0)
-        
+
         result = await self.agent.process(
             target="Unknown Topic",
             historical_output=failed_hist,

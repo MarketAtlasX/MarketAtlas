@@ -1,6 +1,5 @@
 """Tests for PredictionLedgerService and backtesting evaluation."""
 
-import pytest
 from app.services.prediction_ledger_service import PredictionLedgerService
 
 
