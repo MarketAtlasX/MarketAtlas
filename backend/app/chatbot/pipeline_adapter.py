@@ -7,7 +7,6 @@ simple async functions that chatbot agents can call directly.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any
 
 from pipelines.core.types import Context as PipelineContext
@@ -82,10 +81,6 @@ async def run_shap_pipeline(
             "query": query,
         },
     )
-    ctx = PipelineContext(
-        pipeline="explainability_shap",
-        pipeline_type=PipelineType.EXPLAINABILITY,
-    )
     outcome = await factory.run("explainability_shap", event)
     if outcome.status.value != "success":
         return {"features": [], "top_feature": {"feature": "unknown", "shap_value": 0.0}}
@@ -125,14 +120,6 @@ async def run_graph_path_pipeline(
         type="graph_paths",
         data={"graph": G},
     )
-    ctx = PipelineContext(
-        pipeline="explainability_graph_paths",
-        pipeline_type=PipelineType.EXPLAINABILITY,
-        params={
-            "source_nodes": entities if entities else None,
-            "target_node": sectors[0] if sectors else None,
-        },
-    )
     outcome = await factory.run("explainability_graph_paths", event)
     if outcome.status.value != "success":
         return {"graph_paths": [], "path_count": 0}
@@ -154,11 +141,6 @@ async def run_historical_analogs_pipeline(
         type="historical_analogs",
         data={"feature_aggregates": {"avg_sentiment": sentiment}},
     )
-    ctx = PipelineContext(
-        pipeline="explainability_analogs",
-        pipeline_type=PipelineType.EXPLAINABILITY,
-        params={"event_type": event_type},
-    )
     outcome = await factory.run("explainability_analogs", event)
     if outcome.status.value != "success":
         return []
@@ -176,10 +158,6 @@ async def run_entity_extraction_pipeline(
         data={
             "cleaned_events": [{"title": text[:200], "content": text}],
         },
-    )
-    ctx = PipelineContext(
-        pipeline="nlp_entities",
-        pipeline_type=PipelineType.NLP,
     )
     outcome = await factory.run("nlp_entities", event)
     if outcome.status.value != "success":
@@ -201,10 +179,6 @@ async def run_embedding_pipeline(
         type="embedding",
         data={"cleaned_events": events_data},
     )
-    ctx = PipelineContext(
-        pipeline="nlp_embedding",
-        pipeline_type=PipelineType.NLP,
-    )
     outcome = await factory.run("nlp_embedding", event)
     if outcome.status.value != "success":
         return {"embeddings": []}
@@ -216,11 +190,6 @@ async def run_daily_pipeline() -> dict[str, Any]:
     """Run the daily end-to-end pipeline (GDELT → signals)."""
     factory = await _get_factory()
     event = PipelineEvent(source="scheduler", type="daily", data={})
-    ctx = PipelineContext(
-        pipeline="daily_pipeline",
-        pipeline_type=PipelineType.DAILY,
-        params={"trigger": "manual"},
-    )
     outcome = await factory.run("daily", event)
     if outcome.status.value != "success":
         logger.error("Daily pipeline failed: %s", outcome.error)
@@ -241,10 +210,6 @@ async def run_realtime_pipeline(
         source="chatbot",
         type="realtime",
         data={"title": title, "content": content},
-    )
-    ctx = PipelineContext(
-        pipeline="realtime_pipeline",
-        pipeline_type=PipelineType.REALTIME,
     )
     outcome = await factory.run("realtime", event)
     if outcome.status.value != "success":

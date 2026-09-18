@@ -7,6 +7,7 @@ from typing import Any, Literal
 from langgraph.graph import END, StateGraph
 
 from ..agents import (
+    AtlasAgent,
     DebateAgent,
     EventSimilarityAgent,
     FinalPredictionAgent,
@@ -16,7 +17,6 @@ from ..agents import (
     HistoricalAgent,
     ImpactAgent,
     IntentRouter,
-    AtlasAgent,
     MarketAgent,
     NewsAgent,
     RecommendationAgent,
@@ -24,11 +24,11 @@ from ..agents import (
     RiskAgent,
     SimulationAgent,
 )
+from ..atlas import extract_visualization
 from ..concise import trim_to_limit
 from ..explain.attention_explainer import AttentionExplainer
 from ..explain.graph_explainer import GraphExplainer
 from ..explain.shap_explainer import SHAPExplainer
-from ..atlas import extract_visualization
 from ..memory.short_term import short_term_memory
 from ..models import ChatResponse, IntentType
 from ..rag.retriever import seed_knowledge_base
@@ -403,13 +403,13 @@ async def execute_prediction(state: AgentState) -> AgentState:
     state["agent_responses"]["GeopoliticalAgent"] = geo_res.analysis
     state["agent_responses"]["FinalPredictionAgent"] = pred_res.prediction
     state["_context"]["prediction"] = pred_res.model_dump(mode="json")
-    
+
     scenario_lines = [
         f"- **{s.scenario_name.value} Case ({s.probability * 100:.0f}%)**: {s.expected_outcome}"
         for s in pred_res.alternative_scenarios[:4]
     ]
     scenarios_str = "\n".join(scenario_lines)
-    
+
     state["final_response"] = (
         f"**Prediction:** {pred_res.prediction}\n\n"
         f"**Directional Outlook:** {pred_res.direction.value} | **Confidence:** {pred_res.confidence * 100:.0f}%\n\n"

@@ -22,9 +22,9 @@ class NewsAgent:
         try:
             if self._session:
                 from sqlalchemy import select
-                stmt = select(__import__('app.models.raw_event', fromlist=['RawEvent']).RawEvent).order_by(
-                    __import__('app.models.raw_event', fromlist=['RawEvent']).RawEvent.fetched_at.desc()
-                ).limit(20)
+
+                from app.models.raw_event import RawEvent
+                stmt = select(RawEvent).order_by(RawEvent.fetched_at.desc()).limit(20)
                 result = await self._session.execute(stmt)
                 self._events_cache = list(result.scalars().all())
                 return
@@ -35,9 +35,9 @@ class NewsAgent:
             from app.database import ExecutorSessionLocal
             async with ExecutorSessionLocal() as session:
                 from sqlalchemy import select
-                stmt = select(__import__('app.models.raw_event', fromlist=['RawEvent']).RawEvent).order_by(
-                    __import__('app.models.raw_event', fromlist=['RawEvent']).RawEvent.fetched_at.desc()
-                ).limit(20)
+
+                from app.models.raw_event import RawEvent
+                stmt = select(RawEvent).order_by(RawEvent.fetched_at.desc()).limit(20)
                 result = await session.execute(stmt)
                 self._events_cache = list(result.scalars().all())
         except Exception as e:

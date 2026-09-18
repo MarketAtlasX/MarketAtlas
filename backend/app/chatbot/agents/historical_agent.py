@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import select
@@ -62,7 +61,6 @@ class HistoricalAgent:
         historical_events_data = await self._gather_historical_events(target, event_id=event_id)
         market_history_data = await self._gather_market_history(target, ticker=ticker, entity_id=entity_id)
         rag_context = retrieve_context(target, limit=4)
-        gem_analogies = await self._gather_memory_analogies(target)
 
         # 2. Build system and user prompt with strict empirical instructions
         system_prompt = f"""You are the MarketAtlas Historical Analysis Agent.

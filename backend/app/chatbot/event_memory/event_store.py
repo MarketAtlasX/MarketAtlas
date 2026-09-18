@@ -102,7 +102,6 @@ class EventStore:
         event_type_filter: Optional[list[str]],
     ) -> tuple[list[EventSimilarityResult], dict[str, float]]:
         from difflib import SequenceMatcher
-        import re
 
         query_lower = query.lower()
         results = []

@@ -1,10 +1,9 @@
 from typing import Any
 
 from ..knowledge.neo4j_client import Neo4jClient
-from ..pipeline_adapter import run_graph_path_pipeline, run_entity_extraction_pipeline
+from ..pipeline_adapter import run_graph_path_pipeline
 from .base import BaseExplainer
-from .models import GraphExplanation, GraphPathStep, ExplanationResult
-
+from .models import ExplanationResult, GraphExplanation, GraphPathStep
 
 SECTOR_TICKER_MAP = {
     "Energy": "XLE", "Defense": "ITA", "Technology": "XLK",
@@ -34,7 +33,6 @@ class GraphExplainer(BaseExplainer):
             entities=entities or ["Geopolitical Event"],
             sectors=sectors or ["Energy", "Defense"],
         )
-        kg_result = pipeline_result.get("kg_results", {})
         pipeline_paths = pipeline_result.get("graph_paths", [])
         grounded_facts = pipeline_result.get("grounded_facts", [])
 

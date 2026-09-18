@@ -4,8 +4,12 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+from app.config import settings
+from app.models.user import User
+from app.services.auth_service import get_current_user
 
 from ...services.financial_data_service import FinancialDataService
 from ..event_memory.event_schema import HistoricalEvent
@@ -19,9 +23,6 @@ from ..models import ChatRequest, RiskIndexRequest, SimilarityRequest
 from ..rag.vector_store import search_knowledge
 from ..workflow.graph import run_chat
 from .data import COUNTRIES, COUNTRIES_BY_CODE, MILITARY_RELATIONS, PORTS, TRADE_ROUTES
-from app.config import settings
-from app.models.user import User
-from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -182,7 +183,7 @@ async def chat_stream(request: ChatRequest):
 @chat_router.get("/history")
 async def history(limit: int = 20, user_id: str = "1"):
     try:
-        from app.services.chat_history import get_recent_messages, list_conversations
+        from app.services.chat_history import list_conversations
 
         convs = await list_conversations(user_id, limit=limit)
         return [

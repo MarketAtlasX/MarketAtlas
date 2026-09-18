@@ -2,7 +2,7 @@ from typing import Any
 
 from ..pipeline_adapter import run_shap_pipeline
 from .base import BaseExplainer
-from .models import SHAPExplanation, FeatureContribution, ExplanationResult
+from .models import ExplanationResult, FeatureContribution, SHAPExplanation
 
 
 class SHAPExplainer(BaseExplainer):

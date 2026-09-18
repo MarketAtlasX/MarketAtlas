@@ -8,7 +8,7 @@ and how the camera should behave (pullback for global, zoom for country).
 import re
 from typing import Optional
 
-from ..models import IntentType, VisualMode, VisualizationIntent
+from ..models import IntentType, VisualizationIntent, VisualMode
 
 ROUTE_SIGNALS = re.compile(
     r"\b(route|routes|corridor|corridors|shipping|sea lane|sea lanes|trade route|"
@@ -189,8 +189,6 @@ def extract_visualization(query: str, intent: IntentType = None) -> Visualizatio
     has_risk = bool(RISK_SIGNALS.search(q))
     has_network = bool(NETWORK_SIGNALS.search(q))
     has_abstract = bool(ABSTRACT_SIGNALS.search(q))
-
-    caption = ""
 
     # Explicit from/to pair → ROUTE even without the word "route".
     from_to = re.search(r"\bfrom\s+(.+?)\s+to\s+(.+?)\b", q)
