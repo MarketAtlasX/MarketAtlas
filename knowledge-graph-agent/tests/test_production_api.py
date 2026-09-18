@@ -8,11 +8,11 @@ import pytest
 from unittest.mock import patch, MagicMock
 from graph.state import AgentState
 from agents.news_agent import (
-    fetch_news, 
-    fetch_from_newsapi, 
-    fetch_from_gdelt, 
+    fetch_news,
+    fetch_from_newsapi,
+    fetch_from_gdelt,
     fetch_from_acled,
-    APIClient, 
+    APIClient,
     NewsAPIError
 )
 from agents.event_agent import process_event_intelligence, analyze_sentiment, extract_entities
