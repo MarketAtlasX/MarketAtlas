@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
@@ -18,15 +17,6 @@ class FeatureStoreStage(PipelineStage):
     async def run(self, event: Event, context: Context) -> Event:
         features = event.data.get("features", [])
         signals = event.data.get("signals", [])
-        aggregates = event.data.get("feature_aggregates", {})
-
-        payload = {
-            "features": features,
-            "signals": signals,
-            "aggregates": aggregates,
-            "timestamp": event.timestamp.isoformat(),
-            "event_id": event.id,
-        }
 
         await self.store.write(event)
         event.data["stored_features"] = True

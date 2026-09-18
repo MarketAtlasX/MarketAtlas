@@ -7,7 +7,7 @@ Orchestrates every pipeline type with DAG-based workflow execution.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional
 
 from pipelines.config.settings import PipelineSettings
 from pipelines.core.base import Pipeline
@@ -16,7 +16,6 @@ from pipelines.orchestration.dag import DAG, DAGNode
 from pipelines.orchestration.executor import PipelineExecutor
 from pipelines.orchestration.monitor import Monitor
 from pipelines.orchestration.scheduler import Scheduler, ScheduleSpec
-from pipelines.orchestration.triggers import CronTrigger, EventTrigger, WebhookTrigger
 from pipelines.orchestration.workflow import WorkflowBuilder
 
 logger = logging.getLogger(__name__)

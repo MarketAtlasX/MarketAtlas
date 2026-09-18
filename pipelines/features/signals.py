@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
 
 from pipelines.core.base import Pipeline, PipelineStage
 from pipelines.core.types import Context, Event, Outcome, PipelineStatus
@@ -25,12 +23,10 @@ class SignalGenerationStage(PipelineStage):
 
     async def run(self, event: Event, context: Context) -> Event:
         aggregates = event.data.get("feature_aggregates", {})
-        features = event.data.get("features", [])
         signals = []
 
         avg_sentiment = aggregates.get("avg_sentiment", 0)
         negative_ratio = aggregates.get("negative_ratio", 0)
-        positive_ratio = aggregates.get("positive_ratio", 0)
 
         if avg_sentiment <= SIGNAL_THRESHOLDS["strong_bearish"]:
             signals.append({

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator, Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 from pipelines.core.state import PipelineState
-from pipelines.core.types import Context, Event, Outcome, PipelineStatus
+from pipelines.core.types import Context, Event, Outcome
 
 logger = logging.getLogger(__name__)
 
