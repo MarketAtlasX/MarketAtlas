@@ -93,3 +93,33 @@ async def get_current_user(
         detail="Invalid authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+optional_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    if not credentials or not credentials.credentials:
+        return None
+    token = credentials.credentials
+
+    # Try as JWT first
+    user_id = decode_access_token(token)
+    if user_id is not None:
+        result = await db.execute(select(User).where(User.id == user_id, User.is_active))
+        user = result.scalar_one_or_none()
+        if user:
+            return user
+
+    # Try as API key
+    result = await db.execute(
+        select(User).where(User.api_key.is_not(None), User.is_active)
+    )
+    for user in result.scalars():
+        if verify_api_key(token, user.api_key):
+            return user
+
+    return None
