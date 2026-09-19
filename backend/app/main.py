@@ -1,6 +1,15 @@
 import asyncio
 import logging
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+# Ensure repo root and backend dir are in sys.path so pipelines, simulator, etc. can be imported
+_backend_dir = Path(__file__).resolve().parent.parent
+_repo_root = _backend_dir.parent
+for _p in [str(_repo_root), str(_backend_dir)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from fastapi import APIRouter, FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
