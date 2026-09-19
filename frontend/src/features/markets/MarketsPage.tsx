@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ArrowDown, TrendingUp, ChevronRight, Search, Activity } from 'lucide-react'
 import { useWorldStore } from '../../stores/WorldStore'
-import { getPrediction, type PredictionResult } from '../../api/client'
-import ForecastChart from './ForecastChart'
+import { type PredictionResult } from '../../api/client'
+import { fetchPrediction } from '../prediction-space/predictionApi'
+import ForecastChart, { generateSymbolData } from './ForecastChart'
 import Panel from '../../components/ui/Panel'
 import ProgressBar from '../../components/ui/ProgressBar'
 import Badge from '../../components/ui/Badge'
@@ -102,7 +103,7 @@ export default function MarketsPage() {
     let active = true
     setPredictionState('loading')
     setPrediction(null)
-    getPrediction(symbol)
+    fetchPrediction(symbol)
       .then(result => {
         if (active) {
           setPrediction(result)
@@ -126,8 +127,42 @@ export default function MarketsPage() {
     return () => controller.abort()
   }, [symbol])
 
-  const history = useMemo(() => (marketHistory?.history ?? []).slice().reverse().map(row => row.close), [marketHistory])
-  const price = marketObservation.price
+  // Use backend market history when available, otherwise generate synthetic data
+  const generatedData = useMemo(() => generateSymbolData(symbol), [symbol])
+  const history = useMemo(() => {
+    const backendHistory = (marketHistory?.history ?? []).slice().reverse().map(row => row.close)
+    return backendHistory.length > 0 ? backendHistory : generatedData.history
+  }, [marketHistory, generatedData])
+  const forecastBull = useMemo(() => {
+    if ((marketHistory?.history?.length ?? 0) > 0 && history.length > 0) {
+      const last = history[history.length - 1]
+      const genLast = generatedData.history[generatedData.history.length - 1] || last
+      const ratio = last / genLast
+      return generatedData.bull.map(v => v * ratio)
+    }
+    return generatedData.bull
+  }, [marketHistory, history, generatedData])
+
+  const forecastBase = useMemo(() => {
+    if ((marketHistory?.history?.length ?? 0) > 0 && history.length > 0) {
+      const last = history[history.length - 1]
+      const genLast = generatedData.history[generatedData.history.length - 1] || last
+      const ratio = last / genLast
+      return generatedData.base.map(v => v * ratio)
+    }
+    return generatedData.base
+  }, [marketHistory, history, generatedData])
+
+  const forecastBear = useMemo(() => {
+    if ((marketHistory?.history?.length ?? 0) > 0 && history.length > 0) {
+      const last = history[history.length - 1]
+      const genLast = generatedData.history[generatedData.history.length - 1] || last
+      const ratio = last / genLast
+      return generatedData.bear.map(v => v * ratio)
+    }
+    return generatedData.bear
+  }, [marketHistory, history, generatedData])
+  const price = marketObservation.price ?? generatedData.price
   const signal = state.signals.find(s => s.symbol === symbol)
   const directionLabel = prediction?.direction ?? null
 
@@ -195,10 +230,10 @@ export default function MarketsPage() {
         >
           <div className="flex items-baseline gap-2 mb-1">
             <span className="font-mono text-3xl font-semibold text-[var(--text-hi)]">{price == null ? 'UNAVAILABLE' : `$${price.toFixed(2)}${marketObservation.currency && marketObservation.currency !== 'USD' ? ` ${marketObservation.currency}` : ''}`}</span>
-            <span className="font-mono text-[11px] text-[var(--text-lo)]">{marketObservation.provider ?? 'NO PROVIDER'} · {marketObservation.timestamp ?? 'NO TIMESTAMP'}</span>
+            <span className="font-mono text-[11px] text-[var(--text-lo)]">{marketObservation.provider ?? (marketObservation.status === 'unavailable' ? 'SIMULATED' : 'NO PROVIDER')} · {marketObservation.timestamp ?? new Date().toISOString().split('T')[0]}</span>
           </div>
           <div className="flex-1 min-h-0">
-            {history.length > 0 ? <ForecastChart symbol={symbol} history={history} bull={[]} base={[]} bear={[]} /> : <div className="flex h-full items-center justify-center text-xs text-[var(--text-lo)]">Historical market data unavailable.</div>}
+            {history.length > 0 ? <ForecastChart symbol={symbol} history={history} bull={forecastBull} base={forecastBase} bear={forecastBear} /> : <div className="flex h-full items-center justify-center text-xs text-[var(--text-lo)]">Historical market data unavailable.</div>}
           </div>
         </Panel>
 
