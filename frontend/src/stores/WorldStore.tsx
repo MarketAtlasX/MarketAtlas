@@ -90,13 +90,15 @@ const WorldContext = createContext<WorldStoreApi | null>(null)
 
 export function WorldProvider({ children }: { children: ReactNode }) {
   const initial = useMemo<WorldStoreState>(() => {
-    const isTest = import.meta.env.MODE === 'test'
-    const risk = isTest ? seedRisk() : []
+    // Always seed initial data so the UI renders immediately.
+    // When the backend WebSocket connects, live data overrides seed data
+    // via pushEvent/pushRisk/pushForecast (dataMode switches to 'live').
+    const risk = seedRisk()
     return {
-      events: isTest ? seedEvents() : [],
-      signals: isTest ? seedSignals() : [],
+      events: seedEvents(),
+      signals: seedSignals(),
       riskUpdates: risk,
-      graphLinks: isTest ? seedGraph() : [],
+      graphLinks: seedGraph(),
       agents: buildInitialAgents(),
       worldRisk: computeWorldRisk(risk),
       selectedEntity: null,
