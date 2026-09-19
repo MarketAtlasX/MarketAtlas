@@ -20,7 +20,7 @@ from app.models.user import User
 from app.repositories.entity import EntityRepository
 from app.repositories.event import EventRepository
 from app.schemas.prediction import PredictionRequest, PredictionResponse
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_user, get_current_user_optional
 from app.services.prediction_service import prediction_service
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ router = APIRouter(prefix="/predict", tags=["prediction"])
 @router.post("", response_model=PredictionResponse)
 async def generate_prediction(
     body: PredictionRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ) -> PredictionResponse:
     """Generate an explainable 3-agent prediction for a target query, entity, or event.
@@ -52,7 +52,7 @@ async def predict_for_ticker(
     ticker: str = Path(..., min_length=1, max_length=15, description="Stock or asset ticker"),
     time_horizon: str = Query("medium_term", description="short_term (1-7d), medium_term (1-3mo), or long_term (6-12mo)"),
     include_raw: bool = Query(False, description="Include raw Historical and Geopolitical agent outputs"),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ) -> PredictionResponse:
     """Generate a 3-agent prediction for a specific stock ticker."""
@@ -71,7 +71,7 @@ async def predict_for_entity(
     entity_id: int = Path(..., gt=0, description="MarketAtlas Entity ID"),
     time_horizon: str = Query("medium_term", description="Prediction time horizon"),
     include_raw: bool = Query(False, description="Include raw agent outputs"),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ) -> PredictionResponse:
     """Generate a 3-agent prediction for a registered entity."""
@@ -96,7 +96,7 @@ async def predict_for_event(
     event_id: int = Path(..., gt=0, description="MarketAtlas Event ID"),
     time_horizon: str = Query("medium_term", description="Prediction time horizon"),
     include_raw: bool = Query(False, description="Include raw agent outputs"),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ) -> PredictionResponse:
     """Generate a 3-agent prediction analyzing the market & geopolitical impact of an event."""
