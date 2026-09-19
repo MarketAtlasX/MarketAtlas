@@ -30,57 +30,28 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Add CHECK constraints to enforce categorical field values."""
-
-    # events.event_type
-    op.create_check_constraint(
-        'ck_events_event_type',
-        'events',
-        "event_type IN ('sanction', 'election', 'trade_policy', 'military_conflict', "
-        "'diplomatic', 'economic_data', 'regulatory', 'natural_disaster', 'other')",
-    )
-
-    # events.severity
-    op.create_check_constraint(
-        'ck_events_severity',
-        'events',
-        "severity IN ('low', 'medium', 'high', 'critical')",
-    )
-
-    # events.status
-    op.create_check_constraint(
-        'ck_events_status',
-        'events',
-        "status IN ('reported', 'confirmed', 'resolved')",
-    )
-
-    # entities.entity_type
-    op.create_check_constraint(
-        'ck_entities_entity_type',
-        'entities',
-        "entity_type IN ('country', 'company', 'person', 'region', 'index', 'commodity')",
-    )
-
-    # signals.signal_type
-    op.create_check_constraint(
-        'ck_signals_signal_type',
-        'signals',
-        "signal_type IN ('buy', 'sell', 'hold', 'short')",
-    )
-
-    # signals.status
-    op.create_check_constraint(
-        'ck_signals_status',
-        'signals',
-        "status IN ('active', 'closed', 'expired')",
-    )
-
-    # signals.confidence range
-    op.create_check_constraint(
-        'ck_signals_confidence_range',
-        'signals',
-        "confidence >= 0 AND confidence <= 1",
-    )
+    """Add CHECK constraints to enforce categorical field values if not already present."""
+    constraints = [
+        ('ck_events_event_type', 'events', "event_type IN ('sanction', 'election', 'trade_policy', 'military_conflict', 'diplomatic', 'economic_data', 'regulatory', 'natural_disaster', 'other')"),
+        ('ck_events_severity', 'events', "severity IN ('low', 'medium', 'high', 'critical')"),
+        ('ck_events_status', 'events', "status IN ('reported', 'confirmed', 'resolved')"),
+        ('ck_entities_entity_type', 'entities', "entity_type IN ('country', 'company', 'person', 'region', 'index', 'commodity')"),
+        ('ck_signals_signal_type', 'signals', "signal_type IN ('buy', 'sell', 'hold', 'short')"),
+        ('ck_signals_status', 'signals', "status IN ('active', 'closed', 'expired')"),
+        ('ck_signals_confidence_range', 'signals', "confidence >= 0 AND confidence <= 1"),
+    ]
+    for name, table, condition in constraints:
+        op.execute(f"""
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE constraint_name = '{name}' AND table_name = '{table}'
+                ) THEN
+                    ALTER TABLE {table} ADD CONSTRAINT {name} CHECK ({condition});
+                END IF;
+            END $$;
+        """)
 
 
 def downgrade() -> None:
