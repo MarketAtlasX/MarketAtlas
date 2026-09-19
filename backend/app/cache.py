@@ -46,6 +46,7 @@ class CacheClient:
                 decode_responses=True,
                 socket_connect_timeout=2,
                 socket_timeout=2,
+                protocol=2,
             )
             await self._redis.ping()
             logger.info("Redis connected at %s", self._redis_url)
