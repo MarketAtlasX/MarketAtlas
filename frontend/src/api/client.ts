@@ -1,8 +1,12 @@
 import axios from 'axios'
 
 let backendAvailable: boolean | null = null
+let backendCheckedAt = 0
 let checkingBackend = false
 let checkQueue: Array<(v: boolean) => void> = []
+
+// Re-check backend availability every 30 seconds
+const HEALTH_CHECK_TTL = 30_000
 
 export const api = axios.create({
   baseURL: '/api',
@@ -46,7 +50,10 @@ api.interceptors.response.use(
 )
 
 function checkBackend(): Promise<boolean> {
-  if (backendAvailable !== null) return Promise.resolve(backendAvailable)
+  // Invalidate cache after TTL so the app retries when backend comes online
+  if (backendAvailable !== null && Date.now() - backendCheckedAt < HEALTH_CHECK_TTL) {
+    return Promise.resolve(backendAvailable)
+  }
   if (checkingBackend) {
     return new Promise(resolve => checkQueue.push(resolve))
   }
@@ -56,10 +63,12 @@ function checkBackend(): Promise<boolean> {
   return fetch('/api/health', { signal: controller.signal })
     .then(r => {
       backendAvailable = r.ok
+      backendCheckedAt = Date.now()
       return backendAvailable
     })
     .catch(() => {
       backendAvailable = false
+      backendCheckedAt = Date.now()
       return false
     })
     .finally(() => {
