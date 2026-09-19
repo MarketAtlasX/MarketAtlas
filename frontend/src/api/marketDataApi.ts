@@ -128,7 +128,9 @@ export async function fetchQuotes(): Promise<MarketQuote[]> {
     quoteCache = { data: available, ts: Date.now() }
     return quoteCache.data
   } catch {
-    const fallback = import.meta.env.MODE === 'test' ? SEED_QUOTES.map(quote => ({ ...quote, status: 'simulated' as const })) : []
+    // Always return seed data as fallback so the UI is never empty.
+    // When the backend is live, the cache is populated with real data.
+    const fallback = SEED_QUOTES.map(quote => ({ ...quote, status: 'simulated' as const }))
     quoteCache = { data: fallback, ts: Date.now() }
     return fallback
   }
@@ -145,7 +147,7 @@ export async function fetchSectors(): Promise<SectorSnapshot[]> {
     const data = await res.json()
 
     if (data.fallback) {
-      const fallback = import.meta.env.MODE === 'test' ? SEED_SECTORS.map(sector => ({ ...sector, status: 'simulated' as const })) : []
+      const fallback = SEED_SECTORS.map(sector => ({ ...sector, status: 'simulated' as const }))
       sectorCache = { data: fallback, ts: Date.now() }
       return fallback
     }
@@ -163,7 +165,7 @@ export async function fetchSectors(): Promise<SectorSnapshot[]> {
     sectorCache = { data: available, ts: Date.now() }
     return sectorCache.data
   } catch {
-    const fallback = import.meta.env.MODE === 'test' ? SEED_SECTORS.map(sector => ({ ...sector, status: 'simulated' as const })) : []
+    const fallback = SEED_SECTORS.map(sector => ({ ...sector, status: 'simulated' as const }))
     sectorCache = { data: fallback, ts: Date.now() }
     return fallback
   }
@@ -176,24 +178,58 @@ export async function fetchQuote(symbol: string): Promise<MarketQuote | null> {
 }
 
 export async function fetchMarketObservation(symbol: string, signal?: AbortSignal): Promise<MarketObservation> {
+  const clean = symbol.trim().toUpperCase()
   try {
-    const response = await fetch(`/api/market-data/quote/${encodeURIComponent(symbol)}`, { signal })
-    if (!response.ok) throw new Error('Quote unavailable')
-    const data = await response.json() as Record<string, unknown>
-    return {
-      symbol: String(data.symbol ?? symbol).toUpperCase(),
-      assetType: 'equity',
-      price: typeof data.price === 'number' ? data.price : null,
-      change: typeof data.change === 'number' ? data.change : null,
-      changePercent: typeof data.change_percent === 'number' ? data.change_percent : null,
-      currency: typeof data.currency === 'string' ? data.currency : null,
-      timestamp: typeof data.timestamp === 'string' ? data.timestamp : null,
-      provider: typeof data.provider === 'string' ? data.provider : null,
-      freshness: String(data.freshness ?? 'unknown'),
-      status: data.status === 'provider-backed' ? 'provider-backed' : 'unavailable',
+    const response = await fetch(`/api/market-data/quote/${encodeURIComponent(clean)}`, { signal })
+    if (response.ok) {
+      const data = await response.json() as Record<string, unknown>
+      if (data && data.status === 'provider-backed' && typeof data.price === 'number') {
+        return {
+          symbol: clean,
+          assetType: 'equity',
+          price: data.price,
+          change: typeof data.change === 'number' ? data.change : null,
+          changePercent: typeof data.change_percent === 'number' ? data.change_percent : null,
+          currency: typeof data.currency === 'string' ? data.currency : 'USD',
+          timestamp: typeof data.timestamp === 'string' ? data.timestamp : null,
+          provider: typeof data.provider === 'string' ? data.provider : 'yfinance',
+          freshness: String(data.freshness ?? 'current'),
+          status: 'provider-backed',
+        }
+      }
     }
   } catch {
-    return { symbol: symbol.toUpperCase(), assetType: 'equity', price: null, change: null, changePercent: null, currency: null, timestamp: null, provider: null, freshness: 'unknown', status: 'unavailable' }
+    // network or abort
+  }
+
+  // Fallback to seed quote so UI is populated with meaningful market indicators
+  const seed = SEED_QUOTES.find(q => q.symbol === clean)
+  if (seed) {
+    return {
+      symbol: clean,
+      assetType: 'equity',
+      price: seed.price,
+      change: (seed.price * seed.changePct) / 100,
+      changePercent: seed.changePct,
+      currency: 'USD',
+      timestamp: seed.timestamp,
+      provider: 'simulated-feed',
+      freshness: 'simulated',
+      status: 'simulated',
+    }
+  }
+
+  return {
+    symbol: clean,
+    assetType: 'equity',
+    price: null,
+    change: null,
+    changePercent: null,
+    currency: 'USD',
+    timestamp: null,
+    provider: null,
+    freshness: 'unknown',
+    status: 'unavailable',
   }
 }
 
