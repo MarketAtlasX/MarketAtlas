@@ -1,4 +1,12 @@
-from enum import StrEnum
+try:
+    from enum import StrEnum
+except ImportError:
+    from enum import Enum
+
+    class StrEnum(str, Enum):
+        """Python 3.10 compatible StrEnum fallback."""
+        def __str__(self) -> str:
+            return str(self.value)
 
 
 class EventType(StrEnum):
