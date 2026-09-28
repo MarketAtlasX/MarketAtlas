@@ -1,11 +1,25 @@
+/* ===================================================
+   Atlas AI — Page & Overlay Styles
+   =================================================== */
+
+/* Backdrop radial glow */
 .atlas-backdrop {
   background:
-    radial-gradient(circle at 50% 42%, rgba(56, 232, 255, 0.05), transparent 55%),
+    radial-gradient(circle at 50% 42%, rgba(56, 232, 255, 0.06), transparent 55%),
     radial-gradient(ellipse at 50% 120%, rgba(20, 40, 60, 0.45), transparent 70%);
 }
 
+/* Faint dot-grid scan overlay */
+.atlas-scan-grid {
+  background-image:
+    radial-gradient(circle, rgba(56, 232, 255, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.6;
+}
+
+/* Subsystem status chips */
 .atlas-chip {
-  opacity: 0.25;
+  opacity: 0.28;
   transition: opacity 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
@@ -15,26 +29,89 @@
 
 @keyframes atlas-chip-in {
   0% {
-    opacity: 0.25;
+    opacity: 0.28;
     border-color: var(--line);
-    color: var(--text-lo);
   }
-  30% {
+  35% {
     opacity: 1;
-    border-color: rgba(56, 232, 255, 0.5);
-    color: var(--accent);
-    box-shadow: 0 0 12px rgba(56, 232, 255, 0.25);
+    border-color: rgba(56, 232, 255, 0.55);
+    box-shadow: 0 0 10px rgba(56, 232, 255, 0.2);
   }
   70% {
-    opacity: 0.6;
+    opacity: 0.55;
   }
   100% {
-    opacity: 0.25;
+    opacity: 0.28;
   }
 }
 
+/* Idle idle-ring animation */
+.atlas-idle-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 232, 255, 0.18);
+  box-shadow: 0 0 32px rgba(56, 232, 255, 0.08);
+  animation: atlas-idle-ring 3s ease-in-out infinite;
+}
+
+@keyframes atlas-idle-ring {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.12); opacity: 0.9; }
+}
+
+/* Orb responsive scale */
 @media (max-width: 640px) {
   .atlas-orb-responsive {
     transform: scale(0.7);
   }
+}
+
+/* ===================================================
+   Floating Overlay
+   =================================================== */
+
+.atlas-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(4, 8, 14, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 72px;
+  animation: atlas-overlay-in 0.22s ease-out both;
+}
+
+@keyframes atlas-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.atlas-overlay-panel {
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(420px, calc(100vh - 140px));
+  background: rgba(10, 16, 24, 0.97);
+  border: 1px solid rgba(56, 232, 255, 0.2);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(56, 232, 255, 0.06),
+    0 24px 80px rgba(0, 0, 0, 0.65),
+    0 0 60px rgba(56, 232, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: atlas-panel-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes atlas-panel-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* TopStatusBar Atlas AI button pulse effect when wake is armed */
+.atlas-topbar-btn {
+  position: relative;
 }

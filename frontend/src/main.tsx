@@ -9,6 +9,8 @@ import { VoiceAssistantProvider } from './assistant/voice/useVoiceAssistant'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/index.css'
+import './assistant/ui/atlas.css'
+
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

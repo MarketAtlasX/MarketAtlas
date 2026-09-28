@@ -1,5 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
 @import "tailwindcss";
 @import "./cinematic-globe.css";
+
 
 :root {
   --bg: #0b0d0f;
@@ -28,7 +30,9 @@
   --glow-warning: 0 0 14px rgba(245, 185, 65, 0.3);
   --glow-critical: 0 0 14px rgba(255, 77, 94, 0.35);
 
-  --font-mono: 'SFMono-Regular', 'Roboto Mono', ui-monospace, Menlo, monospace;
+  --font-sans: 'Inter', 'Avenir Next', 'Helvetica Neue', sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', 'Roboto Mono', ui-monospace, Menlo, monospace;
 }
 
 html,
@@ -41,7 +45,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text-hi);
-  font-family: 'Avenir Next', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
@@ -71,6 +75,10 @@ body {
 
 .font-mono {
   font-family: var(--font-mono);
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 .bg-command {
