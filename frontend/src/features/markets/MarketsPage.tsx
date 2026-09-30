@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ArrowDown, TrendingUp, ChevronRight, Search, Activity } from 'lucide-react'
 import { useWorldStore } from '../../stores/WorldStore'
@@ -83,17 +83,29 @@ export default function MarketsPage() {
   const { state } = useWorldStore()
   const [searchParams] = useSearchParams()
   const requestedSymbol = useMemo(() => {
-    const raw = (searchParams.get('symbol') ?? '').toUpperCase()
+    const raw = (searchParams.get('symbol') ?? '').toUpperCase().replace(/[^A-Z0-9.]/g, '')
     const sector = (searchParams.get('sector') ?? '').toLowerCase()
-    if (raw && WATCHLIST.includes(raw)) return raw
+    if (raw) return raw
     if (sector && SECTOR_TO_SYMBOL[sector]) return SECTOR_TO_SYMBOL[sector]
     return null
   }, [searchParams])
   const [symbol, setSymbol] = useState(requestedSymbol ?? 'NVDA')
+  const [searchInput, setSearchInput] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
   const [prediction, setPrediction] = useState<PredictionResult | null>(null)
   const [predictionState, setPredictionState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [marketObservation, setMarketObservation] = useState<MarketObservation>({ symbol: symbol, assetType: 'equity', price: null, change: null, changePercent: null, timestamp: null, provider: null, freshness: 'unknown', status: 'unavailable' })
   const [marketHistory, setMarketHistory] = useState<MarketHistoryObservation | null>(null)
+
+  const handleSearchSubmit = useCallback(() => {
+    const cleaned = searchInput.trim().toUpperCase().replace(/[^A-Z0-9.]/g, '')
+    if (cleaned) {
+      setSymbol(cleaned)
+      setSearchInput('')
+      setSearchOpen(false)
+    }
+  }, [searchInput])
 
   useEffect(() => {
     if (requestedSymbol) setSymbol(requestedSymbol)
@@ -178,12 +190,45 @@ export default function MarketsPage() {
           <p className="text-[11px] text-[var(--text-mid)] mt-1">Cross-asset outlook, geopolitical exposure and scenario risk</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2 border border-[var(--line)] bg-[var(--bg-raised)] px-3 py-2 text-[11px] text-[var(--text-lo)]">
-            <Search size={13} />
-            <span>Search symbol</span>
-            <span className="ml-4 font-mono text-[9px]">/</span>
-          </div>
-          <div className="flex gap-1 border-l border-[var(--line)] pl-2">
+          {searchOpen ? (
+            <form
+              onSubmit={e => { e.preventDefault(); handleSearchSubmit() }}
+              className="hidden sm:flex items-center gap-2 border border-[rgba(56,232,255,0.4)] bg-[var(--bg-raised)] px-3 py-1.5 text-[11px]"
+            >
+              <Search size={13} className="text-[var(--accent)] shrink-0" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value.toUpperCase())}
+                onBlur={() => { if (!searchInput) setSearchOpen(false) }}
+                onKeyDown={e => { if (e.key === 'Escape') { setSearchInput(''); setSearchOpen(false) } }}
+                placeholder="Enter ticker (e.g. MSFT)"
+                className="bg-transparent outline-none font-mono text-[var(--text-hi)] placeholder:text-[var(--text-lo)] w-32"
+                autoFocus
+                maxLength={10}
+              />
+              <button type="submit" className="text-[var(--accent)] hover:text-[var(--text-hi)] font-mono text-[9px] tracking-wider px-1.5 py-0.5 border border-[rgba(56,232,255,0.3)] rounded transition-colors hover:bg-[rgba(56,232,255,0.12)]">GO</button>
+            </form>
+          ) : (
+            <button
+              onClick={() => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50) }}
+              className="hidden sm:flex items-center gap-2 border border-[var(--line)] bg-[var(--bg-raised)] px-3 py-2 text-[11px] text-[var(--text-lo)] hover:border-[rgba(56,232,255,0.3)] hover:text-[var(--text-mid)] transition-colors cursor-pointer"
+            >
+              <Search size={13} />
+              <span>Search any ticker</span>
+              <span className="ml-4 font-mono text-[9px]">/</span>
+            </button>
+          )}
+          <div className="flex gap-1 border-l border-[var(--line)] pl-2 flex-wrap">
+          {/* Show custom symbol pill when a non-watchlist symbol is active */}
+          {!WATCHLIST.includes(symbol) && (
+            <button
+              className="border px-2.5 py-2 text-[11px] font-mono transition-colors border-[rgba(56,232,255,0.4)] bg-[rgba(56,232,255,0.12)] text-[var(--accent)]"
+            >
+              {symbol}
+            </button>
+          )}
           {WATCHLIST.map(s => (
             <button
               key={s}
