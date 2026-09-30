@@ -12,6 +12,7 @@ export type IntelligenceEventType =
   | 'CAUSAL_GRAPH_PROJECTED'
   | 'BACKTEST_REQUESTED'
   | 'GLOBE_INTENT'
+  | 'TAB_SWITCH'
 
 export interface IntelligenceEvent<T = any> {
   type: IntelligenceEventType
