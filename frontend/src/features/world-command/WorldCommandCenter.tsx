@@ -74,6 +74,8 @@ export default function WorldCommandCenter() {
         selectEntity(event.payload.entity)
       } else if (event.type === 'GLOBE_INTENT' && event.payload?.intent) {
         setReplayIntent(event.payload.intent)
+      } else if (event.type === 'TAB_SWITCH' && event.payload?.tab) {
+        setConsoleTab(tabFromParam(event.payload.tab))
       }
     })
   }, [selectEntity])
