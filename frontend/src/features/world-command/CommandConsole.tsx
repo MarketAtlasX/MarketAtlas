@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Radio, Waypoints, Sparkles, Database, Brain } from 'lucide-react'
 import Tabs from '../../components/ui/Tabs'
 import LiveEventsTab from './tabs/LiveEventsTab'
@@ -26,6 +26,11 @@ export default function CommandConsole({ initialTab = 'events' }: CommandConsole
   const [tab, setTab] = useState<ConsoleTab>(initialTab)
   const isCommand = tab === 'command'
   const { state } = useWorldStore()
+
+  // Sync tab state when the parent updates initialTab (e.g. via URL ?tab= param)
+  useEffect(() => {
+    setTab(initialTab)
+  }, [initialTab])
   const tabs = BASE_TABS.map(t =>
     t.key === 'events' ? { ...t, label: state.dataMode === 'live' ? 'LIVE EVENTS' : 'EVENTS \u00b7 SIMULATED' } : t,
   )
