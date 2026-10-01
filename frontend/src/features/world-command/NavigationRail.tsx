@@ -4,7 +4,6 @@ import { useWorldStore } from '../../stores/WorldStore'
 import StatusDot from '../../components/ui/StatusDot'
 import { useAssistantState } from '../../assistant/state/AssistantStateContext'
 import { useVoiceAssistant } from '../../assistant/voice/useVoiceAssistant'
-import { intelligenceBus } from '../../services/intelligenceBus'
 
 interface RailItem {
   label: string
@@ -34,18 +33,7 @@ export default function NavigationRail() {
   const items: RailItem[] = [
     { label: 'WORLD', icon: <Globe size={14} />, to: '/dashboard' },
     { label: 'MARKETS', icon: <TrendingUp size={14} />, to: '/markets' },
-    { label: 'EVENTS', icon: <Radio size={14} />, action: () => {
-      // If already on /dashboard, update search params directly; otherwise navigate
-      if (window.location.pathname === '/dashboard') {
-        const params = new URLSearchParams(window.location.search)
-        params.set('tab', 'events')
-        navigate(`/dashboard?${params.toString()}`, { replace: true })
-        // Force re-render by also emitting a bus event
-        intelligenceBus.emit('TAB_SWITCH', { tab: 'events' })
-      } else {
-        navigate('/dashboard?tab=events')
-      }
-    }},
+    { label: 'EVENTS', icon: <Radio size={14} />, to: '/dashboard?tab=events' },
     { label: 'GRAPH', icon: <Network size={14} />, to: '/graph' },
     { label: 'SIMULATOR', icon: <FlaskConical size={14} />, to: '/simulator' },
     { label: 'MEMORY', icon: <Database size={14} />, to: '/memory' },
@@ -56,7 +44,7 @@ export default function NavigationRail() {
   const analyzing = worldState.agents.filter(a => a.state === 'analyzing').length
 
   return (
-    <nav className="w-16 shrink-0 flex flex-col items-center gap-1 py-3 border-r border-[var(--line)] bg-[var(--bg-raised)]">
+    <nav className="relative z-30 w-16 shrink-0 flex flex-col items-center gap-1 py-3 border-r border-[var(--line)] bg-[var(--bg-raised)] pointer-events-auto">
       {items.map(item => {
         const isAtlasActive = item.isAtlas && (overlayOpen || active)
 
