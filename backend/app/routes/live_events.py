@@ -4,10 +4,13 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Path, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import StreamingResponse
 
 from app.core.enums import LiveEventStatus
+from app.database import get_db
 from app.models.user import User
+from app.repositories.event import EventRepository
 from app.schemas.live_event import (
     EventImpactCreate,
     EventNewsArticleCreate,
@@ -19,8 +22,10 @@ from app.schemas.live_event import (
     LiveEventUpdate,
     UserEventFilterCreate,
 )
+from app.schemas.observation import EvidenceObservation, ObservationProvenance, ObservationSource
 from app.schemas.pagination import PaginatedResponse
 from app.services.auth_service import get_current_user
+from app.services.financial_data_service import get_stock_quote
 from app.services.live_event_service import LiveEventService, get_live_event_service
 
 logger = logging.getLogger(__name__)
@@ -138,11 +143,12 @@ async def live_event_timeline(
     return await service.get_timeline(hours=hours)
 
 
-@router.get("/observation")
+@router.get("/observation", response_model=EvidenceObservation)
 async def live_event_observation(
     query: Optional[str] = Query(None, min_length=1, max_length=200),
     country_code: Optional[str] = Query(None, alias="countryCode", max_length=2),
     ticker: Optional[str] = Query(None, max_length=20),
+    db: AsyncSession = Depends(get_db),
     service: LiveEventService = Depends(get_live_event_service),
 ):
     """Return an evidence bundle for Atlas intelligence tools.
@@ -159,14 +165,71 @@ async def live_event_observation(
         sort_by="first_seen_at",
         sort_desc=True,
     )
+    observation_query = query or ticker or country_code
     if not page.items:
-        return {
-            "status": "unavailable",
-            "freshness": "unknown",
-            "query": query or ticker or country_code,
-            "evidence": [],
-            "limitations": ["No persisted provider-backed event matched the request."],
-        }
+        raw_events = await EventRepository(db).search_by_keyword(observation_query, limit=1) if observation_query else []
+        if raw_events:
+            raw_event = raw_events[0]
+            source = ObservationSource(
+                reference=f"event:{raw_event.id}",
+                url=raw_event.source_url,
+                title=raw_event.title,
+                provider=raw_event.source,
+                published_at=raw_event.event_date.isoformat(),
+                fetched_at=raw_event.updated_at.isoformat(),
+            )
+            market_observations = []
+            if ticker:
+                quote = await get_stock_quote(ticker.upper())
+                market_observations.append({
+                    "status": "provider-backed" if quote else "unavailable",
+                    "symbol": ticker.upper(),
+                    "price": quote.get("price") if quote else None,
+                    "change": quote.get("change") if quote else None,
+                    "change_percent": quote.get("change_percent") if quote else None,
+                    "currency": quote.get("currency") if quote else None,
+                    "timestamp": quote.get("observed_at") if quote else None,
+                    "provider": quote.get("source") if quote else None,
+                    "freshness": "current" if quote and quote.get("observed_at") else "unknown",
+                })
+            return EvidenceObservation(
+                status="stale",
+                query=observation_query,
+                freshness="stale",
+                event={
+                    "id": raw_event.id,
+                    "title": raw_event.title,
+                    "description": raw_event.description,
+                    "event_type": raw_event.event_type,
+                    "severity": raw_event.severity,
+                    "status": raw_event.status,
+                    "event_date": raw_event.event_date.isoformat(),
+                },
+                entities=[entity.name for entity in raw_event.entities],
+                assets=[ticker.upper()] if ticker else [],
+                sources=[source],
+                market_observations=market_observations,
+                provenance=ObservationProvenance(
+                    provider=raw_event.source,
+                    observed_at=raw_event.event_date.isoformat(),
+                    references=[source.reference or f"event:{raw_event.id}"],
+                ),
+                uncertainty=["This observation came from the normalized event store and may be stale."],
+                provider_status={
+                    "events": "stale",
+                    "sources": "live" if raw_event.source_url else "unavailable",
+                    "market_data": "live" if market_observations and market_observations[0]["status"] == "provider-backed" else "unavailable",
+                    "causal_graph": "unavailable",
+                },
+                limitations=["No live-event impact or causal records matched this request."],
+            )
+        return EvidenceObservation(
+            status="unavailable",
+            query=observation_query,
+            provider_status={"events": "unavailable", "market_data": "unavailable", "causal_graph": "unavailable"},
+            uncertainty=["No persisted provider-backed event matched the request."],
+            limitations=["No persisted provider-backed event matched the request."],
+        )
 
     event = await service.get(page.items[0].id)
     impacts = await service.get_impacts(event.id)
@@ -200,11 +263,9 @@ async def live_event_observation(
                 "confidence": impact.confidence,
                 "evidence_ref": str(impact.id),
             })
-    return {
-        "status": "live" if event.status in {"breaking", "ongoing"} else "historical",
-        "freshness": "current" if event.status in {"breaking", "ongoing"} else "historical",
-        "event": LiveEventFullRead.model_validate(event).model_dump(mode="json"),
-        "impacts": [
+    status = "live" if event.status in {"breaking", "ongoing"} else "stale"
+    event_payload = LiveEventFullRead.model_validate(event).model_dump(mode="json")
+    impact_payloads = [
             {
                 "entity_id": impact.entity_id,
                 "entity_name": impact.entity_name,
@@ -236,26 +297,82 @@ async def live_event_observation(
                 ],
             }
             for impact in impacts
-        ],
-        "sources": [
-            {
-                "url": article.url,
-                "title": article.title,
-                "source": article.source,
-                "published_at": article.published_at.isoformat() if article.published_at else None,
-                "fetched_at": article.fetched_at.isoformat(),
-                "relevance": article.relevance_score,
-            }
-            for article in articles
-        ],
-        "causal_chain": causal_edges,
-        "provenance": {
-            "provider": event.source,
-            "observed_at": event.updated_at.isoformat(),
-            "confidence": event.confidence,
+        ]
+    sources = [
+        ObservationSource(
+            reference=str(article.id),
+            url=article.url,
+            title=article.title,
+            provider=article.source,
+            published_at=article.published_at.isoformat() if article.published_at else None,
+            fetched_at=article.fetched_at.isoformat(),
+            relevance=article.relevance_score,
+        )
+        for article in articles
+    ]
+    assets = sorted({
+        asset.ticker or asset.name
+        for impact in impacts
+        for asset in impact.affected_assets
+    })
+    if ticker and ticker.upper() not in assets:
+        assets.append(ticker.upper())
+    market_observations = []
+    for asset in assets:
+        if not asset.isupper() or len(asset) > 20:
+            continue
+        quote = await get_stock_quote(asset)
+        if quote:
+            market_observations.append({
+                "status": "provider-backed",
+                "symbol": quote.get("symbol", asset),
+                "price": quote.get("price"),
+                "change": quote.get("change"),
+                "change_percent": quote.get("change_percent"),
+                "currency": quote.get("currency"),
+                "timestamp": quote.get("observed_at"),
+                "provider": quote.get("source"),
+                "freshness": "current" if quote.get("observed_at") else "unknown",
+            })
+        else:
+            market_observations.append({
+                "status": "unavailable",
+                "symbol": asset,
+                "freshness": "unknown",
+            })
+    countries = [value for value in (event.country_code, event.region) if value]
+    entities = sorted({impact.entity_name for impact in impacts})
+    uncertainty = ["Impact relationships are analytical interpretations and may be incomplete."]
+    if event.confidence is None:
+        uncertainty.append("Event confidence was not provided by the source.")
+    return EvidenceObservation(
+        status=status,
+        query=observation_query,
+        freshness="current" if status == "live" else "stale",
+        event=event_payload,
+        entities=entities,
+        countries=countries,
+        assets=assets,
+        impacts=impact_payloads,
+        sources=sources,
+        market_observations=market_observations,
+        causal_chain=causal_edges,
+        provenance=ObservationProvenance(
+            provider=event.source,
+            observed_at=event.updated_at.isoformat(),
+            confidence=event.confidence,
+            references=[str(event.id), *(source.reference for source in sources if source.reference)],
+        ),
+        confidence=event.confidence,
+        uncertainty=uncertainty,
+        provider_status={
+            "events": status,
+            "sources": "live" if sources else "unavailable",
+            "market_data": "live" if any(item["status"] == "provider-backed" for item in market_observations) else "unavailable",
+            "causal_graph": "live" if causal_edges else "degraded",
         },
-        "limitations": ["Impact relationships are analytical interpretations and may be incomplete."],
-    }
+        limitations=uncertainty,
+    )
 
 
 @router.get("/feed")
