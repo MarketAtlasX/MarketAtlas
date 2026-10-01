@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { events } from '../data/events'
 import { worldStates } from '../data/worldState'
 import type { LiveEvent, MarketSignal, GraphLink, RiskUpdate, AgentStatus, WorldRisk, WorldStoreState } from '../types'
@@ -63,6 +63,46 @@ function computeWorldRisk(risk: RiskUpdate[]): WorldRisk {
   }
 }
 
+interface ApiEvent {
+  id?: number | string
+  title?: string
+  description?: string
+  event_type?: string
+  severity?: number | string
+  event_date?: string
+  created_at?: string
+}
+
+function normalizeEventType(value: string | undefined): LiveEvent['type'] {
+  const type = value?.toLowerCase()
+  if (type === 'conflict' || type === 'election' || type === 'sanction' || type === 'trade' || type === 'diplomatic' || type === 'military' || type === 'economic' || type === 'natural' || type === 'market') {
+    return type
+  }
+  return 'economic'
+}
+
+function normalizeSeverity(value: number | string | undefined): number {
+  if (typeof value === 'number') return Math.max(1, Math.min(10, Math.round(value)))
+  const levels: Record<string, number> = { low: 2, medium: 5, high: 8, critical: 10 }
+  return levels[value?.toLowerCase() ?? ''] ?? 3
+}
+
+function mapApiEvent(event: ApiEvent, index: number): LiveEvent {
+  return {
+    id: String(event.id ?? `api-event-${index}`),
+    title: event.title?.trim() || 'Untitled market event',
+    countryCode: 'US',
+    country: 'Global',
+    type: normalizeEventType(event.event_type),
+    severity: normalizeSeverity(event.severity),
+    lat: 20,
+    lng: 0,
+    timestamp: event.event_date || event.created_at || new Date().toISOString(),
+    summary: event.description?.trim() || 'No event summary available.',
+    sectors: [],
+  }
+}
+
 function seedGraph(): GraphLink[] {
   return [
     { source: 'Iran', target: 'Europe', influence: 0.71, label: 'Oil impact' },
@@ -109,6 +149,37 @@ export function WorldProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const [state, setState] = useState<WorldStoreState>(initial)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 4000)
+
+    fetch('/api/events?limit=40', { signal: controller.signal })
+      .then(response => (response.ok ? response.json() as Promise<{ items?: ApiEvent[] }> : null))
+      .then(payload => {
+        const items = payload?.items ?? []
+        if (items.length === 0) return
+        const liveEvents = items.map(mapApiEvent)
+        setState(current => ({
+          ...current,
+          events: liveEvents,
+          dataMode: 'live',
+          updatedAt: new Date().toISOString(),
+        }))
+      })
+      .catch(() => {
+        // Seeded events remain available when the backend is offline.
+      })
+      .finally(() => {
+        window.clearTimeout(timeout)
+      })
+
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [])
+
   const pushEvent = useCallback((e: LiveEvent) => {
     setState(s => ({ ...s, events: [e, ...s.events].slice(0, 40), dataMode: 'live', updatedAt: e.timestamp }))
   }, [])
