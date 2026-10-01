@@ -22,6 +22,36 @@ This document walks the whole path, layer by layer.
 | **Visualization** | `backend/app/chatbot/atlas` | Query → `VisualizationIntent` (mirrored offline in the frontend) |
 | **World Core** | `frontend/src/features/globe`, `frontend/src/globe` | Renders the intent as particles, routes, heat, and camera motion |
 
+## 1.1 Canonical Evidence Observation
+
+ATLAS intelligence tools retrieve evidence through the existing backend
+`GET /api/v1/live-events/observation` endpoint. The response is the typed
+`EvidenceObservation` envelope in `backend/app/schemas/observation.py` and
+composes persisted live-event records, source articles, event impacts,
+affected assets, provider-backed market quotes, and persisted causal links.
+
+Every envelope carries `status` (`live`, `stale`, `degraded`, `unavailable`,
+or `demo`), freshness, provenance, confidence when supplied by a provider,
+uncertainty, provider status, and limitations. Missing evidence is returned as
+`unavailable`; the endpoint does not synthesize an event, quote, confidence, or
+causal hop.
+
+The frontend `atlasTools` adapter preserves this envelope in Atlas state and
+the Prediction Space displays provider status. The globe remains a rendering
+surface: it consumes the observation and visualization intent but does not
+invent financial conclusions when backend intelligence is unavailable.
+
+ATLAS answers about the selected evidence from that same envelope: the context
+snapshot carries a deterministic briefing (`evidenceBriefing.ts`) covering what
+happened, sources, impacts, assets/markets, causal links, and freshness/
+confidence/uncertainty, plus an explicit "not established" list for missing
+sections. The structured agent prompt (`build_agent_system_prompt`) grounds the
+provider in `evidence.observation` — requiring provenance citations and an
+explicit "the evidence does not establish it" whenever the envelope lacks the
+answer — and the deterministic fallback renders the identical briefing, so both
+paths answer from the observation currently displayed, never a previous
+selection's evidence.
+
 ### The Brain Contract
 
 Frontend and backend agree on a single JSON contract — `VisualizationIntent`:
