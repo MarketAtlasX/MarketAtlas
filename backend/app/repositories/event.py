@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -76,6 +76,24 @@ class EventRepository(BaseRepository[Event]):
             .where(self.model.event_date >= cutoff_date)
             .order_by(desc(self.model.event_date))
             .offset(skip)
+            .limit(limit)
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def search_by_keyword(self, keyword: str, limit: int = 10) -> List[Event]:
+        pattern = f"%{keyword}%"
+        query = (
+            select(self.model)
+            .where(
+                or_(
+                    self.model.title.ilike(pattern),
+                    self.model.description.ilike(pattern),
+                    self.model.source.ilike(pattern),
+                )
+            )
+            .options(selectinload(self.model.entities))
+            .order_by(desc(self.model.event_date))
             .limit(limit)
         )
         result = await self.session.execute(query)
