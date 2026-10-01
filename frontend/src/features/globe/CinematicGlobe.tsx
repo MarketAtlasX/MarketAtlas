@@ -346,7 +346,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
       .labelAltitude((d: any) => d.altitude ?? 0.02)
 
       .ringsData([])
-      .ringColor((d: any) => d.color || (() => 'rgba(255, 215, 0, 0.8)'))
+      .ringColor((d: any) => d.color || 'rgba(255, 215, 0, 0.8)')
       .ringMaxRadius((d: any) => d.maxR || 5)
       .ringPropagationSpeed((d: any) => d.propagationSpeed || 2)
       .ringRepeatPeriod((d: any) => d.repeatPeriod || 1000)
@@ -603,7 +603,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
           propagationSpeed: 2.2,
           repeatPeriod: 1400,
           altitude: 0.022,
-          color: () => (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`,
+          color: (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`,
         })
       }
       if (projectedCausalGraph) {
@@ -616,7 +616,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
               propagationSpeed: 2.6,
               repeatPeriod: 1100,
               altitude: 0.025,
-              color: () => (t: number) => `rgba(255, 77, 94, ${Math.max(0, 1 - t) * 0.85})`,
+              color: (t: number) => `rgba(255, 77, 94, ${Math.max(0, 1 - t) * 0.85})`,
             })
           } else if (n.type === 'company_hq' && !selectedCompany) {
             rings.push({
@@ -626,7 +626,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
               propagationSpeed: 2.2,
               repeatPeriod: 1400,
               altitude: 0.022,
-              color: () => (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`,
+              color: (t: number) => `rgba(255, 215, 0, ${Math.max(0, 1 - t) * 0.85})`,
             })
           }
         })
@@ -634,7 +634,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
 
       globe
         .ringsData(rings)
-        .ringColor((d: any) => d.color || (() => 'rgba(255, 215, 0, 0.8)'))
+        .ringColor((d: any) => d.color || 'rgba(255, 215, 0, 0.8)')
         .ringMaxRadius((d: any) => d.maxR || 5.0)
         .ringPropagationSpeed((d: any) => d.propagationSpeed || 2.2)
         .ringRepeatPeriod((d: any) => d.repeatPeriod || 1400)
