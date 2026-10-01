@@ -5,15 +5,55 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 
-@dataclass
+@dataclass(init=False)
 class PredictionScenario:
     """Alternative prediction scenario."""
-    scenario_name: str
-    probability: float
-    time_horizon: str
-    expected_outcome: str
+    scenario_name: str = ''
+    probability: float = 0.0
+    time_horizon: str = ''
+    expected_outcome: str = ''
     trigger_conditions: List[str] = field(default_factory=list)
     market_implications: str = ''
+    label: str = ''
+    target_price: Optional[float] = None
+    confidence: float = 0.0
+    horizon: str = ''
+    drivers: List[str] = field(default_factory=list)
+
+    def __init__(
+        self,
+        scenario_name: str = '',
+        probability: float = 0.0,
+        time_horizon: str = '',
+        expected_outcome: str = '',
+        trigger_conditions: Optional[List[str]] = None,
+        market_implications: str = '',
+        *,
+        label: Optional[str] = None,
+        target_price: Optional[float] = None,
+        confidence: float = 0.0,
+        horizon: Optional[str] = None,
+        drivers: Optional[List[str]] = None,
+    ) -> None:
+        self.scenario_name = scenario_name or label or ''
+        self.probability = probability
+        self.time_horizon = time_horizon or horizon or ''
+        self.expected_outcome = expected_outcome
+        self.trigger_conditions = trigger_conditions or []
+        self.market_implications = market_implications
+        self.label = label or self.scenario_name
+        self.target_price = target_price
+        self.confidence = confidence or probability
+        self.horizon = horizon or self.time_horizon
+        self.drivers = drivers or []
+
+
+@dataclass
+class PredictionSummaryResponse:
+    ticker: str
+    horizon: str
+    confidence: float
+    primary_scenario: PredictionScenario
 
 
 @dataclass
