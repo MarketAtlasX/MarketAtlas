@@ -13,7 +13,7 @@ agent consensus, scenario tree, and prediction narrative.
 | File | Purpose |
 |------|---------|
 | `PredictionSpace.tsx` | Main component with search, chips, loading, results, and error states |
-| `predictionApi.ts` | API wrapper with `include_raw=true` and offline mock fallback |
+| `predictionApi.ts` | API wrapper with `include_raw=true`; backend failures return `unavailable`, while the retained offline generator is explicitly marked `simulated` |
 | `backend-contract.md` | API contract documentation |
 | `README.md` | This file |
 
