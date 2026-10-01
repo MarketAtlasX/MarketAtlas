@@ -2,10 +2,16 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Command, Check, Network, FlaskConical, LineChart, Loader2, Brain, ScrollText } from 'lucide-react'
 import { backendOnline } from '../../../api/chatApi'
-import { intelligenceBus } from '../../../services/intelligenceBus'
+import { intelligenceBus, type IntelligenceEvent } from '../../../services/intelligenceBus'
 import { useAtlasAgent } from '../../../assistant/agent/useAtlasAgent'
+import { useAtlasStore } from '../../../stores/AtlasStore'
+import EvidenceStatusBadge from '../../evidence/EvidenceStatusBadge'
 import { AGENT_DEFINITIONS } from '../../agents/agents'
 import StatusDot from '../../../components/ui/StatusDot'
+
+// Tracks the last EVIDENCE_ASK consumed so a request emitted just before this
+// console mounted is handled exactly once, even across remounts.
+let lastConsumedEvidenceAskAt = 0
 
 type Role = 'you' | 'atlas'
 
@@ -36,6 +42,7 @@ export default function AtlasConsole() {
   const [stepIndex, setStepIndex] = useState(0)
   const [connected, setConnected] = useState<boolean | null>(null)
   const { execute } = useAtlasAgent()
+  const { state: atlasState } = useAtlasStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -62,8 +69,8 @@ export default function AtlasConsole() {
     }
   }, [])
 
-  const submit = async () => {
-    const q = query.trim()
+  const submit = async (overrideQuery?: string, options?: { evidenceRequest?: boolean }) => {
+    const q = (overrideQuery ?? query).trim()
     if (!q || isAnalyzing) return
 
     const userMsg: Message = { id: Date.now().toString(), role: 'you', text: q, timestamp: Date.now() }
@@ -83,7 +90,7 @@ export default function AtlasConsole() {
     }, 450)
 
     try {
-      const agentExecution = await execute(q)
+      const agentExecution = await execute(q, options)
 
       if (timerRef.current) clearInterval(timerRef.current)
       setStepIndex(ORCHESTRATION_STEPS.length)
@@ -112,11 +119,38 @@ export default function AtlasConsole() {
         agents: ['LocalRuntime', 'GeopoliticalEngine'],
       }
       setMessages(prev => [...prev.slice(-19), errorMsg])
-      await execute(q)
+      await execute(q, options)
     } finally {
       setIsAnalyzing(false)
     }
   }
+
+  // Respond to "Ask ATLAS about this evidence" from the Evidence panel by
+  // running the assistant against the canonical evidence in Atlas state.
+  const submitRef = useRef(submit)
+  submitRef.current = submit
+  useEffect(() => {
+    const handle = (event: IntelligenceEvent) => {
+      if (event.type !== 'EVIDENCE_ASK') return
+      const payloadQuery = typeof event.payload?.query === 'string' ? event.payload.query : ''
+      if (!payloadQuery) return
+      lastConsumedEvidenceAskAt = event.timestamp ?? Date.now()
+      setQuery(payloadQuery)
+      void submitRef.current(payloadQuery, { evidenceRequest: event.payload?.evidenceRequest === true })
+    }
+    const unsubscribe = intelligenceBus.subscribe(handle)
+    const pending = intelligenceBus.current
+    if (
+      pending?.type === 'EVIDENCE_ASK' &&
+      (pending.timestamp ?? 0) > lastConsumedEvidenceAskAt &&
+      typeof pending.payload?.query === 'string'
+    ) {
+      lastConsumedEvidenceAskAt = pending.timestamp ?? Date.now()
+      setQuery(pending.payload.query)
+      void submitRef.current(pending.payload.query, { evidenceRequest: pending.payload?.evidenceRequest === true })
+    }
+    return unsubscribe
+  }, [])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -150,6 +184,12 @@ export default function AtlasConsole() {
           </span>
         </div>
         <div className="flex items-center gap-2 text-[9px] text-[var(--text-lo)] tracking-wider">
+          {atlasState.evidence.status === 'ready' && atlasState.evidence.observation && (
+            <span className="flex items-center gap-1" title={`Atlas is using the canonical evidence shown in the panel for ${atlasState.evidence.selection ?? ''}`}>
+              <span className="hidden sm:inline">EVIDENCE</span>
+              <EvidenceStatusBadge status={atlasState.evidence.observation.status} />
+            </span>
+          )}
           <span>PIPELINE: MULTI-AGENT</span>
           <span className="text-[var(--accent)]">AGENTS: {AGENT_DEFINITIONS.length}</span>
         </div>
@@ -312,7 +352,7 @@ export default function AtlasConsole() {
           />
           <button
             type="button"
-            onClick={submit}
+            onClick={() => submit()}
             disabled={isAnalyzing || !query.trim()}
             className="text-[9px] font-bold px-2 py-1 rounded bg-[rgba(56,232,255,0.15)] text-[var(--accent)] hover:bg-[rgba(56,232,255,0.25)] disabled:opacity-40 disabled:pointer-events-none transition-colors"
           >
