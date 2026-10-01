@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router-dom'
 import NavigationRail from './NavigationRail'
 import IntelligencePanel from './IntelligencePanel'
 import PredictionSpace from '../prediction-space/PredictionSpace'
+import EvidencePanel from '../evidence/EvidencePanel'
+import { useLiveEvidenceRefresh } from '../evidence/useLiveEvidenceRefresh'
 import AgentStatusMatrix from './AgentStatusMatrix'
 import CommandConsole, { type ConsoleTab } from './CommandConsole'
 import HolographicGlobe, { type GlobeMode } from '../globe/HolographicGlobe'
@@ -44,7 +46,12 @@ export default function WorldCommandCenter() {
   const { update } = useAtlasStore()
   const { state: atlasState } = useAtlasStore()
 
-  useLiveWorldSocket()
+  // Fetch canonical evidence for the committed globe selection (never on hover)
+  // and keep it refreshed in place while the selection is unchanged. New backend
+  // WebSocket events that affect the selected entity trigger the same in-place
+  // refresh, so globe → evidence → ATLAS react without a page reload.
+  const { refresh: refreshEvidence, onLiveEvent } = useLiveEvidenceRefresh(state.selectedEntity)
+  useLiveWorldSocket({ onLiveEvent })
 
   useEffect(() => {
     const t = searchParams.get('tab')
@@ -149,6 +156,20 @@ export default function WorldCommandCenter() {
         </section>
 
         <aside className="w-80 shrink-0 border-l border-[var(--line)] bg-[rgba(4,8,12,0.7)] backdrop-blur-md overflow-y-auto flex flex-col">
+          <EvidencePanel
+            evidence={atlasState.evidence}
+            onSelectEntity={handleGlobeSelect}
+            onRefresh={refreshEvidence}
+            onAskAtlas={selection => {
+              setConsoleTab('command')
+              intelligenceBus.emit('EVIDENCE_ASK', {
+                selection,
+                evidenceRequest: true,
+                query: `Explain the selected evidence for ${selection}: its sources, impacts, market observations, and causal links.`,
+              })
+            }}
+          />
+          <div className="h-px bg-[var(--line)]" />
           <PredictionSpace selectedEntity={state.selectedEntity} />
           <div className="h-px bg-[var(--line)]" />
           {showAgents ? <AgentStatusMatrix /> : <IntelligencePanel />}
