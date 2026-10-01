@@ -274,6 +274,8 @@ function generateOfflinePrediction(ticker: string): PredictionResult {
   if (!ctx) {
     // Fallback for unknown tickers
     return {
+      data_status: 'simulated',
+      data_limitation: 'Demo-only offline context; not a provider-backed forecast.',
       prediction_id: `offline-${clean}-${Date.now()}`,
       target: `${clean} Market Outlook`,
       ticker: clean,
@@ -319,6 +321,8 @@ function generateOfflinePrediction(ticker: string): PredictionResult {
   const eventContext = relevantEvents.map(e => `${e.title} (severity: ${e.severity}/10)`).join('; ')
 
   return {
+    data_status: 'simulated',
+    data_limitation: 'Demo-only offline context; not a provider-backed forecast.',
     prediction_id: `offline-${clean}-${Date.now()}`,
     target: `${ctx.name} Medium-Term Forecast`,
     ticker: clean,
@@ -422,9 +426,31 @@ export async function fetchPrediction(
 
   try {
     return await getPrediction(ticker, mergedOpts)
-  } catch {
-    // Backend unavailable — generate a client-side prediction from
-    // geopolitical context data so the Prediction Space stays functional.
-    return generateOfflinePrediction(ticker)
+  } catch (error) {
+    const clean = ticker.trim().toUpperCase()
+    return {
+      data_status: 'unavailable',
+      data_limitation: error instanceof Error ? error.message : 'Prediction backend unavailable.',
+      prediction_id: `unavailable-${clean}-${Date.now()}`,
+      target: `${clean} Market Outlook`,
+      ticker: clean,
+      entity_id: null,
+      prediction: 'Provider-backed prediction is unavailable. No directional conclusion was generated.',
+      direction: 'UNCERTAIN',
+      confidence: 0,
+      time_horizon: mergedOpts.timeHorizon ?? 'medium_term',
+      supporting_factors: [],
+      contradictory_factors: [],
+      risk_factors: [],
+      alternative_scenarios: [],
+      assumptions: [],
+      uncertainties: ['Prediction service unavailable.'],
+      reasoning_summary: 'No forecast is shown because the prediction backend did not return an evidence-backed result.',
+      evidence: [],
+      agent_contributions: {},
+      historical_output: null,
+      geopolitical_output: null,
+      created_at: new Date().toISOString(),
+    }
   }
 }
