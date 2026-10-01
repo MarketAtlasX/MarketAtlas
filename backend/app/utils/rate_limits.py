@@ -21,7 +21,12 @@ RATE_LIMITS: Dict[str, RateLimitConfig] = {
     'health': RateLimitConfig(requests_per_minute=120, burst_size=30, cooldown_seconds=0.1),
 }
 
+DEFAULT_RATE_LIMITS = {
+    'quotes': RateLimitConfig(requests_per_minute=60, burst_size=15, cooldown_seconds=0.5),
+    'predict': RATE_LIMITS['prediction'],
+}
+
 
 def get_rate_limit(endpoint_category: str) -> RateLimitConfig:
     """Get rate limit config for an endpoint category."""
-    return RATE_LIMITS.get(endpoint_category, RateLimitConfig(requests_per_minute=30, burst_size=10))
+    return RATE_LIMITS.get(endpoint_category, DEFAULT_RATE_LIMITS.get(endpoint_category, RateLimitConfig(requests_per_minute=60, burst_size=10)))
