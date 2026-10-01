@@ -20,7 +20,7 @@ export interface AtlasToolResult {
 }
 
 export interface AtlasEvidenceObservation {
-  status: 'live' | 'historical' | 'unavailable' | 'degraded'
+  status: 'live' | 'stale' | 'demo' | 'unavailable' | 'degraded'
   freshness: string
   event?: Record<string, unknown>
   impacts?: Record<string, unknown>[]
