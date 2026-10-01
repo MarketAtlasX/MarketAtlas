@@ -120,7 +120,8 @@ def fetch_from_newsapi(company: str, client: APIClient) -> list[NewsArticle]:
     Raises:
         NewsAPIError: If API call fails
     """
-    if not GNEWS_KEY:
+    gnews_key = os.getenv("GNEWS_KEY", os.getenv("NEWSAPI_KEY"))
+    if not gnews_key:
         raise NewsAPIError("GNEWS_KEY not set in .env file. Get it from https://gnews.io")
     
     try:
@@ -128,7 +129,7 @@ def fetch_from_newsapi(company: str, client: APIClient) -> list[NewsArticle]:
             "q": company,
             "lang": "en",
             "max": MAX_ARTICLES,
-            "apikey": GNEWS_KEY,
+            "apikey": gnews_key,
         }
         
         logger.info(f"Fetching from gnews.io for: {company}")
@@ -150,6 +151,8 @@ def fetch_from_newsapi(company: str, client: APIClient) -> list[NewsArticle]:
         logger.info(f"OK gnews.io: Retrieved {len(articles)} articles for {company}")
         return articles
         
+    except NewsAPIError:
+        raise
     except Exception as e:
         logger.error(f"FAIL gnews.io error: {str(e)}")
         raise NewsAPIError(f"gnews.io failed: {str(e)}")
@@ -323,18 +326,9 @@ def fetch_news(state: AgentState) -> dict[str, Any]:
         all_articles = list(unique_articles.values())
         
         if not all_articles:
-            logger.warning(f"No news fetched for {stock}. Errors: {' | '.join(errors)}. Returning empty result.")
-            return {
-                **state,
-                "news": [],
-                "entities": [],
-                "graph_nodes": [],
-                "graph_edges": [],
-                "messages": [
-                    *(state.get("messages", [])),
-                    "[NEWS_AGENT] No news fetched. Returning empty analysis."
-                ]
-            }
+            message = f"No news fetched for {stock}: {' | '.join(errors)}"
+            logger.error(message)
+            raise NewsAPIError(message)
         
         logger.info(f"OK Successfully fetched {len(all_articles)} unique articles for {stock}")
         
