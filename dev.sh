@@ -20,21 +20,25 @@ export PYTHONUNBUFFERED=1
 # Fix Anaconda sqlite3 conflict: brew's libsqlite3 has the required symbols
 export DYLD_LIBRARY_PATH=/opt/homebrew/opt/sqlite/lib
 
-# ── 1. Docker services (Postgres + Redis) ──────────────────────────
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "backend"; then
+# ── 1. Local dependencies (Docker is opt-in) ───────────────────────
+if [ "${MARKETATLAS_USE_DOCKER:-0}" = "1" ]; then
   echo "[docker] Starting Postgres + Redis..."
   docker compose -f "$ROOT/backend/docker-compose.yml" up -d db redis
   echo "[docker] Waiting for Postgres..."
   until docker exec "$(docker ps --filter name=db -q)" pg_isready -U postgres 2>/dev/null; do
     sleep 1
   done
-  echo "[docker] Running DB migrations..."
+else
+  echo "[local] Docker startup disabled. Using local Postgres/Redis when available."
+fi
+
+if command -v pg_isready >/dev/null 2>&1 && pg_isready -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" >/dev/null 2>&1; then
+  echo "[database] Running migrations..."
   (cd "$ROOT/backend" && "$ROOT/venv/bin/alembic" upgrade head)
-  echo "[docker] Seeding sample events..."
+  echo "[database] Seeding sample events..."
   (cd "$ROOT/backend" && "$ROOT/venv/bin/python" -m app.chatbot.scripts.seed_data)
-  STARTED=true
-elif [ "$STARTED" = false ]; then
-  echo "[docker] Already running."
+else
+  echo "[database] Postgres is unavailable; continuing without migrations or seed data."
 fi
 
 # ── 1b. Symlink pipelines package (if not already) ───────────────────
