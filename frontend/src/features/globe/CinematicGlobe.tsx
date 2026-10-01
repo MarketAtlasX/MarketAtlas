@@ -16,6 +16,7 @@ import { createCelestialSpace, type CelestialSpaceHandle } from './celestialSpac
 import { resolveCompanyLocation, type CompanyLocation } from '../../data/companyLocations'
 import type { CausalGraph } from '../prediction-space/causalGraphApi'
 import { useAtlasStore } from '../../stores/AtlasStore'
+import { buildEvidenceGlobeOverlay } from '../evidence/evidenceGlobeOverlays'
 
 export type GlobeMode = 'world' | 'risk' | 'supply' | 'events' | 'map'
 
@@ -197,7 +198,7 @@ function polygonAltitude(featureName: string, selectedEntity: string | null): nu
 
 export default function CinematicGlobe({ mode = 'world', intentOverride, onSelect, className = '' }: CinematicGlobeProps) {
   const { state, selectEntity } = useWorldStore()
-  const { setCamera } = useAtlasStore()
+  const { state: atlasState, setCamera } = useAtlasStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const globeRef = useRef<any>(null)
   const celestialRef = useRef<CelestialSpaceHandle | null>(null)
@@ -210,6 +211,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
   const frameRef = useRef<number | null>(null)
   const celestialAnimRef = useRef<number | null>(null)
   const prevSceneHash = useRef<string>('')
+  const prevCameraKeyRef = useRef<string>('')
 
   onSelectRef.current = onSelect
   selectEntityRef.current = selectEntity
@@ -277,6 +279,14 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
   const scene = useMemo(() => resolveScene(intent), [intent])
   const labels = useMemo(() => buildLabelData(), [])
   const nodes = useMemo(() => buildNodes('world'), [])
+
+  // Evidence-driven highlights derived from the canonical observation shown in
+  // the Evidence panel. Empty whenever evidence is cleared or loading, which is
+  // what removes the previous entity's highlights on selection change.
+  const evidenceOverlay = useMemo(
+    () => buildEvidenceGlobeOverlay(atlasState.evidence.selection, atlasState.evidence.observation),
+    [atlasState.evidence.selection, atlasState.evidence.observation],
+  )
 
   const handleEntityClick = useCallback((entityName: string, lat: number, lng: number) => {
     selectEntityRef.current(entityName)
@@ -435,6 +445,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
       routeCount: scene.routes.length,
       countryCount: countries.length,
       intentMode: intent.mode,
+      evidence: evidenceOverlay.signature,
     })
 
     if (sceneHash === prevSceneHash.current && countries.length > 0) return
@@ -499,7 +510,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
           })
         : []
 
-      globe.arcsData([...scene.routes, ...companyArcs, ...causalArcs])
+      globe.arcsData([...scene.routes, ...companyArcs, ...causalArcs, ...evidenceOverlay.arcs])
 
       // ── Company-Specific Points & Facilities ────────────────────────────
       const companyPoints = selectedCompany
@@ -546,7 +557,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
           }))
         : []
 
-      globe.pointsData([...(scene.showOverlays ? nodes : []), ...companyPoints, ...causalPoints])
+      globe.pointsData([...(scene.showOverlays ? nodes : []), ...companyPoints, ...causalPoints, ...evidenceOverlay.points])
 
       // ── Company-Specific Labels ────────────────────────────────────────
       const companyLabels = selectedCompany
@@ -591,7 +602,7 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
             }
           })
         : []
-      globe.labelsData([...activeLabels, ...companyLabels, ...causalLabels])
+      globe.labelsData([...activeLabels, ...companyLabels, ...causalLabels, ...evidenceOverlay.labels])
 
       // ── Pulsing Concentric Radar Rings at Company HQ & Causal Flashpoints ──
       const rings: any[] = []
@@ -632,6 +643,8 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
         })
       }
 
+      rings.push(...evidenceOverlay.rings)
+
       globe
         .ringsData(rings)
         .ringColor((d: any) => d.color || 'rgba(255, 215, 0, 0.8)')
@@ -640,38 +653,51 @@ export default function CinematicGlobe({ mode = 'world', intentOverride, onSelec
         .ringRepeatPeriod((d: any) => d.repeatPeriod || 1400)
         .ringAltitude((d: any) => d.altitude || 0.022)
 
-      globe.controls().autoRotate = (selectedCompany || projectedCausalGraph) ? false : scene.autoRotate
+      globe.controls().autoRotate = (selectedCompany || projectedCausalGraph || evidenceOverlay.signature) ? false : scene.autoRotate
       globe.controls().autoRotateSpeed = scene.autoRotate ? 0.11 : 0
 
       // ── Camera Navigation ──────────────────────────────────────────────
+      // Only fly when the focus target actually changes, so an in-place evidence
+      // refresh never re-animates the camera or flashes the view.
+      const focusTarget = intent.focus?.[0] || intent.origin
+      const focusCoords = focusTarget ? resolveCoords(focusTarget) : null
+      let cameraKey = 'global'
+      let cameraTarget = { lat: 18, lng: 18, altitude: 1.92 }
+      let cameraDuration = 900
       if (projectedCausalGraph && projectedCausalGraph.nodes.length > 0) {
         const focal = projectedCausalGraph.nodes.find(n => n.type === 'company_hq') || projectedCausalGraph.nodes[0]
-        globe.pointOfView({ lat: focal.coords.lat, lng: focal.coords.lng, altitude: 1.62 }, 1200)
+        cameraKey = `causal:${focal.id}`
+        cameraTarget = { lat: focal.coords.lat, lng: focal.coords.lng, altitude: 1.62 }
+        cameraDuration = 1200
       } else if (selectedCompany) {
-        globe.pointOfView(
-          {
-            lat: selectedCompany.coords.lat,
-            lng: selectedCompany.coords.lng,
-            altitude: 1.35,
-          },
-          1200,
-        )
-      } else {
-        const focusTarget = intent.focus?.[0] || intent.origin
-        if (focusTarget) {
-          const coords = resolveCoords(focusTarget)
-          if (coords) {
-            globe.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.58 }, 1000)
-          }
-        } else {
-          globe.pointOfView({ lat: 18, lng: 18, altitude: 1.92 }, 900)
-        }
+        cameraKey = `company:${selectedCompany.ticker}`
+        cameraTarget = { lat: selectedCompany.coords.lat, lng: selectedCompany.coords.lng, altitude: 1.35 }
+        cameraDuration = 1200
+      } else if (focusCoords) {
+        cameraKey = `focus:${focusCoords.lat},${focusCoords.lng}`
+        cameraTarget = { lat: focusCoords.lat, lng: focusCoords.lng, altitude: 1.58 }
+        cameraDuration = 1000
+      } else if (evidenceOverlay.selected) {
+        // Keep camera focus synchronized with a selected evidence entity whose
+        // coordinates come from the existing company-location mapping.
+        cameraKey = `evidence:${evidenceOverlay.selected.entity}`
+        cameraTarget = { lat: evidenceOverlay.selected.lat, lng: evidenceOverlay.selected.lng, altitude: 1.58 }
+        cameraDuration = 1000
+      }
+      if (cameraKey !== prevCameraKeyRef.current) {
+        prevCameraKeyRef.current = cameraKey
+        globe.pointOfView(cameraTarget, cameraDuration)
       }
     })
-  }, [countries, intent, labels, mode, nodes, scene, selectedCompany, state.selectedEntity])
+  }, [countries, evidenceOverlay, intent, labels, mode, nodes, scene, selectedCompany, state.selectedEntity])
 
   return (
-    <div className={`cinematic-globe globe-container relative w-full h-full overflow-hidden ${className}`}>
+    <div
+      className={`cinematic-globe globe-container relative w-full h-full overflow-hidden ${className}`}
+      data-evidence-highlights={evidenceOverlay.points.length}
+      data-evidence-arcs={evidenceOverlay.arcs.length}
+      data-evidence-signature={evidenceOverlay.signature}
+    >
       {/* ─── Deep Outer Space Cosmic Canvas Backdrop ──────────────── */}
       <div className="pointer-events-none absolute inset-0 z-0 bg-[#020408]" />
       <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,_rgba(24,40,68,0.32)_0%,_rgba(8,16,28,0.75)_50%,_rgba(1,3,6,0.98)_100%)]" />
