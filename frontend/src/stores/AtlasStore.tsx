@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import { summarizeEvidence, type EvidenceObservation } from '../api/evidenceApi'
+import { buildEvidenceBriefing } from '../features/evidence/evidenceBriefing'
 
 export type AtlasLayer =
   | 'world'
@@ -37,12 +39,42 @@ export interface AtlasAnalysisContext {
 }
 
 export interface AtlasEvidenceSummary {
-  status: 'live' | 'historical' | 'unavailable' | 'degraded'
+  status: 'live' | 'stale' | 'demo' | 'unavailable' | 'degraded'
   freshness: string
   source: string | null
   observedAt: string | null
   confidence: number | null
   limitations: string[]
+}
+
+/**
+ * Canonical evidence state for the current globe selection.
+ *
+ * `observation` is the exact backend `EvidenceObservation` envelope shown in
+ * the Evidence panel. ATLAS context snapshots and tool results reference this
+ * same object so the assistant never reports evidence the UI cannot see.
+ */
+export interface AtlasEvidenceState {
+  selection: string | null
+  status: 'idle' | 'loading' | 'ready' | 'error'
+  observation: EvidenceObservation | null
+  error: string | null
+  /**
+   * True while a background refresh of the same selection is in flight.
+   * The previous observation stays visible during a refresh.
+   */
+  refreshing?: boolean
+  /** Client time of the last successful load or refresh of this selection. */
+  lastUpdatedAt?: string | null
+}
+
+export const EMPTY_EVIDENCE_STATE: AtlasEvidenceState = {
+  selection: null,
+  status: 'idle',
+  observation: null,
+  error: null,
+  refreshing: false,
+  lastUpdatedAt: null,
 }
 
 export interface AtlasState {
@@ -66,6 +98,7 @@ export interface AtlasState {
   executionSteps: AtlasExecutionStep[]
   actionHistory: string[]
   latestEvidence: AtlasEvidenceSummary | null
+  evidence: AtlasEvidenceState
 }
 
 export interface AtlasContextSnapshot {
@@ -84,7 +117,16 @@ export interface AtlasContextSnapshot {
   analysis: AtlasAnalysisContext
   execution: AtlasExecutionState
   recentActions: string[]
+  /**
+   * Summary of the canonical observation currently displayed in the Evidence
+   * panel. Derived from `evidence.observation`, so it is `null` while a new
+   * selection loads and can never carry a previous entity's evidence.
+   */
   latestEvidence: AtlasEvidenceSummary | null
+  evidence: Pick<AtlasEvidenceState, 'selection' | 'status' | 'observation' | 'error' | 'refreshing' | 'lastUpdatedAt'> & {
+    /** Deterministic rendering of the canonical observation for provider grounding. */
+    briefing: string | null
+  }
 }
 
 const initialState: AtlasState = {
@@ -108,9 +150,11 @@ const initialState: AtlasState = {
   executionSteps: [],
   actionHistory: [],
   latestEvidence: null,
+  evidence: EMPTY_EVIDENCE_STATE,
 }
 
 export function toAtlasContextSnapshot(state: AtlasState): AtlasContextSnapshot {
+  const briefing = buildEvidenceBriefing(state.evidence)
   return {
     selectedCountry: state.selectedCountry,
     selectedCity: state.selectedCity,
@@ -127,7 +171,16 @@ export function toAtlasContextSnapshot(state: AtlasState): AtlasContextSnapshot 
     analysis: state.analysis,
     execution: state.execution,
     recentActions: state.actionHistory.slice(-12),
-    latestEvidence: state.latestEvidence,
+    latestEvidence: state.evidence.observation ? summarizeEvidence(state.evidence.observation) : null,
+    evidence: {
+      selection: state.evidence.selection,
+      status: state.evidence.status,
+      observation: state.evidence.observation,
+      error: state.evidence.error,
+      refreshing: state.evidence.refreshing,
+      lastUpdatedAt: state.evidence.lastUpdatedAt,
+      briefing: briefing?.text ?? null,
+    },
   }
 }
 
