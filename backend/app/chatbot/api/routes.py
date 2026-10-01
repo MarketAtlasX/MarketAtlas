@@ -68,6 +68,43 @@ def _filter_allowed_tools(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return allowed
 
 
+# Evidence-grounding rules appended to the Atlas system prompt whenever the
+# client supplies its evidence context. The client sends the canonical
+# EvidenceObservation displayed in the UI plus its deterministic briefing; the
+# provider must reason over that envelope only and state gaps explicitly.
+ATLAS_EVIDENCE_GROUNDING_RULES = (
+    "Evidence grounding: the context field `evidence.observation` is the canonical "
+    "EvidenceObservation currently displayed in the UI, and `evidence.briefing` is its "
+    "deterministic rendering. When the user asks about the selected evidence, answer only "
+    "from that envelope: what happened, which sources support it, which impacts are recorded, "
+    "which assets and markets are affected, which causal relationships are recorded, and its "
+    "freshness, confidence, and uncertainty. Cite provenance inline (provider, observed_at, "
+    "freshness, confidence) and repeat recorded uncertainty and limitations. If the observation "
+    "does not contain the answer, state that the evidence does not establish it instead of "
+    "explaining anyway — never invent sources, confidence, causal links, market values, or "
+    "timestamps. If `evidence.observation` is null or `evidence.status` is not 'ready', say the "
+    "evidence is not currently loaded for the selection and do not reuse evidence from a "
+    "previous selection."
+)
+
+
+def build_agent_system_prompt(context: dict[str, Any]) -> str:
+    """Compose the Atlas system prompt from canonical base instructions plus
+    evidence-grounding rules when the client supplied evidence context."""
+    system = (
+        "You are Atlas, the operator of a globe-first financial intelligence application. "
+        "Use tools when visual action or evidence retrieval helps answer the user. "
+        "You may only call supplied tools. Never invent prices, events, confidence, or sources. "
+        "After tool results, continue selecting tools until the request is complete. "
+        "Give concise user-facing narration, never hidden chain-of-thought. "
+        f"Current application context: {json.dumps(context, default=str)}"
+    )
+    evidence = context.get("evidence")
+    if isinstance(evidence, dict) and evidence:
+        system += f" {ATLAS_EVIDENCE_GROUNDING_RULES}"
+    return system
+
+
 @chat_router.post("/agent/turn")
 async def agent_turn(request: AgentTurnRequest, current_user: User = Depends(get_current_user)):
     """Execute one structured Atlas agent turn using the configured provider.
@@ -86,14 +123,7 @@ async def agent_turn(request: AgentTurnRequest, current_user: User = Depends(get
             detail="No tools from the canonical allow-list were supplied",
         )
 
-    system = (
-        "You are Atlas, the operator of a globe-first financial intelligence application. "
-        "Use tools when visual action or evidence retrieval helps answer the user. "
-        "You may only call supplied tools. Never invent prices, events, confidence, or sources. "
-        "After tool results, continue selecting tools until the request is complete. "
-        "Give concise user-facing narration, never hidden chain-of-thought. "
-        f"Current application context: {json.dumps(request.context, default=str)}"
-    )
+    system = build_agent_system_prompt(request.context)
     messages = [
         {"role": "system", "content": system},
         *[
