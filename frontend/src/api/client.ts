@@ -164,6 +164,8 @@ export interface GeopoliticalAgentOutput {
 }
 
 export interface PredictionResult {
+  data_status?: 'provider-backed' | 'stale' | 'degraded' | 'unavailable' | 'simulated'
+  data_limitation?: string
   prediction_id: string
   target: string
   ticker: string | null
