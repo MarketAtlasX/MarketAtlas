@@ -401,7 +401,16 @@ export default function PredictionSpace({
                   {/* Direction + Ticker Header */}
                   <Panel
                     title={prediction.ticker ?? activeTicker ?? ''}
-                    right={<Badge tone={dirCfg.tone}>{dirCfg.label}</Badge>}
+                    right={
+                      <div className="flex items-center gap-1.5">
+                        <Badge tone={dirCfg.tone}>{dirCfg.label}</Badge>
+                        {prediction.data_status && prediction.data_status !== 'provider-backed' && (
+                          <Badge tone={prediction.data_status === 'unavailable' ? 'warning' : 'neutral'}>
+                            {prediction.data_status.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
+                    }
                     glow={dirCfg.tone === 'positive' ? 'positive' : dirCfg.tone === 'critical' ? 'critical' : undefined}
                     corners
                   >
