@@ -24,6 +24,7 @@ const state: AtlasState = {
   executionSteps: [],
   actionHistory: [],
   latestEvidence: null,
+  evidence: { selection: null, status: 'idle', observation: null, error: null },
 }
 
 describe('Atlas agent control loop', () => {
