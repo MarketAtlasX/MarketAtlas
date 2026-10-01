@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,44 @@ class MarketAtlasError(Exception):
     def __init__(self, message: str, code: str = 'UNKNOWN_ERROR', details: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.code = code
+        self.error_code = code
+        self.status_code = 500
         self.details = details or {}
+
+
+class ResourceNotFoundError(MarketAtlasError):
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, 'RESOURCE_NOT_FOUND', details)
+        self.status_code = 404
+
+
+class ValidationError(MarketAtlasError):
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, 'VALIDATION_ERROR', details)
+        self.status_code = 422
+
+
+class RateLimitExceededError(MarketAtlasError):
+    def __init__(self, message: str = 'Rate limit exceeded', details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, 'RATE_LIMIT_EXCEEDED', details)
+        self.status_code = 429
+
+
+class UpstreamServiceError(MarketAtlasError):
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(message, 'UPSTREAM_SERVICE_ERROR', details)
+        self.status_code = 502
+
+
+def format_error_response(error: MarketAtlasError) -> Dict[str, Any]:
+    return {
+        'error': {
+            'code': error.error_code,
+            'message': str(error),
+            'details': error.details,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+        }
+    }
 
 
 class TickerNotFoundError(MarketAtlasError):
