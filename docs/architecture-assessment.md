@@ -47,6 +47,19 @@ flowchart LR
 
 The canonical state is the shared context for Atlas. Tools are deterministic UI actions; analysis services remain responsible for evidence-backed conclusions. A failed service returns `unavailable`, `stale`, or `degraded`, never fabricated financial output.
 
+### Current implementation boundary
+
+The existing `GET /api/v1/live-events/observation` route is the read-only
+evidence boundary. It returns the typed `EvidenceObservation` contract and
+composes persisted live events, source articles, impacts, affected assets,
+market quotes, and causal links. Atlas tools consume this route through
+`executeAtlasToolAsync`; deterministic globe commands still execute through
+`AtlasCommandHandler`.
+
+World WebSockets use the backend channel subscription protocol at `/ws`.
+Graph WebSockets use the graph-engine command protocol at `/ws/graph`; the
+frontend parses their `{type, data, timestamp}` envelopes separately.
+
 ## Phased implementation
 
 1. Establish canonical Atlas state and typed action execution; fix voice and WebSocket contracts; remove deceptive fallbacks.
