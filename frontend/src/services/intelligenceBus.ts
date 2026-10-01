@@ -13,6 +13,7 @@ export type IntelligenceEventType =
   | 'BACKTEST_REQUESTED'
   | 'GLOBE_INTENT'
   | 'TAB_SWITCH'
+  | 'EVIDENCE_ASK'
 
 export interface IntelligenceEvent<T = any> {
   type: IntelligenceEventType
