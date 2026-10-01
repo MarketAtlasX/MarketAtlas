@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -66,7 +66,7 @@ class LiveEventRepository(BaseRepository[LiveEvent]):
             )
 
         sort_col = getattr(self.model, sort_by, self.model.first_seen_at)
-        order_fn = func.desc if sort_desc else func.asc
+        order_fn = desc if sort_desc else asc
         query = query.order_by(order_fn(sort_col)).offset(skip).limit(limit)
 
         result = await self.session.execute(query)
