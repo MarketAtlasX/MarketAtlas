@@ -14,7 +14,7 @@ class SymbolInfo(NamedTuple):
 
 
 SEED_SYMBOLS: Dict[str, SymbolInfo] = {
-    'NVDA': SymbolInfo('NVDA', 'NVIDIA Corporation', 'Semiconductors', 'NASDAQ', 'USD'),
+    'NVDA': SymbolInfo('NVDA', 'NVIDIA Corporation', 'Technology', 'NASDAQ', 'USD'),
     'TSMC': SymbolInfo('TSMC', 'Taiwan Semiconductor Manufacturing', 'Semiconductors', 'NYSE', 'USD'),
     'XOM': SymbolInfo('XOM', 'Exxon Mobil Corporation', 'Energy', 'NYSE', 'USD'),
     'SHEL': SymbolInfo('SHEL', 'Shell plc', 'Energy', 'NYSE', 'USD'),
@@ -34,6 +34,15 @@ SEED_SYMBOLS: Dict[str, SymbolInfo] = {
 def get_symbol_info(ticker: str) -> SymbolInfo | None:
     """Look up symbol info from seed data."""
     return SEED_SYMBOLS.get(ticker.upper().strip())
+
+
+def get_seed_symbol(ticker: str) -> SymbolInfo | None:
+    return get_symbol_info(ticker)
+
+
+def get_symbols_by_sector(sector: str) -> List[SymbolInfo]:
+    normalized = sector.strip().casefold()
+    return [symbol for symbol in SEED_SYMBOLS.values() if symbol.sector.casefold() == normalized]
 
 
 def list_sectors() -> List[str]:
