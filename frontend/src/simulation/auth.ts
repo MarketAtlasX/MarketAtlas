@@ -13,15 +13,30 @@ interface DemoUser {
   display_name: string
 }
 
+// The backend's `EmailStr` rejects reserved special-use domains (e.g. `.local`)
+// with HTTP 422, so a cached demo identity on one of those domains would make
+// every auth attempt fail. Treat such a cached value as invalid and regenerate.
+const UNUSABLE_DEMO_EMAIL = /@[^@]*\.local$/i
+
+function isValidDemoUser(value: unknown): value is DemoUser {
+  const user = value as DemoUser | null
+  if (!user || typeof user.email !== 'string' || !user.email.includes('@')) return false
+  return !UNUSABLE_DEMO_EMAIL.test(user.email)
+}
+
 function demoUser(): DemoUser {
   const existing = localStorage.getItem(USER_KEY)
   if (existing) {
     try {
-      return JSON.parse(existing) as DemoUser
+      const parsed = JSON.parse(existing)
+      if (isValidDemoUser(parsed)) return parsed
     } catch { /* fall through */ }
   }
   const rand = Math.random().toString(36).slice(2, 10)
-  const user: DemoUser = { email: `demo.${rand}@marketatlas.local`, display_name: 'Demo' }
+  // `.local` is a reserved special-use TLD that the backend's EmailStr rejects
+  // (HTTP 422), so the demo auth path could never establish a token. Use a
+  // syntactically valid, non-deliverable documentation domain instead.
+  const user: DemoUser = { email: `demo.${rand}@example.com`, display_name: 'Demo' }
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   return user
 }
