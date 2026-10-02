@@ -133,6 +133,59 @@ describe('EvidencePanel sections', () => {
     )
     const panel = within(screen.getByTestId('evidence-panel'))
     expect(panel.getByText('Market quote unavailable — no provider value was returned.')).toBeInTheDocument()
+    expect(panel.getByTestId('market-observation')).toHaveAttribute('data-status', 'unavailable')
+  })
+
+  it('labels a simulated market observation as SIMULATED, never as demo', () => {
+    renderPanel(
+      makeState(
+        makeEvidence({ market_observations: [{ symbol: 'TSM', status: 'simulated', price: 100, change_percent: 1.2, freshness: 'simulated' }] }),
+      ),
+    )
+    const panel = within(screen.getByTestId('evidence-panel'))
+    expect(panel.getByText('SIMULATED')).toBeInTheDocument()
+    expect(panel.queryByText('DEMO')).not.toBeInTheDocument()
+  })
+
+  it('shows provider, freshness, and observation timestamp for a market observation', () => {
+    renderPanel(
+      makeState(
+        makeEvidence({
+          market_observations: [
+            { symbol: 'TSM', status: 'provider-backed', price: 182.4, change_percent: 4.8, provider: 'yfinance', freshness: 'current', timestamp: '2026-10-01T12:00:00Z' },
+          ],
+        }),
+      ),
+    )
+    const panel = within(screen.getByTestId('evidence-panel'))
+    expect(panel.getByText('yfinance')).toBeInTheDocument()
+    expect(panel.getByText(/CURRENT ·/)).toBeInTheDocument()
+  })
+
+  it('navigates to an affected market asset through the globe selection handler', () => {
+    const onSelectEntity = vi.fn()
+    renderPanel(
+      makeState(
+        makeEvidence({
+          market_observations: [{ symbol: 'TSM', status: 'provider-backed', price: 182.4, change_percent: 4.8 }],
+        }),
+      ),
+      undefined,
+      onSelectEntity,
+    )
+    within(screen.getByTestId('evidence-panel')).getByTestId('market-observation-asset').click()
+    expect(onSelectEntity).toHaveBeenLastCalledWith('TSM')
+  })
+
+  it('does not fabricate a value for a market observation missing its price', () => {
+    renderPanel(
+      makeState(
+        makeEvidence({ market_observations: [{ symbol: 'TSM', status: 'cached', provider: 'yfinance' }] }),
+      ),
+    )
+    const panel = within(screen.getByTestId('evidence-panel'))
+    expect(panel.getAllByText('UNAVAILABLE').length).toBeGreaterThan(0)
+    expect(panel.getByText('STALE')).toBeInTheDocument()
   })
 
   it('renders causal links with confidence', () => {
@@ -290,6 +343,64 @@ describe('EvidencePanel related-entity navigation', () => {
     )
     within(screen.getByTestId('evidence-panel')).getByRole('button', { name: 'Brent Crude' }).click()
     expect(onSelectEntity).toHaveBeenCalledWith('Brent Crude')
+  })
+})
+
+describe('EvidencePanel causal intelligence', () => {
+  it('renders the recorded source/target, type pair, confidence, and evidence reference', () => {
+    renderPanel(
+      makeState(
+        makeEvidence({
+          causal_chain: [{ source: 'Taiwan', source_type: 'geography', target: 'TSM', target_type: 'asset', confidence: 0.7, evidence_ref: 'impact-1' }],
+        }),
+      ),
+    )
+    const panel = within(screen.getByTestId('evidence-panel'))
+    const hop = panel.getByTestId('causal-hop')
+    expect(within(hop).getByText('GEOGRAPHY → ASSET')).toBeInTheDocument()
+    expect(within(hop).getByTestId('causal-hop-confidence')).toHaveTextContent('70%')
+    expect(within(hop).getByTestId('causal-hop-evidence')).toHaveTextContent('impact-1')
+    expect(panel.getByTestId('causal-chain-path')).toHaveTextContent('EVENT → IMPACT → AFFECTED ENTITY/ASSET → MARKET OBSERVATION')
+    expect(panel.getByTestId('causal-chain-caveat')).toHaveTextContent(/does not establish causality/)
+  })
+
+  it('states each missing field as a limitation instead of strengthening the claim', () => {
+    renderPanel(
+      makeState(
+        makeEvidence({ causal_chain: [{ source: 'Taiwan', source_type: 'geography', target: 'XOM', target_type: 'asset' }] }),
+      ),
+    )
+    const hop = within(screen.getByTestId('evidence-panel')).getByTestId('causal-hop')
+    expect(hop).toHaveAttribute('data-limited', 'true')
+    expect(within(hop).getByTestId('causal-hop-confidence')).toHaveTextContent('CONFIDENCE NOT RECORDED')
+    expect(within(hop).getByTestId('causal-hop-evidence')).toHaveTextContent('NOT RECORDED')
+    expect(within(hop).getByTestId('causal-hop-no-market')).toHaveTextContent('NO MARKET OBSERVATION RECORDED')
+  })
+
+  it('links a causal asset target to the market observation in the same envelope', () => {
+    const onSelectEntity = vi.fn()
+    renderPanel(
+      makeState(
+        makeEvidence({
+          causal_chain: [{ source: 'Taiwan', source_type: 'geography', target: 'TSM', target_type: 'asset', confidence: 0.7, evidence_ref: 'impact-1' }],
+          market_observations: [{ symbol: 'TSM', status: 'provider-backed', price: 182.4, change_percent: 4.8 }],
+        }),
+      ),
+      undefined,
+      onSelectEntity,
+    )
+    const hop = within(screen.getByTestId('evidence-panel')).getByTestId('causal-hop')
+    expect(within(hop).getByText('LINKED MARKET OBSERVATION')).toBeInTheDocument()
+    expect(within(hop).getByText('182.40')).toBeInTheDocument()
+    within(hop).getByTestId('market-observation-asset').click()
+    expect(onSelectEntity).toHaveBeenLastCalledWith('TSM')
+  })
+
+  it('states that no causal chain is established when none is recorded', () => {
+    renderPanel(makeState(makeEvidence({ causal_chain: [] })))
+    const panel = within(screen.getByTestId('evidence-panel'))
+    expect(panel.getByText('NO CAUSAL LINKS WERE RETURNED')).toBeInTheDocument()
+    expect(panel.getByTestId('causal-chain-not-established')).toHaveTextContent('does not establish a causal chain')
   })
 })
 
