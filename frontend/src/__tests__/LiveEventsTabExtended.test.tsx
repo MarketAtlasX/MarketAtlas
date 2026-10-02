@@ -13,7 +13,8 @@ describe('LiveEventsTab', () => {
         </WorldProvider>
       </MemoryRouter>,
     )
-    expect(screen.getByText(/SIMULATED/)).toBeInTheDocument()
+    // The header shows the store's data mode; seed rows are labelled per-event.
+    expect(screen.getAllByText(/SIMULATED/).length).toBeGreaterThan(0)
     expect(screen.getByText(/NO LIVE UPDATE/)).toBeInTheDocument()
   })
 })
