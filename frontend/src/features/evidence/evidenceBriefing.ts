@@ -222,12 +222,16 @@ export function buildEvidenceBriefing(
     notEstablished.push('affected assets or markets (no asset or market records)')
   }
 
-  // Causal relationships
+  // Causal relationships — recorded links only, never inferred causality.
   const causal = observation.causal_chain ?? []
   if (causal.length) {
-    sections.push([`CAUSAL RELATIONSHIPS (${causal.length})`, ...causal.map(link => `- ${causalLines(link)}`)].join('\n'))
+    const lines = causal.map(link => `- ${causalLines(link)}`)
+    lines.push(
+      '- These are the relationships recorded in the canonical evidence (each with its recorded source, target, type, confidence, and evidence reference). They must be distinguished from unsupported inference: the evidence does not establish causality beyond these recorded links, and an event and a market moving at similar times is not treated as a cause.',
+    )
+    sections.push([`CAUSAL RELATIONSHIPS (${causal.length})`, ...lines].join('\n'))
   } else {
-    sections.push('CAUSAL RELATIONSHIPS (0)\nNOT ESTABLISHED: the evidence does not establish causal relationships — no causal links were returned.')
+    sections.push('CAUSAL RELATIONSHIPS (0)\nNOT ESTABLISHED: the evidence does not establish causal relationships — no causal links were returned, and no inference has been substituted.')
     notEstablished.push('causal relationships (no causal links)')
   }
 
