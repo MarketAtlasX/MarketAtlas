@@ -2,9 +2,11 @@ import { AlertTriangle, ArrowRight, Brain, Loader2, Radio, RefreshCw, ShieldQues
 import Panel from '../../components/ui/Panel'
 import ProgressBar from '../../components/ui/ProgressBar'
 import EvidenceStatusBadge from './EvidenceStatusBadge'
-import { evidenceStatusMeta } from './evidenceStatus'
-import { affectedAssetEntity, causalNodeEntity } from '../../api/evidenceApi'
-import type { AffectedAsset, CausalLink, MarketObservation, ObservationImpact, ObservationSource } from '../../api/evidenceApi'
+import { evidenceStatusMeta, marketStatusMeta } from './evidenceStatus'
+import { formatMarketChangePercent, formatMarketValue, marketObservationEntity } from './marketObservations'
+import { affectedAssetEntity } from '../../api/evidenceApi'
+import type { AffectedAsset, MarketObservation, ObservationImpact, ObservationSource } from '../../api/evidenceApi'
+import { buildCausalChain, summarizeCausalChain, type CausalHopView, type CausalNodeView } from './causalChain'
 import type { AtlasEvidenceState } from '../../stores/AtlasStore'
 
 export interface EvidencePanelProps {
@@ -29,17 +31,6 @@ function formatTimestamp(value: unknown): string | null {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString()
-}
-
-function formatNumber(value: unknown, digits = 2): string | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null
-  return value.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits })
-}
-
-function formatPercent(value: unknown): string | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return null
-  const sign = value > 0 ? '+' : ''
-  return `${sign}${value.toFixed(2)}%`
 }
 
 function Field({ label, value, fallback = NOT_PROVIDED }: { label: string; value: string | null | undefined; fallback?: string }) {
@@ -163,20 +154,19 @@ function ImpactRow({ impact, onSelectEntity }: { impact: ObservationImpact; onSe
 }
 
 /**
- * Renders one side of a causal link. Only nodes with a reliable entity
- * reference (geography/entity/asset) become navigable; narrative event nodes
+ * Renders one side of a recorded causal link. Only nodes carrying a reliable
+ * typed entity reference (geography/entity/asset) become navigable through the
+ * existing globe focus path; narrative event nodes and unrecognized nodes
  * remain inert labels so no relationship is invented.
  */
-function CausalNode({ link, side, onSelectEntity }: { link: CausalLink; side: 'source' | 'target'; onSelectEntity?: (entity: string) => void }) {
-  const value = side === 'source' ? link.source : link.target
-  const label = value || UNAVAILABLE
-  const entity = causalNodeEntity(link, side)
-  if (entity && onSelectEntity) {
+function CausalNodeValue({ node, onSelectEntity }: { node: CausalNodeView; onSelectEntity?: (entity: string) => void }) {
+  const label = node.label ?? UNAVAILABLE
+  if (node.entity && onSelectEntity) {
     return (
       <button
         type="button"
-        onClick={() => onSelectEntity(entity)}
-        title={`Focus ${entity} on the globe`}
+        onClick={() => onSelectEntity(node.entity as string)}
+        title={`Focus ${node.entity} on the globe`}
         className="text-[var(--accent)] hover:underline break-words text-left"
       >
         {label}
@@ -186,20 +176,100 @@ function CausalNode({ link, side, onSelectEntity }: { link: CausalLink; side: 's
   return <span className="text-[var(--text-hi)] break-words">{label}</span>
 }
 
-function MarketObservationRow({ item }: { item: MarketObservation }) {
-  const change = formatPercent(item.change_percent)
+/**
+ * One recorded causal hop: the actual recorded source/target and their types,
+ * the recorded confidence and evidence reference, and — when the target is an
+ * asset — the market observation already present in the same envelope. Every
+ * field the envelope does not record is stated as a limitation rather than
+ * being filled in or assumed.
+ */
+function CausalHopRow({ hop, onSelectEntity }: { hop: CausalHopView; onSelectEntity?: (entity: string) => void }) {
+  const confidence = hop.confidence !== null ? `${(hop.confidence * 100).toFixed(0)}%` : null
   return (
-    <div className="rounded border border-[var(--line)] bg-[rgba(11,22,33,0.4)] p-2 space-y-1">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-mono font-semibold text-[var(--text-hi)]">{item.symbol}</span>
-        <EvidenceStatusBadge status={item.status === 'provider-backed' ? 'live' : item.status === 'simulated' ? 'demo' : item.status === 'cached' ? 'stale' : 'unavailable'} />
+    <div
+      className="rounded border border-[var(--line)] bg-[rgba(11,22,33,0.4)] p-2 space-y-1.5"
+      data-testid="causal-hop"
+      data-limited={hop.limitations.length > 0}
+    >
+      <div className="flex items-center gap-1.5 text-[9px]">
+        <CausalNodeValue node={hop.source} onSelectEntity={onSelectEntity} />
+        <ArrowRight size={10} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
+        <CausalNodeValue node={hop.target} onSelectEntity={onSelectEntity} />
       </div>
-      {item.status === 'unavailable' ? (
+      <div className="flex items-center justify-between gap-2 text-[9px] font-mono">
+        <span className="text-[var(--text-lo)]">{hop.relationship}</span>
+        <span className={confidence ? 'text-[var(--text-lo)]' : 'text-[var(--warning)]'} data-testid="causal-hop-confidence">
+          {confidence ?? 'CONFIDENCE NOT RECORDED'}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-2 text-[8px] font-mono text-[var(--text-lo)]">
+        <span>EVIDENCE REF</span>
+        <span className={hop.evidenceRef ? '' : 'text-[var(--warning)]'} data-testid="causal-hop-evidence">
+          {hop.evidenceRef ?? 'NOT RECORDED'}
+        </span>
+      </div>
+      {hop.market ? (
+        <div className="pt-1 space-y-1">
+          <span className="text-[8px] tracking-wider text-[var(--text-lo)]">LINKED MARKET OBSERVATION</span>
+          <MarketObservationRow item={hop.market} onSelectEntity={onSelectEntity} />
+        </div>
+      ) : hop.target.type === 'asset' ? (
+        <p className="text-[8px] font-mono text-[var(--warning)]" data-testid="causal-hop-no-market">
+          NO MARKET OBSERVATION RECORDED FOR THIS ASSET
+        </p>
+      ) : null}
+      {hop.limitations.length > 0 && (
+        <div className="space-y-0.5 pt-1 border-t border-[var(--line)]" data-testid="causal-hop-limitations">
+          {hop.limitations.map(limitation => (
+            <p key={limitation} className="text-[8px] font-mono text-[var(--warning)]">· {limitation}</p>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Renders one market observation for an affected asset. The symbol becomes a
+ * button — reusing the globe selection path — only when the provider actually
+ * supplied one and a navigation handler exists; otherwise it stays an inert
+ * label. An `unavailable` observation always states that explicitly and never
+ * substitutes a seeded or synthetic value.
+ */
+function MarketObservationRow({ item, onSelectEntity }: { item: MarketObservation; onSelectEntity?: (entity: string) => void }) {
+  const change = formatMarketChangePercent(item.change_percent)
+  const entity = marketObservationEntity(item)
+  const unavailable = item.status === 'unavailable'
+  const label = item.symbol?.trim() || UNAVAILABLE
+  return (
+    <div
+      className="rounded border border-[var(--line)] bg-[rgba(11,22,33,0.4)] p-2 space-y-1"
+      data-testid="market-observation"
+      data-symbol={item.symbol}
+      data-status={item.status}
+    >
+      <div className="flex items-center justify-between gap-2">
+        {entity && onSelectEntity ? (
+          <button
+            type="button"
+            data-testid="market-observation-asset"
+            onClick={() => onSelectEntity(entity)}
+            title={`Focus ${entity} on the globe`}
+            className="text-[10px] font-mono font-semibold text-[var(--accent)] hover:underline"
+          >
+            {label}
+          </button>
+        ) : (
+          <span className="text-[10px] font-mono font-semibold text-[var(--text-hi)]">{label}</span>
+        )}
+        <EvidenceStatusBadge meta={marketStatusMeta(item.status)} />
+      </div>
+      {unavailable ? (
         <p className="text-[9px] font-mono text-[var(--text-lo)]">Market quote unavailable — no provider value was returned.</p>
       ) : (
         <>
           <div className="flex items-center justify-between text-[10px] font-mono">
-            <span className="text-[var(--text-hi)]">{formatNumber(item.price, 2) ?? UNAVAILABLE}</span>
+            <span className="text-[var(--text-hi)]">{formatMarketValue(item.price) ?? UNAVAILABLE}</span>
             <span style={{ color: typeof item.change_percent === 'number' && item.change_percent < 0 ? 'var(--critical)' : 'var(--positive)' }}>
               {change ?? UNAVAILABLE}
             </span>
@@ -225,6 +295,9 @@ function MarketObservationRow({ item }: { item: MarketObservation }) {
 export default function EvidencePanel({ evidence, onAskAtlas, onSelectEntity, onRefresh, className = '' }: EvidencePanelProps) {
   const { selection, status, observation, error, refreshing, lastUpdatedAt } = evidence
   const meta = evidenceStatusMeta(observation?.status)
+  // Recorded causal relationships only — derived from the exact envelope.
+  const causal = observation ? buildCausalChain(observation) : null
+  const causalSummary = causal ? summarizeCausalChain(causal) : null
   // A refresh failure on an already-displayed observation: keep the evidence,
   // but state plainly that the refresh did not succeed.
   const refreshError = status === 'ready' && !refreshing && error ? error : null
@@ -345,6 +418,51 @@ export default function EvidencePanel({ evidence, onAskAtlas, onSelectEntity, on
               )}
             </Panel>
 
+            {/* ── Causal intelligence: EVENT → IMPACT → ASSET → MARKET ──── */}
+            <Panel title={`Causal Intelligence · ${causal?.hops.length ?? 0}`}>
+              <p className="text-[9px] leading-snug text-[var(--text-lo)]" data-testid="causal-chain-path">
+                EVENT → IMPACT → AFFECTED ENTITY/ASSET → MARKET OBSERVATION
+              </p>
+              {causal && causal.hops.length > 0 ? (
+                <>
+                  <div className="flex flex-wrap gap-1 pt-1.5 text-[8px] font-mono">
+                    <span className="px-1 py-0.5 rounded border border-[var(--line)] text-[var(--text-mid)]">
+                      {`${causalSummary?.total ?? 0} RECORDED`}
+                    </span>
+                    {(causalSummary?.marketsLinked ?? 0) > 0 && (
+                      <span className="px-1 py-0.5 rounded border border-[var(--line)] text-[var(--positive)]">
+                        {`${causalSummary?.marketsLinked} MARKET-LINKED`}
+                      </span>
+                    )}
+                    {(causalSummary?.limited ?? 0) > 0 && (
+                      <span className="px-1 py-0.5 rounded border border-[var(--line)] text-[var(--warning)]">
+                        {`${causalSummary?.limited} LIMITED`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-2 pt-1.5">
+                    {causal.hops.map((hop, index) => (
+                      <CausalHopRow
+                        key={`${hop.source.label ?? index}-${hop.target.label ?? index}-${index}`}
+                        hop={hop}
+                        onSelectEntity={onSelectEntity}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[9px] leading-snug text-[var(--text-lo)] pt-2 border-t border-[var(--line)]" data-testid="causal-chain-caveat">
+                    Only relationships recorded in this observation are shown. The evidence does not establish causality beyond these links — co-movement in time is not treated as a cause.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <EmptyNote>NO CAUSAL LINKS WERE RETURNED</EmptyNote>
+                  <p className="text-[9px] leading-snug text-[var(--text-lo)] pt-1" data-testid="causal-chain-not-established">
+                    The evidence does not establish a causal chain for this selection.
+                  </p>
+                </>
+              )}
+            </Panel>
+
             {/* ── Sources / provenance ──────────────────────────────────── */}
             <Panel title={`Sources · ${(observation.sources ?? []).length}`}>
               {(observation.sources ?? []).length > 0 ? (
@@ -388,31 +506,11 @@ export default function EvidencePanel({ evidence, onAskAtlas, onSelectEntity, on
               {(observation.market_observations ?? []).length > 0 ? (
                 <div className="space-y-2">
                   {(observation.market_observations ?? []).map(item => (
-                    <MarketObservationRow key={item.symbol} item={item} />
+                    <MarketObservationRow key={item.symbol} item={item} onSelectEntity={onSelectEntity} />
                   ))}
                 </div>
               ) : (
                 <EmptyNote>NO MARKET OBSERVATIONS WERE RETURNED</EmptyNote>
-              )}
-            </Panel>
-
-            {/* ── Causal chain ──────────────────────────────────────────── */}
-            <Panel title={`Causal Chain · ${(observation.causal_chain ?? []).length}`}>
-              {(observation.causal_chain ?? []).length > 0 ? (
-                <div className="space-y-1.5">
-                  {(observation.causal_chain ?? []).map((edge, index) => (
-                    <div key={`${edge.source ?? index}-${edge.target ?? index}`} className="flex items-center gap-1.5 text-[9px]">
-                      <CausalNode link={edge} side="source" onSelectEntity={onSelectEntity} />
-                      <ArrowRight size={10} className="text-[var(--accent)] shrink-0" aria-hidden="true" />
-                      <CausalNode link={edge} side="target" onSelectEntity={onSelectEntity} />
-                      <span className="ml-auto font-mono text-[var(--text-lo)] shrink-0">
-                        {typeof edge.confidence === 'number' ? `${(edge.confidence * 100).toFixed(0)}%` : UNAVAILABLE}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyNote>NO CAUSAL LINKS WERE RETURNED</EmptyNote>
               )}
             </Panel>
 
