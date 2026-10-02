@@ -50,7 +50,9 @@ observation becomes `unavailable`.
 |------|---------|
 | `EvidencePanel.tsx` | Presentational panel: event, sources, impacts, markets, causal chain, freshness, confidence, provider status |
 | `EvidenceStatusBadge.tsx` | Icon + label status chip |
-| `evidenceStatus.ts` | Status metadata (label, meaning, tone, icon) |
+| `evidenceStatus.ts` | Status metadata (label, meaning, tone, icon) for evidence and market observations |
+| `marketObservations.ts` | Pure market-observation helpers (entity resolution, value/change formatting) |
+| `causalChain.ts` | Pure causal-chain view over `causal_chain` (per-hop fields, limitations, market binding) |
 | `useEvidenceSelection.ts` | Selection → canonical observation fetch lifecycle |
 
 ## Related-entity navigation
@@ -67,6 +69,72 @@ carries a reliable entity reference:
 single source of that decision; they never infer a mapping. Clicking a related
 entity calls the same `handleGlobeSelect` the globe uses, so the globe focus,
 committed selection, and evidence load all flow through the existing system.
+
+## Event → market impact
+
+Market data is never a separate layer: it travels inside the canonical
+`EvidenceObservation.market_observations` list, which the backend composes from
+the event's affected assets (`backend/app/routes/live_events.py`) using the
+existing quote service. The frontend mirrors that shape in
+`api/evidenceApi.ts` and introduces no second market store, fetch path, or
+socket.
+
+Both surfaces render the same records:
+
+- **Evidence panel (`Markets`)** — one row per affected asset with the affected
+  asset, available value/change, observation timestamp/freshness, provider, and
+  a status chip: `LIVE` (provider-backed), `STALE` (cached), `SIMULATED`, or
+  explicitly `UNAVAILABLE`.
+- **Event timeline** — the focused event's row surfaces a compact market strip
+  from the same observation (the `evidence` prop threaded from
+  `WorldCommandCenter`). Before evidence loads it says `MARKETS · LOADING`;
+  with no records it says `MARKETS UNAVAILABLE`. It never fetches on its own.
+
+Clicking a market asset routes through the **same globe focus path** as causal
+nodes and affected-asset chips (`onSelectEntity` → `handleGlobeSelect`), so the
+globe, committed selection, and evidence load all follow the existing system.
+The single source of that decision is `marketObservationEntity` — a symbol is
+navigable only when the provider actually supplied one.
+
+Nothing is fabricated. An `unavailable` observation states so and never
+substitutes a seeded or synthetic value, and `simulated` data is labelled
+`SIMULATED` everywhere (it is deliberately **not** collapsed into the generic
+`DEMO` chip). The layer displays only relationships already present in the
+canonical evidence; it never infers a causal link between an event and a price
+move.
+
+## Causal intelligence
+
+`causalChain.ts` turns the canonical `EvidenceObservation.causal_chain` into a
+structured view — `EVENT → IMPACT → AFFECTED ENTITY/ASSET → MARKET OBSERVATION`
+— without a graph engine or a second evidence model. Each hop exposes only what
+the envelope recorded:
+
+- the recorded source and target labels and their recorded types;
+- the recorded confidence, or an explicit `CONFIDENCE NOT RECORDED`;
+- the recorded `evidence_ref`, or `EVIDENCE REFERENCE NOT RECORDED`;
+- for an asset target, the market observation **already in the same envelope**
+  (bound by exact provider symbol), or `NO MARKET OBSERVATION RECORDED FOR THIS ASSET`.
+
+The panel renders this prominently (right after the event), shows a
+`RECORDED / MARKET-LINKED / LIMITED` summary, and reuses the existing related-
+entity navigation: `geography`/`entity`/`asset` nodes are clickable through the
+same `onSelectEntity` → `handleGlobeSelect` path; narrative `event` nodes and
+unrecognized types stay inert. The globe overlay already draws an arc only when
+both sides are reliable typed, resolvable references.
+
+Every gap is stated rather than filled: missing source/target/type, an
+unrecognized node type, missing confidence, a missing evidence reference, and a
+missing market observation are all surfaced as limitations. The section never
+asserts causality beyond the recorded links — a note states that co-movement in
+time is not treated as a cause, and an empty chain is shown as `NO CAUSAL LINKS
+WERE RETURNED`.
+
+ATLAS reads the same chain through its context briefing: the `CAUSAL
+RELATIONSHIPS` section lists every recorded link with its types, confidence, and
+evidence reference, then explicitly distinguishes recorded evidence from
+unsupported inference. The backend agent prompt carries the same rule, so the
+provider never asserts causality the envelope does not record.
 
 ## Globe visualization
 
