@@ -179,16 +179,20 @@ export function buildRiskPaths(links: GraphLink[]): any[] {
 }
 
 export function buildEventNodes(liveEvents: LiveEvent[]): any[] {
-  return liveEvents.map((e, i) => ({
-    lat: e.lat || 20,
-    lng: e.lng || (i * 40) % 360 - 180,
-    label: e.country,
-    radius: 0.06 + (e.severity / 10) * 0.05,
-    color: e.severity >= 7 ? '#ff4d5e' : e.severity >= 5 ? '#f5b941' : '#38e8ff',
-    pulseColor: e.severity >= 7 ? '#ff4d5e' : '#38e8ff',
-    pulseSpeed: 2.2 + (e.severity / 10) * 1.5,
-    entity: e.country,
-  }))
+  // Events without backend coordinates are never placed at an invented
+  // position — they simply do not produce a globe node.
+  return liveEvents
+    .filter((e): e is LiveEvent & { lat: number; lng: number } => typeof e.lat === 'number' && typeof e.lng === 'number')
+    .map(e => ({
+      lat: e.lat,
+      lng: e.lng,
+      label: e.country,
+      radius: 0.06 + (e.severity / 10) * 0.05,
+      color: e.severity >= 7 ? '#ff4d5e' : e.severity >= 5 ? '#f5b941' : '#38e8ff',
+      pulseColor: e.severity >= 7 ? '#ff4d5e' : '#38e8ff',
+      pulseSpeed: 2.2 + (e.severity / 10) * 1.5,
+      entity: e.country,
+    }))
 }
 
 export function buildLabelData(): any[] {
