@@ -246,6 +246,10 @@ describe('canonical evidence briefing', () => {
     expect(text).toContain('CAUSAL RELATIONSHIPS (1)')
     expect(text).toContain('Taiwan (geography) -> TSM (asset)')
     expect(text).toContain('confidence: 70%')
+    expect(text).toContain('evidence: ref-1')
+    // Recorded links are explicitly distinguished from unsupported inference.
+    expect(text).toContain('must be distinguished from unsupported inference')
+    expect(text).toContain('not treated as a cause')
     // Freshness / confidence / uncertainty + provenance
     expect(text).toContain('Observation status: live')
     expect(text).toContain('Freshness: current')
@@ -320,6 +324,8 @@ describe('evidence-grounded ATLAS answers', () => {
     expect(response).toContain('TSMC')
     expect(response).toContain('Market: TSM')
     expect(response).toContain('Taiwan (geography) -> TSM (asset)')
+    expect(response).toContain('evidence: ref-1')
+    expect(response).toContain('must be distinguished from unsupported inference')
     expect(response).toContain('provider: TAIWAN-FEED')
     expect(response).toContain('observed at: 2026-10-01T00:00:00Z')
     expect(response).toContain('confidence: 81%')
