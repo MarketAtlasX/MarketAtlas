@@ -231,7 +231,7 @@ class EventNewsArticleRepository(BaseRepository[EventNewsArticle]):
         query = (
             select(self.model)
             .where(self.model.event_id == event_id)
-            .order_by(func.desc(self.model.relevance_score))
+            .order_by(desc(self.model.relevance_score))
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
@@ -251,7 +251,7 @@ class EventAlertRepository(BaseRepository[EventAlert]):
             select(self.model)
             .where(self.model.user_id == user_id)
             .where(~self.model.is_read)
-            .order_by(func.desc(self.model.created_at))
+            .order_by(desc(self.model.created_at))
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
