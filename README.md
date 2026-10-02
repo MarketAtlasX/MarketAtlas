@@ -187,6 +187,34 @@ python -m backend.app.chatbot.scripts.seed_data
 
 ---
 
+## Production Demo
+
+For the final demo, run the **built** frontend rather than the dev server.
+
+```bash
+# 1. Configure
+cp backend/.env.example backend/.env            # DB_*, REDIS_URL, one LLM key
+cp frontend/.env.example frontend/.env.local
+
+# 2. Backend (production, no reload)
+cd backend && ../venv/bin/alembic upgrade head
+PYTHONPATH="$(pwd):$(dirname "$(pwd)")" ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# 3. Frontend — builds, then serves dist with the /api + /ws proxy
+cd frontend && npm ci && npm run build && npm run preview   # http://localhost:3000
+```
+
+Verify with `curl localhost:8000/health`, open `http://localhost:3000`, then
+follow the demo checklist (`Live Event → Timeline → Globe → Evidence → Causal
+Chain → Markets → ATLAS`).
+
+| Guide | Contents |
+|-------|----------|
+| [`docs/DEMO.md`](docs/DEMO.md) | Demo runbook, checklist, live vs simulated components, limitations |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Env vars, database & migrations, WebSocket + provider config, graceful degradation |
+
+---
+
 ## ATLAS — The General Intelligence Layer
 
 ATLAS is a voice-first assistant that generalizes the MarketAtlas chatbot into a full intelligence system. It hears you (OpenAI Realtime WebRTC or browser speech), reasons about anything, and — when the query touches the world — drives the globe to show you the answer.
