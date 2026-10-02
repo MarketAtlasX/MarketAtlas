@@ -1,8 +1,10 @@
 import Badge from '../../components/ui/Badge'
-import { evidenceStatusMeta } from './evidenceStatus'
+import { evidenceStatusMeta, type EvidenceStatusMeta } from './evidenceStatus'
 
 interface EvidenceStatusBadgeProps {
-  status: string | null | undefined
+  status?: string | null
+  /** Pre-resolved metadata (e.g. a market-observation status). */
+  meta?: EvidenceStatusMeta
   /** Render the plain-language meaning next to the status label. */
   showMeaning?: boolean
   className?: string
@@ -12,8 +14,8 @@ interface EvidenceStatusBadgeProps {
  * Textual + iconic evidence status chip. Color is supplementary; the label and
  * icon always communicate the state on their own.
  */
-export default function EvidenceStatusBadge({ status, showMeaning = false, className = '' }: EvidenceStatusBadgeProps) {
-  const meta = evidenceStatusMeta(status)
+export default function EvidenceStatusBadge({ status, meta: providedMeta, showMeaning = false, className = '' }: EvidenceStatusBadgeProps) {
+  const meta = providedMeta ?? evidenceStatusMeta(status)
   const Icon = meta.icon
   return (
     <Badge tone={meta.tone} className={className}>
