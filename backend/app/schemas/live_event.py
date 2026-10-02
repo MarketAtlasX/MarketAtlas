@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from app.core.enums import (
     AssetType,
@@ -15,10 +15,28 @@ from app.core.enums import (
 )
 
 
-def _naive_utc(v: datetime) -> datetime:
+def _naive_utc(v: Optional[datetime]) -> Optional[datetime]:
+    if v is None:
+        return None
     if v.tzinfo is not None:
         return v.astimezone(datetime.timezone.utc).replace(tzinfo=None)
     return v
+
+
+def _extra_meta_field():
+    """Accept the API's ``metadata`` key without colliding with SQLAlchemy.
+
+    ORM instances expose the ``extra_meta`` attribute (the ``metadata`` name is
+    reserved by SQLAlchemy's declarative ``MetaData``), so ``from_attributes``
+    validation must prefer ``extra_meta`` while still accepting ``metadata`` on
+    request payloads. Serialization keeps emitting ``metadata`` so the wire
+    contract is unchanged.
+    """
+    return Field(
+        None,
+        validation_alias=AliasChoices("extra_meta", "metadata"),
+        serialization_alias="metadata",
+    )
 
 
 class LiveEventBase(BaseModel):
@@ -37,7 +55,7 @@ class LiveEventBase(BaseModel):
     country_code: Optional[str] = Field(None, max_length=2)
     region: Optional[str] = Field(None, max_length=100)
     event_date: Optional[datetime] = None
-    extra_meta: Optional[dict] = Field(None, alias="metadata")
+    extra_meta: Optional[dict] = _extra_meta_field()
 
     _normalize_date = field_validator("event_date")(_naive_utc)
 
@@ -62,7 +80,7 @@ class LiveEventUpdate(BaseModel):
     country_code: Optional[str] = Field(None, max_length=2)
     region: Optional[str] = Field(None, max_length=100)
     event_date: Optional[datetime] = None
-    extra_meta: Optional[dict] = Field(None, alias="metadata")
+    extra_meta: Optional[dict] = _extra_meta_field()
 
     _normalize_date = field_validator("event_date")(_naive_utc)
 
