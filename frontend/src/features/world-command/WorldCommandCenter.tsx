@@ -15,6 +15,7 @@ import { decodeReplayIntent } from '../world-memory/replayOnGlobe'
 import type { VisualizationIntent } from '../globe/visualizationIntent'
 import { intelligenceBus } from '../../services/intelligenceBus'
 import { useAtlasStore, type AtlasLayer } from '../../stores/AtlasStore'
+import type { LiveEvent } from '../../types'
 
 const GLOBE_MODES: { key: GlobeMode; label: string }[] = [
   { key: 'world', label: 'WORLD' },
@@ -87,12 +88,26 @@ export default function WorldCommandCenter() {
     })
   }, [selectEntity])
 
-  const handleGlobeSelect = (entity: string) => {
+  // The single globe selection/focus path: commits the world selection, points
+  // the Evidence panel at it, and emits the shared selection event. Both manual
+  // globe clicks and Live Event timeline clicks funnel through here.
+  const focusEntity = (entity: string, eventTitle: string | null = null) => {
     selectEntity(entity)
-    update({ selectedCountry: entity, selectedCity: null, selectedEvent: null, highlightedEntities: [entity], openPanel: 'evidence', execution: 'idle' })
+    update({ selectedCountry: entity, selectedCity: null, selectedEvent: eventTitle, highlightedEntities: [entity], openPanel: 'evidence', execution: 'idle' })
     setReplayIntent(null)
     setConsoleTab('events')
     intelligenceBus.emit('ENTITY_SELECTED', { entity })
+  }
+
+  const handleGlobeSelect = (entity: string) => focusEntity(entity)
+
+  // A timeline event focuses its backend-provided location and records the
+  // event in the existing Atlas selection state — no separate event selection
+  // model. Events without a location are ignored rather than guessed at.
+  const handleSelectEvent = (event: LiveEvent) => {
+    const entity = event.country?.trim() || event.countryCode?.trim()
+    if (!entity) return
+    focusEntity(entity, event.title)
   }
 
   return (
@@ -152,7 +167,13 @@ export default function WorldCommandCenter() {
               </button>
             )}
           </div>
-          <CommandConsole initialTab={consoleTab} />
+          <CommandConsole
+            initialTab={consoleTab}
+            onSelectEvent={handleSelectEvent}
+            evidence={atlasState.evidence}
+            selectedEvent={atlasState.selectedEvent}
+            onSelectEntity={handleGlobeSelect}
+          />
         </section>
 
         <aside className="w-80 shrink-0 border-l border-[var(--line)] bg-[rgba(4,8,12,0.7)] backdrop-blur-md overflow-y-auto flex flex-col">
