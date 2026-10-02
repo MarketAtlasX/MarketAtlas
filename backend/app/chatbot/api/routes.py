@@ -82,7 +82,12 @@ ATLAS_EVIDENCE_GROUNDING_RULES = (
     "freshness, confidence) and repeat recorded uncertainty and limitations. If the observation "
     "does not contain the answer, state that the evidence does not establish it instead of "
     "explaining anyway — never invent sources, confidence, causal links, market values, or "
-    "timestamps. If `evidence.observation` is null or `evidence.status` is not 'ready', say the "
+    "timestamps. When explaining causal relationships, use only the links recorded in the "
+    "envelope (each with its recorded source, target, type, confidence, and evidence "
+    "reference) and explicitly distinguish those recorded links from unsupported inference: "
+    "never assert causality the envelope does not record, and never treat an event and a "
+    "market moving at similar times as a causal relationship. If `evidence.observation` is "
+    "null or `evidence.status` is not 'ready', say the "
     "evidence is not currently loaded for the selection and do not reuse evidence from a "
     "previous selection."
 )
