@@ -7,6 +7,8 @@ import AIAnalysisTab from './tabs/AIAnalysisTab'
 import MemoryTab from './tabs/MemoryTab'
 import AtlasConsole from './tabs/AtlasConsole'
 import { useWorldStore } from '../../stores/WorldStore'
+import type { AtlasEvidenceState } from '../../stores/AtlasStore'
+import type { LiveEvent } from '../../types'
 
 export type ConsoleTab = 'events' | 'propagation' | 'analysis' | 'memory' | 'command'
 
@@ -20,9 +22,17 @@ const BASE_TABS: { key: ConsoleTab; label: string; icon: React.ReactNode }[] = [
 
 interface CommandConsoleProps {
   initialTab?: ConsoleTab
+  /** Routes a timeline event click through the globe selection/focus path. */
+  onSelectEvent?: (event: LiveEvent) => void
+  /** Canonical evidence for the current selection (market observations source). */
+  evidence?: AtlasEvidenceState | null
+  /** Title of the focused event; its timeline row surfaces affected markets. */
+  selectedEvent?: string | null
+  /** Routes an affected-asset click through the globe selection/focus path. */
+  onSelectEntity?: (entity: string) => void
 }
 
-export default function CommandConsole({ initialTab = 'events' }: CommandConsoleProps) {
+export default function CommandConsole({ initialTab = 'events', onSelectEvent, evidence, selectedEvent, onSelectEntity }: CommandConsoleProps) {
   const [tab, setTab] = useState<ConsoleTab>(initialTab)
   const isCommand = tab === 'command'
   const { state } = useWorldStore()
@@ -34,13 +44,23 @@ export default function CommandConsole({ initialTab = 'events' }: CommandConsole
   const tabs = BASE_TABS.map(t =>
     t.key === 'events' ? { ...t, label: state.dataMode === 'live' ? 'LIVE EVENTS' : 'EVENTS \u00b7 SIMULATED' } : t,
   )
+  // The events tab gives the focused event's market-impact strip a little more
+  // room; every other tab keeps its existing height.
+  const bodyHeight = isCommand ? 'h-64' : tab === 'events' ? 'h-32' : 'h-24'
 
   return (
     <section className="shrink-0 border-t border-[var(--line)] bg-[rgba(4,8,12,0.85)] backdrop-blur-md px-3 py-2">
       <Tabs items={tabs} value={tab} onChange={v => setTab(v as ConsoleTab)} className="max-w-lg mb-2" />
 
-      <div className={`${isCommand ? 'h-64' : 'h-24'} transition-all`}>
-        {tab === 'events' && <LiveEventsTab />}
+      <div className={`${bodyHeight} transition-all`}>
+        {tab === 'events' && (
+          <LiveEventsTab
+            onSelectEvent={onSelectEvent}
+            evidence={evidence}
+            selectedEvent={selectedEvent}
+            onSelectEntity={onSelectEntity}
+          />
+        )}
         {tab === 'propagation' && <PropagationTab />}
         {tab === 'analysis' && <AIAnalysisTab />}
         {tab === 'memory' && <MemoryTab />}
