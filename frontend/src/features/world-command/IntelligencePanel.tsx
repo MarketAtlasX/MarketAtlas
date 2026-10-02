@@ -35,6 +35,8 @@ export default function IntelligencePanel() {
   )
   const fallbackEvents = useMemo(() => state.events.slice(0, 4), [state.events])
   const activeEvents = liveEvents.length > 0 ? liveEvents : fallbackEvents
+  // Honest provenance: the seeded feed must never read as live intelligence.
+  const eventsAreLive = activeEvents.some(e => e.provenance === 'live')
 
   const related = RELATED_SIGNALS[entity] ?? []
   const signals = useMemo(
@@ -68,7 +70,10 @@ export default function IntelligencePanel() {
         </div>
       </Panel>
 
-      <Panel title="Active Events">
+      <Panel
+        title="Active Events"
+        right={<Badge tone={eventsAreLive ? 'positive' : 'neutral'}>{eventsAreLive ? 'LIVE' : 'SIMULATED'}</Badge>}
+      >
         <div className="space-y-2">
           {activeEvents.map(e => (
             <div key={e.id} className="flex items-start gap-2 group">
@@ -90,7 +95,7 @@ export default function IntelligencePanel() {
         </div>
       </Panel>
 
-      <Panel title="Market Impact">
+      <Panel title="Market Impact" right={<Badge tone="neutral">SIMULATED</Badge>}>
         <div className="space-y-1.5">
           {signals.map(s => (
             <div
