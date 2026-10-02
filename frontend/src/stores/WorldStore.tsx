@@ -8,6 +8,12 @@ export function countryName(code: string): string {
   return worldStates.find(w => w.code === code)?.name ?? code
 }
 
+/**
+ * Hard cap on retained events. Every write path funnels through this bound so
+ * a long-lived session can never grow the event feed without limit in memory.
+ */
+export const MAX_EVENTS = 40
+
 export function riskColor(score: number): string {
   if (score < 30) return '#2ee6a8'
   if (score < 50) return '#f5b941'
@@ -42,6 +48,7 @@ function seedEvents(): LiveEvent[] {
       timestamp: e.timestamp,
       summary: e.description,
       sectors: e.affectedSectors,
+      provenance: 'simulated',
     }))
 }
 
@@ -68,9 +75,16 @@ interface ApiEvent {
   title?: string
   description?: string
   event_type?: string
+  sub_type?: string
   severity?: number | string
+  status?: string
   event_date?: string
+  first_seen_at?: string
   created_at?: string
+  lat?: number | null
+  lng?: number | null
+  country_code?: string | null
+  country?: string | null
 }
 
 function normalizeEventType(value: string | undefined): LiveEvent['type'] {
@@ -81,25 +95,63 @@ function normalizeEventType(value: string | undefined): LiveEvent['type'] {
   return 'economic'
 }
 
-function normalizeSeverity(value: number | string | undefined): number {
-  if (typeof value === 'number') return Math.max(1, Math.min(10, Math.round(value)))
-  const levels: Record<string, number> = { low: 2, medium: 5, high: 8, critical: 10 }
-  return levels[value?.toLowerCase() ?? ''] ?? 3
+function normalizeSeverity(value: number | string | undefined): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.max(1, Math.min(10, Math.round(value)))
+  if (typeof value === 'string') {
+    const levels: Record<string, number> = { low: 2, medium: 5, high: 8, critical: 10 }
+    const label = levels[value.toLowerCase()]
+    if (label !== undefined) return label
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return Math.max(1, Math.min(10, Math.round(parsed)))
+  }
+  return null
 }
 
-function mapApiEvent(event: ApiEvent, index: number): LiveEvent {
+function normalizeCoord(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function firstParseableTimestamp(values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim()
+    if (trimmed && !Number.isNaN(Date.parse(trimmed))) return trimmed
+  }
+  return null
+}
+
+/**
+ * Map a `/api/events` row into the canonical shape without inventing anything:
+ * an event missing an id, title, severity, or parseable timestamp is dropped,
+ * and missing coordinates/location stay empty instead of being defaulted.
+ */
+function mapApiEvent(event: ApiEvent): LiveEvent | null {
+  const id = event.id === undefined || event.id === null ? '' : String(event.id).trim()
+  const title = event.title?.trim()
+  if (!id || !title) return null
+
+  const severity = normalizeSeverity(event.severity)
+  if (severity === null) return null
+
+  const timestamp = firstParseableTimestamp([event.event_date, event.first_seen_at, event.created_at])
+  if (!timestamp) return null
+
+  const countryCode = event.country_code?.trim().toUpperCase() ?? ''
+  const country = event.country?.trim() || (countryCode ? countryName(countryCode) : '')
+
   return {
-    id: String(event.id ?? `api-event-${index}`),
-    title: event.title?.trim() || 'Untitled market event',
-    countryCode: 'US',
-    country: 'Global',
-    type: normalizeEventType(event.event_type),
-    severity: normalizeSeverity(event.severity),
-    lat: 20,
-    lng: 0,
-    timestamp: event.event_date || event.created_at || new Date().toISOString(),
-    summary: event.description?.trim() || 'No event summary available.',
+    id,
+    title,
+    countryCode,
+    country,
+    type: normalizeEventType(event.sub_type ?? event.event_type),
+    severity,
+    lat: normalizeCoord(event.lat),
+    lng: normalizeCoord(event.lng),
+    timestamp,
+    summary: event.description?.trim() ?? '',
     sectors: [],
+    provenance: 'live',
+    status: event.status?.trim() || undefined,
   }
 }
 
@@ -122,6 +174,12 @@ interface WorldStoreApi {
   state: WorldStoreState
   selectEntity: (entity: string | null) => void
   pushEvent: (e: LiveEvent) => void
+  /**
+   * Apply a backend lifecycle status to an event already in the feed (e.g. a
+   * `live_event_resolved` broadcast). A no-op when the id is not present, so a
+   * resolution can never create or duplicate an entry.
+   */
+  setEventStatus: (id: string, status: string) => void
   pushRisk: (r: RiskUpdate) => void
   pushForecast: (f: WorldStoreState['forecast']) => void
 }
@@ -154,18 +212,40 @@ export function WorldProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController()
     const timeout = window.setTimeout(() => controller.abort(), 4000)
 
-    fetch('/api/events?limit=40', { signal: controller.signal })
+    // Bootstrap from the canonical live-event feed, not the raw `/api/events`
+    // store: only live events carry the coordinates/country the timeline needs
+    // to focus the globe, so raw rows would render as an all-disabled feed.
+    fetch('/api/live-events?limit=40', { signal: controller.signal })
       .then(response => (response.ok ? response.json() as Promise<{ items?: ApiEvent[] }> : null))
       .then(payload => {
         const items = payload?.items ?? []
         if (items.length === 0) return
-        const liveEvents = items.map(mapApiEvent)
-        setState(current => ({
-          ...current,
-          events: liveEvents,
-          dataMode: 'live',
-          updatedAt: new Date().toISOString(),
-        }))
+        const liveEvents = items
+          .map(mapApiEvent)
+          .filter((event): event is LiveEvent => event !== null)
+          .slice(0, MAX_EVENTS)
+        if (liveEvents.length === 0) return
+        setState(current => {
+          // Drop the simulated seed feed, but keep any genuinely live events a
+          // WebSocket already delivered while this bootstrap was in flight —
+          // replacing the whole list here would silently lose them. Dedupe by
+          // id (REST and the socket describe some of the same stories) and
+          // keep the bounded newest-first set.
+          const socketLive = current.events.filter(event => event.provenance === 'live')
+          const seen = new Set<string>()
+          const merged: LiveEvent[] = []
+          for (const event of [...socketLive, ...liveEvents]) {
+            if (seen.has(event.id)) continue
+            seen.add(event.id)
+            merged.push(event)
+          }
+          return {
+            ...current,
+            events: merged.slice(0, MAX_EVENTS),
+            dataMode: 'live',
+            updatedAt: current.updatedAt ?? new Date().toISOString(),
+          }
+        })
       })
       .catch(() => {
         // Seeded events remain available when the backend is offline.
@@ -181,7 +261,19 @@ export function WorldProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const pushEvent = useCallback((e: LiveEvent) => {
-    setState(s => ({ ...s, events: [e, ...s.events].slice(0, 40), dataMode: 'live', updatedAt: e.timestamp }))
+    setState(s => ({ ...s, events: [e, ...s.events].slice(0, MAX_EVENTS), dataMode: 'live', updatedAt: e.timestamp }))
+  }, [])
+
+  const setEventStatus = useCallback((id: string, status: string) => {
+    setState(s => {
+      let changed = false
+      const events = s.events.map(event => {
+        if (event.id !== id || event.status === status) return event
+        changed = true
+        return { ...event, status }
+      })
+      return changed ? { ...s, events } : s
+    })
   }, [])
 
   const pushRisk = useCallback((r: RiskUpdate) => {
@@ -196,11 +288,14 @@ export function WorldProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const selectEntity = useCallback((entity: string | null) => {
-    setState(s => ({ ...s, selectedEntity: entity }))
+    // Re-selecting the same entity is a no-op: the globe focus path emits the
+    // selection on both the store and the intelligence bus, and an unchanged
+    // value must not trigger a second render or a redundant evidence effect.
+    setState(s => (s.selectedEntity === entity ? s : { ...s, selectedEntity: entity }))
   }, [])
 
   return (
-    <WorldContext.Provider value={{ state, selectEntity, pushEvent, pushRisk, pushForecast }}>
+    <WorldContext.Provider value={{ state, selectEntity, pushEvent, setEventStatus, pushRisk, pushForecast }}>
       {children}
     </WorldContext.Provider>
   )
