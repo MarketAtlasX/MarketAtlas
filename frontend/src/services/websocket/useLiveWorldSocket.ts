@@ -30,6 +30,7 @@ interface InboundMessage {
   source_url?: string | null
   event_date?: string | null
   first_seen_at?: string | null
+  status?: string | null
   data?: Record<string, unknown>
 }
 
@@ -166,6 +167,8 @@ export function parseLiveEventEnvelope(envelope: InboundMessage): ParsedLiveEven
     timestamp,
     summary: description ?? title,
     sectors: [],
+    provenance: 'live',
+    status: nonEmpty(payload.status) ?? undefined,
   }
 
   const dedupKeys = [
@@ -198,9 +201,9 @@ export function eventAffectsSelection(event: LiveEvent, selection: string | null
 }
 
 export function useLiveWorldSocket(options: UseLiveWorldSocketOptions = {}) {
-  const { pushEvent, pushRisk, pushForecast, selectEntity } = useWorldStore()
-  const handlersRef = useRef({ pushEvent, pushRisk, pushForecast, selectEntity })
-  handlersRef.current = { pushEvent, pushRisk, pushForecast, selectEntity }
+  const { pushEvent, setEventStatus, pushRisk, pushForecast, selectEntity } = useWorldStore()
+  const handlersRef = useRef({ pushEvent, setEventStatus, pushRisk, pushForecast, selectEntity })
+  handlersRef.current = { pushEvent, setEventStatus, pushRisk, pushForecast, selectEntity }
   const optionsRef = useRef(options)
   optionsRef.current = options
   const seenEventsRef = useRef<Set<string>>(new Set())
@@ -235,32 +238,43 @@ export function useLiveWorldSocket(options: UseLiveWorldSocketOptions = {}) {
      * on every healthy open, gives up after MAX consecutive failed attempts,
      * and never reconnects after the effect has been disposed.
      */
+    const retryTimers = new Set<number>()
+
     const attachWithRetry = (url: string, onOpen: (ws: WebSocket) => void, onMessage: (raw: string) => void) => {
       let attempts = 0
+      const scheduleRetry = () => {
+        if (disposed || attempts >= MAX_RECONNECT_ATTEMPTS) return
+        attempts += 1
+        const timer = window.setTimeout(() => {
+          retryTimers.delete(timer)
+          attach()
+        }, RECONNECT_BASE_MS * attempts)
+        retryTimers.add(timer)
+      }
       const attach = () => {
         if (disposed) return
+        let ws: WebSocket
         try {
-          const ws = new WebSocket(url)
-          sockets.push(ws)
-          ws.onopen = () => {
-            attempts = 0
-            onOpen(ws)
-          }
-          ws.onmessage = e => {
-            try {
-              onMessage(typeof e.data === 'string' ? e.data : '')
-            } catch {
-              /* ignore malformed frames */
-            }
-          }
-          ws.onclose = () => {
-            if (disposed || attempts >= MAX_RECONNECT_ATTEMPTS) return
-            attempts += 1
-            window.setTimeout(attach, RECONNECT_BASE_MS * attempts)
-          }
+          ws = new WebSocket(url)
         } catch {
-          /* the app keeps running when the backend is unavailable */
+          // A failed construction (backend down) must retry like a close does,
+          // otherwise a page loaded before the backend starts never connects.
+          scheduleRetry()
+          return
         }
+        sockets.push(ws)
+        ws.onopen = () => {
+          attempts = 0
+          onOpen(ws)
+        }
+        ws.onmessage = e => {
+          try {
+            onMessage(typeof e.data === 'string' ? e.data : '')
+          } catch {
+            /* ignore malformed frames */
+          }
+        }
+        ws.onclose = () => scheduleRetry()
       }
       attach()
     }
@@ -286,8 +300,18 @@ export function useLiveWorldSocket(options: UseLiveWorldSocketOptions = {}) {
         if (type.includes('LIVE_EVENT')) {
           // Only genuinely new backend events become world-state entries.
           // Updates and resolutions of an event already on screen are not new
-          // events and must not duplicate the list.
-          if (type === 'LIVE_EVENT_NEW') ingestEvent(envelope)
+          // events and must not duplicate the list — they update the lifecycle
+          // status of the existing entry (and are ignored when it is absent).
+          if (type === 'LIVE_EVENT_NEW') {
+            ingestEvent(envelope)
+          } else if (type === 'LIVE_EVENT_RESOLVED' || type === 'LIVE_EVENT_UPDATE') {
+            const rawId = payload.id ?? envelope.id
+            const id = typeof rawId === 'string' || typeof rawId === 'number' ? String(rawId).trim() : ''
+            if (id) {
+              const status = nonEmpty(payload.status) ?? (type === 'LIVE_EVENT_RESOLVED' ? 'resolved' : 'updated')
+              h.setEventStatus(id, status)
+            }
+          }
           return
         }
 
@@ -348,6 +372,8 @@ export function useLiveWorldSocket(options: UseLiveWorldSocketOptions = {}) {
 
     return () => {
       disposed = true
+      retryTimers.forEach(timer => window.clearTimeout(timer))
+      retryTimers.clear()
       sockets.forEach(ws => {
         try {
           ws.close()
