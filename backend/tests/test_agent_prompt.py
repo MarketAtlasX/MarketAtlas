@@ -41,6 +41,12 @@ def test_prompt_appends_evidence_grounding_rules_when_evidence_is_present():
     assert "never invent sources, confidence, causal links, market values, or timestamps" in prompt
     assert "do not reuse evidence from a previous selection" in prompt
 
+    # Causal explanations must separate recorded links from unsupported inference.
+    assert "use only the links recorded in the envelope" in prompt
+    assert "distinguish those recorded links from unsupported inference" in prompt
+    assert "never assert causality the envelope does not record" in prompt
+    assert "market moving at similar times as a causal relationship" in prompt
+
     # The canonical envelope and its deterministic briefing are inlined verbatim.
     assert '"selection": "Taiwan"' in prompt
     assert "GDELT" in prompt
