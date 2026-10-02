@@ -1,5 +1,11 @@
 export type LiveEventType = 'conflict' | 'election' | 'sanction' | 'trade' | 'diplomatic' | 'military' | 'economic' | 'natural' | 'market'
 
+/**
+ * Where an event entered the store, so the UI can distinguish genuinely live
+ * backend events from the seeded/simulated demo data without a second store.
+ */
+export type LiveEventProvenance = 'live' | 'simulated'
+
 export interface LiveEvent {
   id: string
   title: string
@@ -7,11 +13,19 @@ export interface LiveEvent {
   country: string
   type: LiveEventType
   severity: number
-  lat: number
-  lng: number
+  /** Backend-provided coordinates, or `null` when the source omitted them. */
+  lat: number | null
+  lng: number | null
   timestamp: string
   summary: string
   sectors: string[]
+  /** 'live' for backend-ingested events; absent/'simulated' for seed data. */
+  provenance?: LiveEventProvenance
+  /**
+   * Backend lifecycle status when the provider supplies one (e.g. 'breaking',
+   * 'updated', 'resolved'). Never inferred — copied from the backend payload.
+   */
+  status?: string
 }
 
 export interface MarketSignal {
