@@ -73,7 +73,13 @@ npm ci
 npm run build
 npm run preview            # http://localhost:3000
 
-# ── Controlled demo (seeds data, starts backend + frontend together)
+# ── 3. Simulator (optional — powers the /simulator page) ─
+#     Run from the repository root. First run installs its deps:
+#       venv/bin/python -m pip install -r simulator/requirements.txt
+cd "$(git rev-parse --show-toplevel)/simulator"
+PYTHONPATH="$(dirname "$(pwd)")" ../venv/bin/uvicorn simulator.main:app --host 127.0.0.1 --port 8007
+
+# ── Controlled demo (seeds data, starts all available services together)
 ./dev.sh
 ```
 
@@ -131,7 +137,10 @@ npm run preview            # http://localhost:3000
   `UNAVAILABLE` by design rather than being backfilled.
 - GDELT polls every 120 s — a “live” event may take up to two minutes to appear.
 - Optional microservices (graph_engine, simulator, world_state, memory,
-  market_agents, kg-agent) are not required for this flow.
+  market_agents, kg-agent) are not required for this flow. The `/simulator`
+  page specifically needs the simulator service on `:8007`; without it the page
+  shows an error state (and the simulator still warns when the optional graph
+  engine on `:8005` is absent, but completes).
 - The command center is a desktop-first layout (fixed right rail).
 
 ---
