@@ -35,14 +35,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
 
-
-@app.websocket("/ws/simulation")
-async def simulation_websocket(websocket: WebSocket):
-    await ws_handler(websocket)
-
-
+# Register the explicit routes *before* the router. The router defines a
+# catch-all `GET /api/simulation/{simulation_id}`, so registering these first
+# keeps `/config` and `/version` from being matched as a simulation id.
 @app.get("/api/simulation/config")
 def get_config():
     return {
@@ -60,6 +56,14 @@ def get_config():
 @app.get("/api/simulation/version")
 def get_version():
     return {"version": settings.version, "service": "simulator", "build": "2026-07-30"}
+
+
+app.include_router(router)
+
+
+@app.websocket("/ws/simulation")
+async def simulation_websocket(websocket: WebSocket):
+    await ws_handler(websocket)
 
 
 if __name__ == "__main__":
