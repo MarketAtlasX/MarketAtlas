@@ -34,7 +34,10 @@ class GDELTStreamService:
     def __init__(self, broadcaster: EventBroadcaster) -> None:
         self._broadcaster = broadcaster
         self._seen_urls: set[str] = set()
-        self._http = httpx.AsyncClient(timeout=15)
+        # GDELT DOC responses are frequently slow (10-20s); a 15s cap caused
+        # whole poll cycles to fail as ConnectTimeout. Allow headroom so a slow
+        # response is not treated as an outage.
+        self._http = httpx.AsyncClient(timeout=30)
 
     async def run(self) -> None:
         logger.info("Starting GDELT stream (poll every %ds)", POLL_INTERVAL)
