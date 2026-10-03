@@ -1,4 +1,5 @@
 import type { LiveEvent, LiveEventProvenance, LiveEventType } from '../../types'
+import { parseBackendDate } from '../../utils/dateUtils'
 
 /**
  * Pure presentation helpers for the live-event timeline.
@@ -50,7 +51,7 @@ export function eventProvenance(event: LiveEvent): LiveEventProvenance {
 }
 
 function timestampMs(event: LiveEvent): number | null {
-  const parsed = Date.parse(event.timestamp)
+  const parsed = parseBackendDate(event.timestamp).getTime()
   return Number.isNaN(parsed) ? null : parsed
 }
 
@@ -86,7 +87,7 @@ export function eventStatus(event: LiveEvent, now: number = Date.now()): Timelin
 
 /** Compact relative age: NOW, 5m, 3h, 2d. Empty string for no timestamp. */
 export function formatEventAge(timestamp: string, now: number = Date.now()): string {
-  const parsed = Date.parse(timestamp)
+  const parsed = parseBackendDate(timestamp).getTime()
   if (Number.isNaN(parsed)) return ''
   const mins = Math.max(0, Math.round((now - parsed) / 60000))
   if (mins < 1) return 'NOW'
