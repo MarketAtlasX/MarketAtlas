@@ -38,11 +38,15 @@ function tabFromParam(p: string | null): ConsoleTab {
   return 'events'
 }
 
+/** The right-rail surfaces, shown one at a time to keep the workspace calm. */
+type RailTab = 'evidence' | 'prediction' | 'intelligence' | 'agents'
+
 export default function WorldCommandCenter() {
   const [searchParams] = useSearchParams()
   const [mode, setMode] = useState<GlobeMode>('world')
   const [consoleTab, setConsoleTab] = useState<ConsoleTab>(() => tabFromParam(searchParams.get('tab')))
   const [replayIntent, setReplayIntent] = useState<VisualizationIntent | null>(() => decodeReplayIntent(searchParams.get('replay')))
+  const [railTab, setRailTab] = useState<RailTab>('evidence')
   const { state, selectEntity } = useWorldStore()
   const { update } = useAtlasStore()
   const { state: atlasState } = useAtlasStore()
@@ -77,6 +81,17 @@ export default function WorldCommandCenter() {
   const showAgents = searchParams.get('tab') === 'agents'
 
   useEffect(() => {
+    if (showAgents) setRailTab('agents')
+  }, [showAgents])
+
+  const railTabs: { key: RailTab; label: string }[] = [
+    { key: 'evidence', label: 'EVIDENCE' },
+    { key: 'prediction', label: 'PREDICTION' },
+    { key: 'intelligence', label: 'INTELLIGENCE' },
+    ...(showAgents ? [{ key: 'agents' as RailTab, label: 'AGENTS' }] : []),
+  ]
+
+  useEffect(() => {
     return intelligenceBus.subscribe(event => {
       if (event.type === 'ENTITY_SELECTED' && event.payload?.entity) {
         selectEntity(event.payload.entity)
@@ -96,6 +111,7 @@ export default function WorldCommandCenter() {
     update({ selectedCountry: entity, selectedCity: null, selectedEvent: eventTitle, highlightedEntities: [entity], openPanel: 'evidence', execution: 'idle' })
     setReplayIntent(null)
     setConsoleTab('events')
+    setRailTab('evidence')
     intelligenceBus.emit('ENTITY_SELECTED', { entity })
   }
 
@@ -119,30 +135,30 @@ export default function WorldCommandCenter() {
           <div className="flex-1 relative min-h-0">
             <HolographicGlobe mode={mode} intentOverride={replayIntent ?? undefined} onSelect={handleGlobeSelect} />
             <div className="absolute top-4 left-4 z-10 pointer-events-none select-none">
-              <h2 className="text-sm font-semibold tracking-wide text-[var(--text-hi)] drop-shadow">
+              <h2 className="text-base font-semibold tracking-wide text-[var(--text-hi)] drop-shadow">
                 WORLD COMMAND CENTER
               </h2>
-              <p className="text-[10px] font-mono text-[var(--text-mid)] mt-0.5">
+              <p className="text-[11px] font-mono text-[var(--text-mid)] mt-0.5">
                 {state.selectedEntity ? `FOCUS :: ${state.selectedEntity.toUpperCase()}` : 'SELECT A NODE TO INSPECT'}
               </p>
             </div>
-            {(atlasState.execution !== 'idle' || atlasState.actionHistory.length > 0) && (
+            {atlasState.execution !== 'idle' && (
               <div className="absolute left-4 bottom-4 z-20 w-64 rounded-md border border-[rgba(56,232,255,0.25)] bg-[rgba(4,8,14,0.88)] px-3 py-2 backdrop-blur-md font-mono">
-                <div className="flex items-center justify-between text-[9px] tracking-[0.16em] text-[var(--accent)]">
+                <div className="flex items-center justify-between text-[10px] tracking-[0.16em] text-[var(--accent)]">
                   <span>ATLAS · {atlasState.execution.toUpperCase()}</span>
                   <span>{atlasState.executionSteps.filter(step => step.status === 'complete').length}/{atlasState.executionSteps.length}</span>
                 </div>
                 <div className="mt-1.5 space-y-1">
                   {(atlasState.executionSteps.length > 0 ? atlasState.executionSteps.map(step => ({ ...step, displayStatus: step.status })) : atlasState.actionHistory.slice(-4).map((label, index) => ({ id: `${index}-${label}`, label, displayStatus: 'complete' as const }))).slice(-4).map(step => (
-                    <div key={step.id} className={`text-[10px] ${step.displayStatus === 'active' ? 'text-[var(--text-hi)]' : step.displayStatus === 'complete' ? 'text-[var(--positive)]' : 'text-[var(--text-lo)]'}`}>
+                    <div key={step.id} className={`text-[11px] ${step.displayStatus === 'active' ? 'text-[var(--text-hi)]' : step.displayStatus === 'complete' ? 'text-[var(--positive)]' : 'text-[var(--text-lo)]'}`}>
                       {step.displayStatus === 'complete' ? '✓' : step.displayStatus === 'active' ? '→' : '·'} {step.label}
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            {atlasState.latestEvidence && (
-              <div className="absolute right-4 bottom-4 z-20 rounded border border-[var(--line)] bg-[rgba(4,8,14,0.82)] px-2.5 py-1.5 font-mono text-[9px] text-[var(--text-mid)] backdrop-blur-md">
+            {atlasState.latestEvidence && railTab !== 'evidence' && (
+              <div className="absolute right-4 bottom-4 z-20 rounded border border-[var(--line)] bg-[rgba(4,8,14,0.82)] px-2.5 py-1.5 font-mono text-[10px] text-[var(--text-mid)] backdrop-blur-md">
                 <span className={atlasState.latestEvidence.status === 'live' ? 'text-[var(--positive)]' : atlasState.latestEvidence.status === 'unavailable' ? 'text-[var(--warning)]' : 'text-[var(--text-mid)]'}>
                   {atlasState.latestEvidence.status.toUpperCase()}
                 </span>
@@ -161,7 +177,7 @@ export default function WorldCommandCenter() {
             {state.selectedEntity && (
               <button
                 onClick={() => selectEntity(null)}
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-[rgba(56,232,255,0.3)] bg-[rgba(6,12,18,0.85)] px-3 py-1 text-[9px] font-mono tracking-wider text-[var(--accent)] hover:bg-[rgba(56,232,255,0.12)] transition-colors"
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-[rgba(56,232,255,0.3)] bg-[rgba(6,12,18,0.85)] px-3 py-1 text-[10px] font-mono tracking-wider text-[var(--accent)] hover:bg-[rgba(56,232,255,0.12)] transition-colors"
               >
                 ✕ CLEAR FOCUS
               </button>
@@ -176,24 +192,30 @@ export default function WorldCommandCenter() {
           />
         </section>
 
-        <aside className="w-80 shrink-0 border-l border-[var(--line)] bg-[rgba(4,8,12,0.7)] backdrop-blur-md overflow-y-auto flex flex-col">
-          <EvidencePanel
-            evidence={atlasState.evidence}
-            onSelectEntity={handleGlobeSelect}
-            onRefresh={refreshEvidence}
-            onAskAtlas={selection => {
-              setConsoleTab('command')
-              intelligenceBus.emit('EVIDENCE_ASK', {
-                selection,
-                evidenceRequest: true,
-                query: `Explain the selected evidence for ${selection}: its sources, impacts, market observations, and causal links.`,
-              })
-            }}
-          />
-          <div className="h-px bg-[var(--line)]" />
-          <PredictionSpace selectedEntity={state.selectedEntity} />
-          <div className="h-px bg-[var(--line)]" />
-          {showAgents ? <AgentStatusMatrix /> : <IntelligencePanel />}
+        <aside className="w-80 shrink-0 border-l border-[var(--line)] bg-[rgba(4,8,12,0.7)] backdrop-blur-md flex flex-col overflow-hidden">
+          <div className="shrink-0 px-2 pt-2">
+            <Tabs items={railTabs} value={railTab} onChange={v => setRailTab(v as RailTab)} />
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            {railTab === 'evidence' && (
+              <EvidencePanel
+                evidence={atlasState.evidence}
+                onSelectEntity={handleGlobeSelect}
+                onRefresh={refreshEvidence}
+                onAskAtlas={selection => {
+                  setConsoleTab('command')
+                  intelligenceBus.emit('EVIDENCE_ASK', {
+                    selection,
+                    evidenceRequest: true,
+                    query: `Explain the selected evidence for ${selection}: its sources, impacts, market observations, and causal links.`,
+                  })
+                }}
+              />
+            )}
+            {railTab === 'prediction' && <PredictionSpace selectedEntity={state.selectedEntity} />}
+            {railTab === 'intelligence' && <IntelligencePanel />}
+            {railTab === 'agents' && <AgentStatusMatrix />}
+          </div>
         </aside>
       </main>
     </div>
