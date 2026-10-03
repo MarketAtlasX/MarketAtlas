@@ -321,6 +321,29 @@ cd frontend && npm ci && npm run build && npm run preview   # http://localhost:3
 Verify with `curl localhost:8000/health`, open `http://localhost:3000`, then walk
 the demo checklist (`Live Event → Globe → Evidence → Causal Chain → Markets → ATLAS`).
 
+### Optional: scenario simulator (`/simulator`, port 8007)
+
+The **Scenario Simulator** page talks to the standalone simulator service. It is
+optional — the core event → evidence flow does not need it, and the page shows an
+error state until the service is running.
+
+```bash
+# 1. Install the simulator's dependencies into the shared venv (once)
+venv/bin/python -m pip install -r simulator/requirements.txt
+
+# 2. Run the simulator service on :8007 (from the repository root)
+cd simulator
+PYTHONPATH="$(dirname "$(pwd)")" ../venv/bin/uvicorn simulator.main:app \
+  --host 127.0.0.1 --port 8007
+
+# 3. Verify
+curl localhost:8007/api/simulation/health
+```
+
+The frontend proxies `/api/simulation/*` and `/ws/simulation` to `:8007`
+(`vite.config.ts`), so no frontend change is needed. `./dev.sh` starts the
+simulator automatically when the `simulator/` directory is present.
+
 | Guide | Contents |
 |-------|----------|
 | [`docs/DEMO.md`](docs/DEMO.md) | Demo runbook, checklist, live vs simulated components |
