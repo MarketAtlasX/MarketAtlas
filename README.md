@@ -1,193 +1,306 @@
 # MarketAtlas
 
-**Geopolitically-aware trading signals powered by AI — with a general intelligence (ATLAS) that speaks, thinks, and drives a living particle globe.**
+MarketAtlas is a geospatial intelligence workspace that connects geopolitical
+events to the markets and assets they touch. It ingests live events, places them
+on a cinematic globe, composes a single canonical evidence record for the
+selected event, exposes the recorded causal chain and affected-market
+observations, and lets an evidence-grounded assistant (**ATLAS**) answer
+questions strictly from the evidence on screen.
 
-MarketAtlas ingests geopolitical and market events, links them to real-world entities (countries, companies, people, commodities, indices), fetches market data from Yahoo Finance, and runs a multi-agent AI pipeline to generate actionable trading signals — **Buy, Sell, Hold, or Short**. Signals can be enriched with knowledge-graph data for deeper geopolitical context.
-
-On top of the trading brain sits **ATLAS** — a voice-first general intelligence. It answers anything (markets, science, code, geopolitics), routes queries to specialist agents, and visualizes its answers in real time on the **World Intelligence Core**: an ULTRON-style particle globe that assembles, disintegrates, flies between countries, and traces trade routes on command.
-
-This repository is the **monorepo** for the MarketAtlas ecosystem — all services and the frontend live here in one repo (migrated from 10 separate repositories, with full commit history preserved).
-
----
-
-## Highlights
-
-- 🗣️ **ATLAS** — Autonomous Master Orchestrator coordinating causal graphs, multi-agent forecasts, scenario simulations, and globe vectoring
-- 🌍 **Cinematic Command Globe & Outer Space** — WebGL Earth sphere floating in deep celestial outer space with 6,000+ stars, Milky Way galactic plane, company HQ beacons, and causal flashpoints
-- 🔀 **Semantic Camera & HUD** — Dynamic fly-to animations to asset locations, facilities, and regional crisis hotspots
-- 🧭 **Trade-Route & Causal Vectors** — Multi-hop directed causal reasoning arcs (Red trigger → Cyan supply → Gold asset HQ → Green market index)
-- 🔮 **Prediction Space & Calibration** — 6-agent consensus engine with dynamic Bayesian weighting and quantitative reliability calibration (91.4% calibration, Brier 0.142)
-- 📜 **Prediction Ledger & Backtesting** — Audit trail tracking 7d/30d/90d forecast horizons, evaluating realized price returns, win rate (80%), and directional accuracy
-- 🧪 **Scenario Simulator** — Clone-simulate-destroy world twin with probability trees
+It is a full-stack application: a FastAPI backend (PostgreSQL, Redis, Celery)
+and a Vite + React/TypeScript frontend built around a WebGL globe. The core
+design principle is **no fabrication** — if the backend did not record a price,
+a location, a confidence, or a causal link, the UI says so explicitly rather
+than inventing a value.
 
 ---
 
-## Repository Map
+## What it is
 
-| Directory | Purpose |
-|-----------|---------|
-| `backend/` | **Primary service** — FastAPI + Celery backend with PostgreSQL, Redis, AI agent orchestration, and the ATLAS chatbot subsystem |
-| `frontend/` | **Web frontend** — Vite + React/TypeScript (port 3000) with the ATLAS voice assistant and particle World Core globe |
-| `market_agents/` | AI agent gateway — ImpactAgent, MarketDataAgent, RecommendationAgent (ports 8001–8004) |
-| `knowledge-graph-agent/` | News scraping, entity extraction, relationship graph builder (port 8008) |
-| `world_state/` | Geopolitical risk state & propagation (port 8006) |
-| `memory/` | Semantic/episodic memory service (port 8010) |
-| `graph_engine/` | Knowledge-graph traversal & layout (port 8005) |
-| `simulator/` | Scenario / counterfactual simulator (port 8007) |
-| `pipelines/` | Shared data-factory pipeline package (imported by backend & world_state) |
-| `chat-bot/` | Standalone AI chat interface with multi-agent orchestration |
-| `docs/` | Documentation — API contract (`api-contract.md`) with full endpoint specifications |
-| `dev.sh` | Development orchestrator — starts Docker services, backend, frontend, and agent microservices in parallel |
-| `MarketAtlas.code-workspace` | VS Code multi-root workspace referencing the full ecosystem |
+- **Live event ingestion** — a GDELT DOC 2.0 poller broadcasts new events to the
+  browser over one WebSocket. Events are strictly validated and deduplicated
+  before they reach the globe.
+- **One evidence contract** — `GET /api/v1/live-events/observation` returns a
+  typed `EvidenceObservation` envelope that composes the persisted event, its
+  sources, impacts, affected assets, provider-backed market quotes, and
+  recorded causal links. Everything downstream renders that one envelope.
+- **Causal intelligence, bounded** — the UI shows only the causal hops the
+  backend actually recorded (`EVENT → IMPACT → ASSET → MARKET OBSERVATION`),
+  with each hop's recorded confidence and evidence reference, and states the
+  gaps rather than filling them.
+- **Evidence-grounded ATLAS** — the assistant answers from the exact
+  observation displayed, cites provenance, and explicitly separates recorded
+  evidence from unsupported inference. A deterministic fallback produces the
+  same briefing when no LLM provider is configured.
 
-All services are started and orchestrated by `dev.sh` and talk to each other over HTTP on fixed ports (8000–8010).
+## Core user journey
+
+```
+Live Event → Globe → Evidence → Causal Intelligence → Markets → Asset → ATLAS
+```
+
+1. **Live Event** — a validated GDELT event appears in the timeline (or the
+   clearly-labelled seeded `SIMULATED` feed when the backend is unreachable).
+2. **Globe** — clicking a located event flies the globe to the backend-provided
+   coordinates and commits it as the selection.
+3. **Evidence** — the canonical `EvidenceObservation` for that selection loads
+   in the evidence panel (freshness, provider, sources, impacts, status).
+4. **Causal Intelligence** — the recorded causal chain renders as
+   `EVENT → IMPACT → AFFECTED ENTITY/ASSET → MARKET OBSERVATION`, with explicit
+   limitations where fields are absent.
+5. **Markets** — affected assets appear with value/change, freshness, provider,
+   and a `LIVE` / `STALE` / `SIMULATED` / `UNAVAILABLE` status chip.
+6. **Asset** — clicking a market row or causal node re-focuses the globe through
+   the same selection path, reloading evidence for that entity.
+7. **ATLAS** — "Ask ATLAS about this evidence" answers from the observation on
+   screen, grounded in a deterministic briefing and the backend grounding rules.
+
+The full demo runbook and checklist live in [`docs/DEMO.md`](docs/DEMO.md).
 
 ---
 
 ## Architecture
 
+```mermaid
+flowchart LR
+  GDELT[GDELT DOC 2.0<br/>poll every 120s] --> API
+  subgraph Backend["FastAPI backend (:8000)"]
+    API["/api/v1 routes"] --> SVC[Services]
+    SVC --> DB[(PostgreSQL 16)]
+    SVC --> RDS[(Redis 7<br/>cache + broadcasts)]
+    API --> OBS["/live-events/observation<br/>EvidenceObservation"]
+    WS["/ws broadcaster<br/>signals · events · risk ·<br/>forecasts · live_events"]
+  end
+  OBS --> SPA
+  WS -. WebSocket .-> SPA
+  subgraph Frontend["Vite + React SPA (:3000)"]
+    SPA["WorldStore · AtlasStore"] --> GLOBE[CinematicGlobe]
+    SPA --> PANEL[EvidencePanel<br/>causal + markets]
+    SPA --> ATLAS[ATLAS assistant]
+  end
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                        VS Code Workspace                          │
-│  ┌──────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐  │
-│  │ backend/ │  │  frontend/   │  │market_agents/│  │kg-agent/│  │
-│  │ :8000    │  │ :3000        │  │ :8004        │  │ :8008   │  │
-│  └────┬─────┘  └──────────────┘  └──────┬───────┘  └────┬────┘  │
-│       │                                  │               │       │
-└───────┼──────────────────────────────────┼───────────────┼───────┘
-        │                                  │               │
-        ▼                                  ▼               ▼
-┌──────────────────┐              ┌──────────────┐  ┌──────────────┐
-│   FastAPI App    │              │  AI Agent    │  │  Knowledge   │
-│   (backend/)     │◄── HTTP ────│  Gateway     │  │  Graph Agent │
-│                   │              │              │  │              │
-│  ┌──────┐ ┌──────┐│              └──────────────┘  └──────────────┘
-│  │Routes│→│Services││
-│  └──┬───┘ └──┬───┘│
-│     │        │     │
-│     ▼        ▼     │
-│  ┌──────┐ ┌──────┐│
-│  │Repos │ │Cache ││
-│  └──┬───┘ └──────┘│
-│     │     Redis    │
-│     ▼              │
-│  PostgreSQL        │
-│                    │
-│  Middleware:        │
-│  Logging │ Metrics │ Rate Limit
-└──────────────────────┘
-```
+
+The demo flow needs only the backend and the built frontend. The optional
+microservices in the monorepo (`market_agents`, `knowledge-graph-agent`,
+`world_state`, `graph_engine`, `simulator`, `memory`) are wired separately and
+degrade gracefully when absent — see
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#9-graceful-degradation).
+
+### Major components
+
+| Component | Location | Responsibility |
+|-----------|----------|----------------|
+| API + middleware | `backend/app/main.py` | `/api/v1` routes, CORS, rate limiting (200 req/min), logging, metrics, `/ws` broadcaster, lifespan-started background tasks |
+| Live-event stream | `backend/app/services/gdelt_stream_service.py` | Polls GDELT DOC 2.0 every 120 s (no key), broadcasts validated events to `/ws` |
+| Canonical evidence | `backend/app/routes/live_events.py`, `backend/app/schemas/observation.py` | Composes the `EvidenceObservation` envelope from persisted records + quotes + causal edges |
+| Causal graph | `backend/app/services/canonical_causal_graph.py` | Persisted `event / impact / asset` hops only, with `evidence_class` and `status` |
+| ATLAS backend | `backend/app/chatbot/api/routes.py`, `backend/app/chatbot/agents/` | Evidence-grounding rules, agent system prompt, `/api/chat/agent/turn` |
+| World state store | `frontend/src/stores/WorldStore.tsx` | One live event store; bootstraps `/api/live-events` and merges WebSocket events |
+| Evidence lifecycle | `frontend/src/features/evidence/useEvidenceSelection.ts` | The single evidence fetch path (dedupe, stale-drop, in-place refresh) |
+| Evidence UI | `frontend/src/features/evidence/EvidencePanel.tsx` (+ `causalChain.ts`, `marketObservations.ts`) | Renders status, sources, markets, and the recorded causal chain |
+| Globe | `frontend/src/features/globe/CinematicGlobe.tsx` | Particle globe, camera choreography, evidence highlights and causal arcs |
+| Live socket | `frontend/src/services/websocket/useLiveWorldSocket.ts` | Validation, dedup, bounded reconnect, evidence-affecting detection |
+| ATLAS frontend | `frontend/src/assistant/agent/` | Tool execution, context snapshot, deterministic evidence fallback |
 
 ---
 
-## Tech Stack
+## The canonical evidence contract (`EvidenceObservation`)
+
+`GET /api/v1/live-events/observation` is the single read-only evidence
+boundary. Its response type is defined once in
+`backend/app/schemas/observation.py` and mirrored on the frontend in
+`frontend/src/api/evidenceApi.ts`.
+
+```
+EvidenceObservation
+├─ status            live | stale | degraded | unavailable | demo
+├─ event              persisted event record (or none)
+├─ sources            source articles
+├─ impacts            event impact records
+├─ entities / assets  affected entities and assets
+├─ market_observations  provider-backed quotes, each with its own status
+│                       (provider-backed | cached | simulated | unavailable)
+├─ causal_chain       persisted causal edges
+├─ provider_status    per-provider status map
+└─ freshness / confidence / uncertainty / limitations
+```
+
+Design rules enforced across the stack:
+
+- **One source of truth.** Market quotes and causal hops travel *inside* this
+  envelope; the UI never runs a second evidence model or fetch path.
+- **Missing ≠ invented.** `unavailable` observations render as `UNAVAILABLE`;
+  missing optional fields render as `NOT PROVIDED`; an empty chain renders as
+  `NO CAUSAL LINKS WERE RETURNED`.
+- **Status is explicit everywhere.** Each status value carries a label and a
+  plain-language meaning, never color alone.
+- **Refresh keeps context.** A new selection loads fresh; refreshing the *same*
+  selection updates in place and keeps the last good observation if a refresh
+  fails.
+
+The evidence feature's own contract notes live in
+[`frontend/src/features/evidence/README.md`](frontend/src/features/evidence/README.md).
+
+---
+
+## Live vs simulated data
+
+The application is explicit about provenance. Simulated data is labelled
+`SIMULATED` (and deliberately not collapsed into a generic `DEMO` badge).
+
+| Surface | Live (provider-backed) | Simulated / fallback |
+|---------|------------------------|----------------------|
+| Live events | GDELT → `/ws` `live_event_new` (validated, deduped) | Seeded events, tagged `SIMULATED` |
+| Globe markers | backend lat/lng only | unlocated events are not placed |
+| Evidence | canonical `EvidenceObservation` envelope | `unavailable` / `stale` envelopes, shown as such |
+| Market observations | Alpha Vantage / yfinance quote (`provider-backed`) | `unavailable` (never a fake number); `cached` → `STALE`; `simulated` labelled |
+| Causal chain | persisted event → impact → asset hops | no links → shown as not established |
+| Sidebar market signals | — | seeded demo signals, labelled `SIMULATED` |
+| ATLAS LLM | configured provider key | deterministic evidence briefing fallback; `/health` flags the mock |
+
+A persisted live event that has no seeded impacts will honestly show empty
+causal/market sections until impacts exist in the database. That is intended
+behavior, not a bug.
+
+---
+
+## Stack
 
 ### Backend (`backend/`)
+
 | Layer | Technology |
 |-------|-----------|
-| Language | Python 3.12+ |
-| Framework | FastAPI |
-| ASGI Server | Uvicorn |
-| Database | PostgreSQL 16 (async via `asyncpg`) |
-| ORM | SQLAlchemy 2.0 (async) |
-| Migrations | Alembic |
+| Language / framework | Python 3.12+, FastAPI, Uvicorn |
+| Database | PostgreSQL 16 via SQLAlchemy 2.0 async (`asyncpg`) + Alembic migrations |
+| Cache / broker | Redis 7 |
 | Validation | Pydantic v2 + Pydantic Settings |
-| Market Data | `yfinance` (Yahoo Finance) with `pandas`/`numpy` |
-| AI/ML | LangGraph, LangChain, spaCy, sentence-transformers, Qdrant |
-| Task Queue | Celery (Redis broker) |
-| Caching | Redis (async via `redis-py`) |
-| Knowledge Graph | Neo4j client |
-| HTTP Client | `httpx` |
-| Observability | Prometheus metrics, structured logging (Loguru) |
-| Rate Limiting | In-memory token bucket (200 req/min) |
+| Task queue | Celery (Redis broker) |
+| Market data | `yfinance` (Yahoo Finance); optional Alpha Vantage for US quotes |
+| AI | Provider abstraction (Perplexity / OpenAI / Gemini / Claude / Ollama) + a deterministic mock |
+| Observability | Prometheus `/metrics`, structured request logging, deep `/health` |
 | Testing | pytest + pytest-asyncio + httpx |
-| Containerization | Docker multi-stage build (Python 3.12-slim) |
-| Code Quality | Ruff (lint + format), mypy, pre-commit hooks |
+
+`settings` are environment-driven (`backend/app/config.py`); `APP_ENV=production`
+requires a real `JWT_SECRET` and fails fast without one. Full variable list in
+[`backend/.env.example`](backend/.env.example).
 
 ### Frontend (`frontend/`)
-- Vite + React/TypeScript (port 3000)
-- `@react-three/fiber` + three + drei holographic globe with a custom particle shader core
-- OpenAI Realtime WebRTC voice, GSAP camera choreography, Tailwind 4 design system
 
-### Agent Services
-- **market_agents** — Python FastAPI gateway (port 8004)
-- **knowledge-graph-agent** — Python FastAPI news/entity service (port 8008)
+- Vite + React 19 + TypeScript (port 3000)
+- `@react-three/fiber` + `three` for the WebGL globe, `globe.gl` / `d3` /
+  `topojson-client` for geodata, GSAP for camera choreography, Recharts for
+  market charts, Tailwind 4 for styling
+- Axios client with a single `/api` base; Vitest + Testing Library (jsdom)
 
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.12+
-- Node.js 20+ (for frontend)
-- Docker (for PostgreSQL + Redis)
-- PostgreSQL 16
-- Redis
-
-### One-Command Dev Startup
-
-```bash
-./dev.sh
-```
-
-This orchestrates everything:
-1. Starts PostgreSQL + Redis via Docker Compose
-2. Runs Alembic migrations
-3. Seeds sample event data
-4. Launches the FastAPI backend on `:8000`
-5. Launches the frontend on `:3000`
-6. Launches `market_agents` services (ports 8001–8004)
-7. Launches `world_state`, `memory`, `graph_engine`, `simulator`, and `knowledge-graph-agent` (ports 8005–8010)
-
-Press `Ctrl+C` to gracefully shut down all services.
-
-### Manual Setup (Backend Only)
-
-```bash
-# Navigate to backend
-cd backend
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials
-
-# Run migrations
-alembic upgrade head
-
-# (Optional) Seed with 32 real-world entities
-python seed_real.py
-
-# Start the server
-uvicorn app.main:app --reload --port 8000
-```
-
-The API will be available at `http://localhost:8000`. Swagger docs at `http://localhost:8000/docs`.
-
-### VS Code Workspace
-
-Open `MarketAtlas.code-workspace` in VS Code for a multi-root workspace that includes all services (`backend`, `frontend`, `market_agents`, `world_state`, `memory`, `graph_engine`, `simulator`, `knowledge-graph-agent`, `pipelines`, `chat-bot`) in a single editor window.
-
-### Seed Data
-
-```bash
-# Seed 32 real-world entities (countries, companies, people)
-python backend/seed_real.py
-
-# Seed chatbot sample events
-python -m backend.app.chatbot.scripts.seed_data
-```
+See [`frontend/package.json`](frontend/package.json) for exact versions.
 
 ---
 
-## Production Demo
+## WebSocket architecture
+
+There is exactly one live socket for the core flow: `/ws`.
+
+- **Backend** — a single broadcaster (`app.state.broadcaster`) fans out to
+  channels: `signals`, `events`, `risk`, `forecasts`, `live_events`. Auth-gated
+  realtime at `/ws/chat` requires a `?token=` JWT.
+- **Frontend** — `useLiveWorldSocket` subscribes to the world channels and
+  treats every *world* event as untrusted input:
+  - `parseLiveEventEnvelope` drops events missing an id, title, severity,
+    coordinates, or a parseable timestamp, instead of inventing a country or
+    position;
+  - deduplication by id / source URL / title across reconnects and across the
+    backend's dual `live_events` + `events` broadcasts;
+  - bounded reconnect (max 4 attempts, base 5 s backoff, counter reset on a
+    healthy open) that stops on unmount.
+- **Merge, don't clobber** — `WorldStore` bootstraps `/api/live-events?limit=40`
+  and merges socket-delivered events on top, deduplicated and bounded
+  newest-first. Seeded events stay `dataMode: 'simulated'`; only validated
+  backend events flip to `live`.
+- **Evidence refresh** — when a validated event affects the current selection,
+  the same in-place evidence refresh runs; the selection, panel, globe, and
+  ATLAS context are preserved.
+- Because the client uses a **relative** `/ws` path, any deployment that
+  proxies `/ws` with a WebSocket upgrade works without code changes.
+
+---
+
+## ATLAS evidence grounding
+
+ATLAS is a text/voice assistant whose answers about world state are grounded in
+the canonical evidence envelope:
+
+- The frontend context snapshot carries a **deterministic briefing**
+  (`evidenceBriefing.ts`) covering what happened, sources, impacts,
+  assets/markets, causal relationships, freshness/confidence/uncertainty, and
+  an explicit `NOT ESTABLISHED` list for anything the envelope does not contain.
+- The backend agent prompt (`build_agent_system_prompt` +
+  `ATLAS_EVIDENCE_GROUNDING_RULES`) requires provenance citations and forces the
+  phrasing "the evidence does not establish it" whenever the envelope lacks the
+  answer.
+- When no LLM key is configured, `/api/chat/agent/turn` returns 503 and the
+  frontend uses a deterministic fallback that renders the identical briefing —
+  so both paths answer from the evidence currently displayed, never a previous
+  selection's.
+
+ATLAS also routes globe visualization intents (route, country, region, risk,
+conflict, network, abstract). Those are covered in
+[`docs/intelligence-core.md`](docs/intelligence-core.md).
+
+---
+
+## Causal intelligence: what it does and does not claim
+
+The causal view renders `EvidenceObservation.causal_chain` as
+`EVENT → IMPACT → AFFECTED ENTITY/ASSET → MARKET OBSERVATION` without a graph
+engine or a second model. For each hop it shows only what the envelope recorded:
+
+- the recorded source/target labels and their recorded node types;
+- the recorded confidence, or `CONFIDENCE NOT RECORDED`;
+- the recorded evidence reference, or `EVIDENCE REFERENCE NOT RECORDED`;
+- for an asset target, the market observation **already in the same envelope**
+  (bound by exact provider symbol), or
+  `NO MARKET OBSERVATION RECORDED FOR THIS ASSET`.
+
+It never infers a relationship, price, or timestamp. A visible caveat states
+that co-movement in time is not treated as cause, and an empty chain is shown
+as `NO CAUSAL LINKS WERE RETURNED`.
+
+---
+
+## Technical highlights
+
+Engineering depth that is actually implemented, not aspirational:
+
+- **One canonical evidence contract end to end.** A single typed
+  `EvidenceObservation` composes persisted records, quotes, and causal edges.
+  The frontend mirrors the type and introduces no second market store, fetch
+  path, or socket.
+- **No-fabrication as a hard invariant.** Every gap renders as
+  `UNAVAILABLE` / `NOT PROVIDED` / "not established"; provider failures return
+  an explicit `unavailable` observation rather than a synthetic number, and
+  simulated data is labelled at the record level.
+- **Strict WebSocket ingestion.** Client-side envelope validation,
+  cross-reconnect deduplication with a bounded seen-set, bounded backoff, and
+  merge-don't-clobber bootstrap so a slow socket never wipes live events.
+- **A resilient evidence lifecycle.** A generation counter drops stale
+  responses, identical selections dedupe, in-place refresh keeps the last good
+  observation on failure, and only backend-validated coordinates reach the globe.
+- **Grounded assistant with a deterministic fallback.** The same briefing that
+  grounds the LLM prompt powers the no-LLM path, so answers cannot drift from
+  the observation on screen.
+- **Graceful degradation by design.** `/health` reports DB/Redis/LLM status;
+  missing Redis, LLM keys, market providers, or optional microservices each
+  degrade a specific surface while the core flow stays usable.
+- **Production-shaped frontend.** The dev server and `vite preview` share one
+  proxy map, so the built SPA exercises the same `/api` and `/ws` wiring as
+  development.
+
+---
+
+## Demo
+
+> **Public deployment URL:** _placeholder — not yet deployed._
+> Replace this line with the live URL once the frontend is hosted.
 
 For the final demo, run the **built** frontend rather than the dev server.
 
@@ -198,251 +311,96 @@ cp frontend/.env.example frontend/.env.local
 
 # 2. Backend (production, no reload)
 cd backend && ../venv/bin/alembic upgrade head
-PYTHONPATH="$(pwd):$(dirname "$(pwd)")" ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+PYTHONPATH="$(pwd):$(dirname "$(pwd)")" \
+  ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 
-# 3. Frontend — builds, then serves dist with the /api + /ws proxy
+# 3. Frontend — build, then serve dist with the /api + /ws proxy
 cd frontend && npm ci && npm run build && npm run preview   # http://localhost:3000
 ```
 
-Verify with `curl localhost:8000/health`, open `http://localhost:3000`, then
-follow the demo checklist (`Live Event → Timeline → Globe → Evidence → Causal
-Chain → Markets → ATLAS`).
+Verify with `curl localhost:8000/health`, open `http://localhost:3000`, then walk
+the demo checklist (`Live Event → Globe → Evidence → Causal Chain → Markets → ATLAS`).
 
 | Guide | Contents |
 |-------|----------|
-| [`docs/DEMO.md`](docs/DEMO.md) | Demo runbook, checklist, live vs simulated components, limitations |
+| [`docs/DEMO.md`](docs/DEMO.md) | Demo runbook, checklist, live vs simulated components |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Env vars, database & migrations, WebSocket + provider config, graceful degradation |
 
----
+### Prerequisites
 
-## ATLAS — The General Intelligence Layer
+- Python 3.12+, Node.js 20+
+- PostgreSQL 16 and Redis 7 (local, or
+  `docker compose -f backend/docker-compose.yml up -d db redis`)
+- Optional: one LLM provider key so ATLAS answers with a live model
+  (`PERPLEXITY_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `CLAUDE_API_KEY`)
+- Optional: `ALPHA_VANTAGE_API_KEY` for US quotes (`yfinance` is the free
+  fallback)
 
-ATLAS is a voice-first assistant that generalizes the MarketAtlas chatbot into a full intelligence system. It hears you (OpenAI Realtime WebRTC or browser speech), reasons about anything, and — when the query touches the world — drives the globe to show you the answer.
-
-```
-Voice / Text Query
-      │
-      ▼
-┌─────────────────────┐   ┌──────────────────────────────────────┐
-│  Frontend Brain      │   │  Backend Workflow (LangGraph)         │
-│  (atlasBrain)       │──►│  Intent Router → specialist agents    │
-│  offline fallbacks   │   │  ATLAS intent → AtlasAgent (LLM)    │
-└─────────────────────┘   └───────────────┬──────────────────────┘
-      │                                   │
-      ▼                                   ▼
-┌─────────────────────┐          ┌──────────────────────────┐
-│  Visualization      │          │  extract_visualization   │
-│  Intent (offline)   │          │  (backend, LLM-assisted) │
-└─────────────────────┘          └──────────────────────────┘
-      │                                   │
-      └───────────────┬───────────────────┘
-                      ▼
-        VisualizationIntent (structured contract)
-                      ▼
-         World Intelligence Core (particle globe)
-```
-
-### The Visualization Contract
-
-Every answer can carry a **`VisualizationIntent`** — a structured description of *how* the globe should respond:
-
-| Field | Meaning |
-|-------|---------|
-| `mode` | `core`, `globe`, `country`, `region`, `route`, `network`, `risk`, `conflict`, `abstract` |
-| `focus` | Countries/entities to highlight |
-| `origin` / `destination` | Route endpoints (e.g. *India → Germany*) |
-| `scale` | `global`, `regional`, `country` |
-| `camera` | `pullback`, `zoom_in`, `orbit` — semantic zoom |
-| `transition` | `particle_reform`, `disintegrate`, `reassemble` |
-| `palette` | `ultron`, `gold`, `risk`, `core` |
-| `caption` | Human-readable summary of the visualization |
-
-Example: *"Show me the route from India to Germany"* →
-`{ mode: 'route', origin: 'India', destination: 'Germany', camera: 'pullback' }`
-and the globe assembles a golden particle stream along the corridor.
-
-### Recognition Priority
-
-Both the backend extractor and the offline frontend fallback resolve intents in the same order:
-**abstract → route → conflict → risk → network → single country → region → globe.**
-
-> Deep dive: see [`docs/intelligence-core.md`](docs/intelligence-core.md) for the
-> full brain → backend → globe pipeline, worked examples, and design decisions.
+Full environment variable reference: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+and the two `.env.example` files.
 
 ---
 
-## Backend
-
-### API Overview
-
-| Route Group | Prefix | Key Endpoints |
-|------------|--------|---------------|
-| Events | `/events` | CRUD, filter, link/unlink entities |
-| Entities | `/entities` | CRUD, filter by type/country, search |
-| Market Prices | `/market-prices` | CRUD, yfinance fetch, latest/range queries |
-| Signals | `/signals` | CRUD, filter by type/status/confidence |
-| Prediction | `/predict/ticker/{ticker}` | 3-agent prediction with scenarios |
-| AI Analysis | `/events/{id}/analyze` | Run AI pipeline → generate signals |
-| Free-text | `/analyze` | Ad-hoc sentiment analysis |
-| Knowledge Graph | `/events/{id}/knowledge-graph` | KG enrichment |
-| Countries | `/countries/{id}` | Overview + news dashboard |
-| Dashboard | `/dashboard/summary` | Aggregated platform statistics |
-| Globe | `/globe` | Entity relations for globe visualization |
-| Auth | `/auth` | Authentication endpoints |
-| Backtest | `/backtest` | Backtesting engine |
-| AI Chat | `/api/chat` | Chatbot + WebSocket streaming |
-| WebSocket | `/ws` | Real-time event streaming |
-| Health | `/health` | Deep health check (DB, Redis) |
-| Metrics | `/metrics` | Prometheus metrics endpoint |
-
-Full API documentation at `http://localhost:8000/docs` (Swagger UI) or see `docs/api-contract.md`.
-
-### Database Schema
-
-| Table | Description |
-|-------|-------------|
-| `entities` | Countries, companies, people, regions, indices, commodities (with lat/lng for globe viz) |
-| `events` | Geopolitical/market events with type, severity, status, and source |
-| `event_entities` | Many-to-many link between events and entities |
-| `market_prices` | OHLCV price data per entity per date |
-| `signals` | AI-generated trading signals with confidence, reasoning, targets, and PnL |
-| `users` | User accounts and authentication |
-| `countries` | Country-specific data and metadata |
-| `entity_relationships` | Relationships between entities |
-| `military_relations` | Military alliance/conflict data |
-| `ports` | Port and shipping route data |
-| `trade_routes` | International trade route data |
-| `raw_events` | Raw ingested events before processing |
-
-### Backend Project Structure
-
-```
-backend/
-├── app/
-│   ├── main.py                    # FastAPI app with middleware + lifespan
-│   ├── config.py                  # Pydantic settings (env-based)
-│   ├── database.py                # Async SQLAlchemy engine + session
-│   ├── cache.py                   # Redis caching layer
-│   ├── serializers.py             # Serialization utilities
-│   ├── core/
-│   │   └── enums.py               # StrEnum for all categorical fields
-│   ├── models/                    # SQLAlchemy ORM models (13 tables)
-│   ├── schemas/                   # Pydantic request/response models
-│   ├── repositories/              # Data access layer (12 repos)
-│   ├── services/                  # Business logic (15 services)
-│   │   ├── ai_service.py          # AI analysis pipeline
-│   │   ├── market_agents_client.py# HTTP client for market_agents
-│   │   ├── kg_service.py          # Knowledge graph agent client
-│   │   ├── gdelt_stream_service.py# GDELT event stream ingestion
-│   │   ├── signal_service.py      # Trading signal generation
-│   │   ├── event_broadcaster.py   # WebSocket event broadcasting
-│   │   └── ...
-│   ├── routes/                    # API route handlers (15 routers)
-│   ├── middleware/                 # Logging, metrics, rate limiting
-│   ├── workers/                   # Celery background tasks
-│   ├── chatbot/                   # AI chatbot subsystem (ATLAS)
-│   │   ├── agents/                # 13 AI agents incl. AtlasAgent
-│   │   ├── atlas/                # Visualization intent extractor
-│   │   │   └── visualization.py   # Query → VisualizationIntent
-│   │   ├── api/                   # Chat REST + WebSocket routes
-│   │   ├── llm/                   # LLM provider abstraction
-│   │   ├── rag/                   # RAG pipeline (embeddings, vector store)
-│   │   ├── knowledge/             # Neo4j knowledge graph client
-│   │   ├── memory/                # Short/long-term conversation memory
-│   │   └── workflow/              # LangGraph workflow orchestration
-│   ├── backtesting/               # Backtesting engine
-│   └── geopolitical/              # Geopolitical data pipeline
-├── alembic/                       # Database migrations (7 versions)
-├── tests/                         # pytest test suite
-│   ├── conftest.py                # Async fixtures with test DB
-│   ├── test_routes/               # Route integration tests
-│   ├── test_services/             # Service unit tests
-│   └── test_repositories/         # Repository tests
-├── scripts/                       # Utility scripts
-├── memory_store/                  # Reserved for vector/knowledge storage
-├── Dockerfile                     # Production Docker image
-├── docker-compose.yml             # Postgres 16 + Redis 7 + app
-├── pyproject.toml                 # Build config, ruff, mypy, pytest
-└── requirements.txt               # Python dependencies
-```
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_HOST` | `localhost` | PostgreSQL host |
-| `DB_PORT` | `5432` | PostgreSQL port |
-| `DB_USER` | `postgres` | PostgreSQL user |
-| `DB_PASSWORD` | *(required)* | PostgreSQL password |
-| `DB_NAME` | `marketatlas` | Database name |
-| `REDIS_URL` | `redis://localhost:6379/0` | Redis connection |
-| `CELERY_BROKER_URL` | `redis://localhost:6379/0` | Celery broker |
-| `CELERY_RESULT_BACKEND` | `redis://localhost:6379/1` | Celery results |
-| `MARKET_AGENTS_URL` | `http://localhost:8004` | AI agents gateway |
-| `KG_AGENT_URL` | `http://localhost:8008` | Knowledge graph agent |
-| `ENABLE_WORKERS` | `False` | Feature flag for Celery |
-
-### Background Workers
+## Testing & validation
 
 ```bash
-# Start Celery worker (in a separate terminal)
-celery -A app.workers.celery_app worker --loglevel=info
+# Backend
+cd backend && ../venv/bin/python -m pytest -q        # 90 passed
 
-# Trigger async analysis
-# (task requires ENABLE_WORKERS=True)
+# Frontend
+cd frontend && npx tsc --noEmit                       # clean
+cd frontend && npm test                               # 74 files / 321 tests
+cd frontend && npm run build                          # production bundle
+
+# Repo hygiene
+git diff --check                                      # clean
 ```
 
-### Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app
-
-# Run specific test file
-pytest tests/test_routes/test_events.py
-```
-
-### Observability
-
-- **Metrics**: `GET /metrics` exposes Prometheus metrics
-- **Logging**: Structured JSON request logs with request IDs
-- **Health**: `GET /health` deep-checks DB and Redis connectivity
-- **Rate Limiting**: 200 requests/minute per IP (configurable)
+The suites cover the evidence contract and lifecycle, causal-chain rendering,
+market observations, live-event timeline and validation, ATLAS evidence
+grounding, demo auth, and the backend observation/agent-prompt contracts.
 
 ---
 
-## External Dependencies
+## Known limitations
 
-- **[market_agents](https://github.com/MarketAtlasX/market_agents)** — AI agent gateway (ImpactAgent, MarketDataAgent, RecommendationAgent). Runs on ports 8001–8004. Called via HTTP.
-- **[knowledge-graph-agent](https://github.com/MarketAtlasX/knowledge-graph-agent)** — News scraping, entity extraction, and relationship graphs. Runs on port 8008. Called via HTTP.
-- **[world_state](https://github.com/MarketAtlasX/world_state)** — Geopolitical risk service. Runs on port 8006. Called via HTTP.
+Documented, non-blocking limitations (drawn from `docs/DEMO.md` and
+`docs/DEPLOYMENT.md`):
 
-> **Note:** these were formerly separate repositories; they now live in-tree under this monorepo while their original GitHub repositories remain untouched.
+- **No public deployment yet.** The demo runs locally or on infrastructure you
+  provide; the URL above is a placeholder.
+- **Live-event latency.** GDELT is polled every 120 s, so a "live" event can
+  take up to two minutes to appear.
+- **Market coverage is provider-bounded.** Alpha Vantage's free tier is
+  rate-limited; missing quotes render `UNAVAILABLE` by design rather than being
+  backfilled with synthetic data.
+- **Empty causal/market sections for unseeded events.** A persisted live event
+  without impact/asset rows honestly shows no causal links and no markets.
+- **Desktop-first layout.** The command center uses a fixed right rail and is
+  not a mobile-first layout.
+- **Optional microservices.** `graph_engine`, `simulator`, `world_state`,
+  `memory`, `market_agents`, and `kg-agent` are not required for the core flow;
+  their panels degrade when those services are absent.
+- **No fabrication guarantee has a cost.** Degraded providers surface as
+  `unavailable` rather than a best-effort value.
 
 ---
 
-## Development
+## Repository layout
 
-### Code Quality
+| Directory | Purpose |
+|-----------|---------|
+| `backend/` | FastAPI + Celery service, PostgreSQL/Redis, canonical evidence and ATLAS subsystems |
+| `frontend/` | Vite + React/TypeScript SPA with the globe, evidence, markets, and ATLAS surfaces |
+| `docs/` | Architecture, API contract, deployment, demo, and intelligence-core documentation |
+| `market_agents/`, `knowledge-graph-agent/`, `world_state/`, `graph_engine/`, `simulator/`, `memory/`, `pipelines/`, `chat-bot/` | Optional services and shared packages started by `dev.sh` when present |
+| `dev.sh` | Development orchestrator — starts available services in parallel |
 
-```bash
-# Lint and format (via pre-commit)
-pre-commit run --all-files
+## Documentation
 
-# Or directly with ruff
-ruff check .
-ruff format .
-```
-
-### Docker
-
-```bash
-# Start infrastructure services only
-docker compose -f backend/docker-compose.yml up -d db redis
-
-# Build and run the full backend
-docker compose -f backend/docker-compose.yml up --build
-```
+- [`docs/DEMO.md`](docs/DEMO.md) — demo runbook and checklist
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — production-style setup and degradation
+- [`docs/intelligence-core.md`](docs/intelligence-core.md) — ATLAS brain → backend → globe pipeline
+- [`docs/architecture-assessment.md`](docs/architecture-assessment.md) — architecture findings and target control model
+- [`docs/api-contract.md`](docs/api-contract.md) — API endpoint specifications
+- [`frontend/src/features/evidence/README.md`](frontend/src/features/evidence/README.md) — evidence contract and behaviors
