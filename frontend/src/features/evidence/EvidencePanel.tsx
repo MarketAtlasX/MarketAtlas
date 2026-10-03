@@ -8,6 +8,7 @@ import { affectedAssetEntity } from '../../api/evidenceApi'
 import type { AffectedAsset, MarketObservation, ObservationImpact, ObservationSource } from '../../api/evidenceApi'
 import { buildCausalChain, summarizeCausalChain, type CausalHopView, type CausalNodeView } from './causalChain'
 import type { AtlasEvidenceState } from '../../stores/AtlasStore'
+import { parseBackendDate } from '../../utils/dateUtils'
 
 export interface EvidencePanelProps {
   evidence: AtlasEvidenceState
@@ -28,7 +29,7 @@ const UNAVAILABLE = 'UNAVAILABLE'
 
 function formatTimestamp(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null
-  const parsed = new Date(value)
+  const parsed = parseBackendDate(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString()
 }
