@@ -13,6 +13,7 @@ import {
   marketObservationEntity,
 } from '../../evidence/marketObservations'
 import { intelligenceBus } from '../../../services/intelligenceBus'
+import { parseBackendDate } from '../../../utils/dateUtils'
 import {
   TYPE_TONE,
   eventLocation,
@@ -48,7 +49,7 @@ interface LiveEventsTabProps {
 
 function formatMarketTimestamp(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim()) return null
-  const parsed = new Date(value)
+  const parsed = parseBackendDate(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString()
 }
