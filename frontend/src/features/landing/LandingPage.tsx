@@ -51,4 +51,12 @@ const CAPABILITIES = [
 ]
 
 const JOURNEY = ['Live Event', 'Globe', 'Evidence', 'Causal Chain', 'Markets', 'ATLAS']
+
+const STACK = [
+  { icon: Server, label: 'FastAPI + PostgreSQL + Redis' },
+  { icon: Radio, label: 'WebSocket event stream' },
+  { icon: Cpu, label: 'LLM-grounded assistant' },
+  { icon: Database, label: 'Provider-backed market data' },
+  { icon: Layers, label: 'React 19 + WebGL frontend' },
+]
 
