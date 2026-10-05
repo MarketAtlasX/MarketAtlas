@@ -88,4 +88,28 @@ export default function AuthPage({ mode }: AuthPageProps) {
               ? 'Live events, evidence, causal chains, and ATLAS — one account.'
               : 'Sign in to reopen the command center.'}
           </p>
+
+          {error && (
+            <div className="mb-5 flex items-start gap-2 rounded border border-[rgba(255,77,94,0.35)] bg-[rgba(255,77,94,0.08)] px-3 py-2.5">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[var(--critical)]" />
+              <p className="text-[12px] leading-snug text-[var(--critical)]">{error}</p>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {isRegister && (
+              <div className="relative">
+                <User size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-lo)]" />
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  placeholder="Display name"
+                  autoComplete="name"
+                  required
+                  maxLength={100}
+                  className={inputClass}
+                />
+              </div>
+            )}
 
