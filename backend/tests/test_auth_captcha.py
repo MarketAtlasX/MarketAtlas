@@ -63,4 +63,22 @@ async def test_verify_rejects_missing_fields():
     assert await verify_captcha(None, "abc") is False
     assert await verify_captcha("some-id", None) is False
     assert await verify_captcha("some-id", "") is False
+
+
+@pytest.mark.asyncio
+async def test_answer_is_normalized_case_and_whitespace():
+    challenge = await generate_captcha()
+    stored_answer = captcha_service._fallback_store[challenge.captcha_id][0]
+
+    assert await verify_captcha(challenge.captcha_id, f"  {stored_answer.upper()} ") is True
+
+
+# ---------------------------------------------------------------------------
+# Endpoint level
+# ---------------------------------------------------------------------------
+
+REGISTER_URL = "/api/v1/auth/register"
+LOGIN_URL = "/api/v1/auth/login"
+CAPTCHA_URL = "/api/v1/auth/captcha"
+ME_URL = "/api/v1/auth/me"
 
