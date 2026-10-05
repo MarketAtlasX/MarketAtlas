@@ -1,5 +1,6 @@
-import { ChevronLeft, Mic, MicOff, RadioTower } from 'lucide-react'
+import { ChevronLeft, LogOut, Mic, MicOff, RadioTower } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { useWorldStore } from '../../stores/WorldStore'
 import StatusDot from '../../components/ui/StatusDot'
 import { useClock, formatCommandTime } from '../../hooks/useClock'
@@ -10,11 +11,17 @@ import { ASSISTANT_STATE_TONE } from '../../assistant/state/assistantState'
 
 export default function TopStatusBar() {
   const { state: worldState } = useWorldStore()
+  const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const now = useClock()
   const risk = worldState.worldRisk
   const isDashboard = location.pathname === '/dashboard'
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   const { state, overlayOpen, setOverlayOpen } = useAssistantState()
   const { active, wake, wakeEnabled, setWakeEnabled, start, stop } = useVoiceAssistant()
@@ -104,6 +111,30 @@ export default function TopStatusBar() {
         <div className="flex items-center gap-2 font-mono text-[11px] text-[var(--text-mid)]">
           <StatusDot tone="accent" pulse={false} />
           <span>{formatCommandTime(now).toUpperCase()}</span>
+        </div>
+
+        {/* Account chip + sign-out */}
+        <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2 border border-[var(--line)] bg-[rgba(6,12,18,0.72)] px-2.5 py-1.5"
+            title={user ? `Signed in as ${user.email}` : 'Signed in'}
+          >
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[rgba(56,232,255,0.15)] text-[8px] font-bold text-[var(--accent)]">
+              {(user?.display_name?.trim()?.[0] ?? 'A').toUpperCase()}
+            </span>
+            <span className="hidden max-w-[140px] truncate text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-mid)]">
+              {user?.display_name ?? 'Operator'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sign out"
+            aria-label="Sign out"
+            className="rounded border border-transparent p-1.5 text-[var(--text-lo)] transition-colors hover:border-[rgba(255,77,94,0.3)] hover:bg-[rgba(255,77,94,0.08)] hover:text-[var(--critical)]"
+          >
+            <LogOut size={13} />
+          </button>
         </div>
 
         {/* Atlas AI voice button — persistent across all pages */}
