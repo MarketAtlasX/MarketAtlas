@@ -118,3 +118,63 @@ export default function LandingPage() {
       {/* ── Hero ────────────────────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-6xl px-6 pt-20 pb-16">
         <div
+          className="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-64 max-w-3xl"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(56,232,255,0.07), transparent 65%)' }}
+        />
+        <p className="mb-4 inline-flex items-center gap-2 rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] px-3 py-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--accent)]">
+          <Waves size={12} />
+          Geopolitical intelligence · evidence-first
+        </p>
+        <h1 className="max-w-3xl font-display text-4xl font-semibold leading-tight text-[var(--text-hi)] sm:text-5xl">
+          Connect world events to the markets they move —{' '}
+          <span className="text-[var(--accent)] text-glow">without inventing a single number.</span>
+        </h1>
+        <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-[var(--text-mid)]">
+          MarketAtlas ingests live geopolitical events, places them on a cinematic globe, composes one canonical
+          evidence record per event, and lets an evidence-grounded assistant answer questions strictly from what the
+          backend actually recorded. If the evidence does not establish it, the interface says so.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          {signedIn ? (
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded border border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.12)] px-5 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--accent)] transition-all hover:bg-[rgba(56,232,255,0.2)] hover:shadow-[0_0_18px_rgba(56,232,255,0.25)]"
+            >
+              Welcome back, {user.display_name.split(' ')[0]} — open workspace
+              <ArrowRight size={14} />
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/register"
+                className="inline-flex items-center gap-2 rounded border border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.12)] px-5 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--accent)] transition-all hover:bg-[rgba(56,232,255,0.2)] hover:shadow-[0_0_18px_rgba(56,232,255,0.25)]"
+              >
+                Get started — create account
+                <ArrowRight size={14} />
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] px-5 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--text-mid)] transition-colors hover:border-[rgba(56,232,255,0.35)] hover:text-[var(--accent)]"
+              >
+                Sign in
+              </Link>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* ── Core journey ────────────────────────────────────────────────── */}
+      <section id="pipeline" className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-4">The core journey</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {JOURNEY.map((step, index) => (
+            <div key={step} className="flex items-center gap-2">
+              <span className="rounded border border-[var(--line)] bg-[rgba(21,25,28,0.96)] px-3 py-1.5 text-[11px] font-mono tracking-[0.12em] text-[var(--text-mid)]">
+                {step}
+              </span>
+              {index < JOURNEY.length - 1 && (
+                <ArrowRight size={12} className="text-[var(--text-lo)]" />
+              )}
+            </div>
+          ))}
+        </div>
