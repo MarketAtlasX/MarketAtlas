@@ -58,3 +58,63 @@ async def main() -> int:
     async def override_get_db():
         from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
+        maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with maker() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    passed, failed = 0, 0
+
+    def check(name: str, condition: bool, detail: str = "") -> None:
+        nonlocal passed, failed
+        if condition:
+            passed += 1
+            print(f"  ok  {name}")
+        else:
+            failed += 1
+            print(f" FAIL {name} {detail}")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Captcha issuance
+        r = await client.get("/api/v1/auth/captcha")
+        check("GET /auth/captcha returns 200", r.status_code == 200, r.text[:120])
+        captcha = r.json()
+        check("captcha has id + svg + kind", all(k in captcha for k in ("captcha_id", "svg", "kind")))
+        check("svg renders a challenge", captcha["svg"].startswith("<svg"))
+        check("answer not present in payload", "answer" not in captcha)
+
+        # 2. Register without captcha is rejected
+        r = await client.post(
+            "/api/v1/auth/register",
+            json={"email": "x@example.com", "password": "password123", "display_name": "X"},
+        )
+        check("register without captcha -> 400", r.status_code == 400, f"got {r.status_code}")
+
+        # 3. Register with a wrong captcha answer is rejected
+        r = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "x@example.com", "password": "password123", "display_name": "X",
+                "captcha_id": "nope", "captcha_answer": "wrong",
+            },
+        )
+        check("register with bad captcha -> 400", r.status_code == 400, f"got {r.status_code}")
+
+        # 4. Pull the real answer from the captcha store (single-process store)
+        from app.services import captcha_service
+
+        entry = captcha_service._fallback_store.get(captcha["captcha_id"])
+        answer = entry[0] if entry else None
+
+        # 5. Successful register
+        r = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "operator@example.com", "password": "password123",
+                "display_name": "Operator One", "captcha_id": captcha["captcha_id"],
+                "captcha_answer": answer or "",
+            },
+        )
+        check("register with valid captcha -> 201", r.status_code == 201, r.text[:200])
