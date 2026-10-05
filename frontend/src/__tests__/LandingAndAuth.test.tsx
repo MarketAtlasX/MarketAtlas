@@ -177,4 +177,32 @@ describe('AuthPage (register mode)', () => {
     post.mockReset()
     get.mockReset()
   })
+
+  it('renders the display-name field and register copy', async () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-2', svg: '<svg>y</svg>', kind: 'sum', expires_in: 300 },
+    })
+    renderAt('/register', <AuthPage mode="register" />)
+    expect(screen.getByPlaceholderText('Display name')).toBeInTheDocument()
+    expect(screen.getByText('Join MarketAtlas')).toBeInTheDocument()
+    expect(await screen.findByText('Enter the sum shown on the left.')).toBeInTheDocument()
+  })
+
+  it('links to login for existing accounts', () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-2', svg: '<svg>y</svg>', kind: 'sum', expires_in: 300 },
+    })
+    renderAt('/register', <AuthPage mode="register" />)
+    expect(screen.getByText('Sign in').closest('a')).toHaveAttribute('href', '/login')
+  })
+})
+
+function fireEventChange(element: Element, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(
+    element instanceof HTMLInputElement ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype,
+    'value',
+  )?.set
+  setter?.call(element, value)
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+}
 
