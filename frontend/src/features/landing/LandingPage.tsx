@@ -118,3 +118,63 @@ export default function LandingPage() {
   const statusLabel =
     online === null ? 'CHECKING' : online ? 'SYSTEM ONLINE' : 'BACKEND OFFLINE'
   const statusColor =
+    online === null ? 'var(--text-lo)' : online ? 'var(--positive)' : 'var(--warning)'
+
+  return (
+    <div
+      className="min-h-screen w-full bg-command overflow-y-auto"
+      style={{ scrollBehavior: 'smooth' }}
+    >
+      {/* ── Nav ─────────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[rgba(11,13,15,0.85)] backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+          <div className="flex items-center gap-3">
+            <span className="h-2.5 w-2.5 bg-[var(--accent)] pulse-dot" />
+            <span className="text-[13px] font-semibold tracking-[0.22em] text-[var(--text-hi)]">
+              MARKET<span className="text-[var(--accent)] text-glow">ATLAS</span>
+            </span>
+            <span
+              className="hidden items-center gap-1.5 rounded border border-[var(--line)] px-2 py-1 text-[9px] font-mono uppercase tracking-[0.16em] lg:inline-flex"
+              style={{ color: statusColor }}
+              title="Live backend reachability"
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: statusColor }} />
+              {statusLabel}
+            </span>
+          </div>
+
+          <nav className="flex items-center gap-3">
+            <a
+              href="#capabilities"
+              className="hidden text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mid)] transition-colors hover:text-[var(--accent)] sm:inline"
+            >
+              Capabilities
+            </a>
+            <a
+              href="#pipeline"
+              className="hidden text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mid)] transition-colors hover:text-[var(--accent)] sm:inline"
+            >
+              Pipeline
+            </a>
+            <a
+              href="#stack"
+              className="hidden text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mid)] transition-colors hover:text-[var(--accent)] md:inline"
+            >
+              Stack
+            </a>
+            {signedIn ? (
+              <Link
+                to="/dashboard"
+                className="rounded border border-[rgba(56,232,255,0.45)] bg-[rgba(56,232,255,0.08)] px-3.5 py-1.5 text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--accent)] transition-colors hover:bg-[rgba(56,232,255,0.14)]"
+              >
+                Open workspace
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-mid)] transition-colors hover:text-[var(--accent)]"
+                >
+                  Sign in
+                </Link>
+                <Link
