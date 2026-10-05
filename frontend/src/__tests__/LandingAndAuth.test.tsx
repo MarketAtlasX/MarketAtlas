@@ -103,4 +103,26 @@ describe('AuthPage (login mode)', () => {
     expect(await screen.findByText('Enter the sum shown on the left.')).toBeInTheDocument()
     expect(screen.getByText('Welcome back')).toBeInTheDocument()
   })
+
+  it('shows an error when the captcha cannot be fetched', async () => {
+    get.mockRejectedValue(new Error('backend offline'))
+    renderAt('/login', <AuthPage mode="login" />)
+    expect(await screen.findByText(/Could not load the security check/)).toBeInTheDocument()
+  })
+
+  it('blocks submission until the security check is answered', async () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-1', svg: '<svg>x</svg>', kind: 'code', expires_in: 300 },
+    })
+    renderAt('/login', <AuthPage mode="login" />)
+    await screen.findByText('Type the characters shown on the left.')
+
+    // jsdom enforces `required` constraint validation on button-click submits,
+    // so drive the submit event directly to exercise the app's own guard.
+    fireEventSubmit()
+    await waitFor(() =>
+      expect(screen.getByText(/Complete the security check/)).toBeInTheDocument(),
+    )
+    expect(post).not.toHaveBeenCalled()
+  })
 
