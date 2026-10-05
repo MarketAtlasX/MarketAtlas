@@ -238,3 +238,63 @@ export default function LandingPage() {
                     Sign in
                   </Link>
                   <a
+                    href="#pipeline"
+                    className="inline-flex items-center gap-1.5 px-2 py-2.5 text-[11px] font-mono uppercase tracking-[0.16em] text-[var(--text-lo)] transition-colors hover:text-[var(--accent)]"
+                  >
+                    See how it works
+                    <ArrowRight size={12} />
+                  </a>
+                </>
+              )}
+            </div>
+
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2">
+              {['No fabrication', 'Provider-backed quotes', 'Single evidence contract'].map(item => (
+                <span key={item} className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-lo)]">
+                  <BadgeCheck size={13} className="text-[var(--positive)]" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Evidence console mock */}
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute -inset-6 rounded-full opacity-40"
+              style={{ background: 'radial-gradient(circle at 70% 30%, rgba(56,232,255,0.12), transparent 60%)' }}
+            />
+            <div className="panel hud-corners relative overflow-hidden">
+              <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-2.5">
+                <span className="panel-title">Evidence observation</span>
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-[0.16em] text-[var(--positive)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--positive)] pulse-dot" />
+                  streaming
+                </span>
+              </div>
+
+              <div className="space-y-3 px-4 py-4">
+                <div className="flex items-start gap-2.5">
+                  <Activity size={13} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                  <div>
+                    <p className="text-[12.5px] font-medium leading-snug text-[var(--text-hi)]">
+                      Strait transit disruption halts tanker traffic
+                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-lo)]">
+                      <MapPin size={10} /> backend-provided coordinates
+                      <Clock size={10} className="ml-1.5" /> live
+                    </p>
+                  </div>
+                </div>
+
+                <div className="divider" />
+
+                <div className="space-y-2">
+                  {CONSOLE_STAGES.map(stage => (
+                    <div key={stage.label} className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-mono uppercase tracking-[0.18em] text-[var(--neutral)]">
+                          {stage.label}
+                        </p>
+                        <p className="truncate text-[12px] text-[var(--text-mid)]">{stage.value}</p>
+                      </div>
