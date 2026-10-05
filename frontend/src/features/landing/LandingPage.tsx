@@ -358,3 +358,63 @@ export default function LandingPage() {
       {/* ── Capabilities ────────────────────────────────────────────────── */}
       <section id="capabilities" className="mx-auto max-w-6xl px-6 py-12">
         <p className="panel-title mb-6">What it does</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CAPABILITIES.map(({ icon: Icon, title, body }) => (
+            <div
+              key={title}
+              className="panel hud-corners group p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(56,232,255,0.3)]"
+            >
+              <span className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded border border-[var(--line)] bg-[rgba(56,232,255,0.06)] transition-colors group-hover:border-[rgba(56,232,255,0.35)]">
+                <Icon size={16} className="text-[var(--accent)]" />
+              </span>
+              <h3 className="mb-2 text-[14px] font-semibold text-[var(--text-hi)]">{title}</h3>
+              <p className="text-[12.5px] leading-relaxed text-[var(--text-mid)]">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── No fabrication ──────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-12">
+        <div className="panel scanline flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
+          <BadgeCheck size={22} className="shrink-0 text-[var(--positive)]" />
+          <div className="flex-1">
+            <h3 className="text-[15px] font-semibold text-[var(--text-hi)]">
+              The no-fabrication guarantee
+            </h3>
+            <p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-[var(--text-mid)]">
+              Missing data renders as <span className="font-mono text-[var(--warning)]">UNAVAILABLE</span> — never a
+              plausible-looking placeholder. Unlocated events are not placed on the globe. Unsupported assistant
+              claims are labelled &ldquo;the evidence does not establish it&rdquo;. Simulated data is tagged{' '}
+              <span className="font-mono text-[var(--warning)]">SIMULATED</span> at the record level, never passed off
+              as live.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col">
+            <span className="rounded border border-[rgba(46,230,168,0.35)] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-[var(--positive)]">
+              Live
+            </span>
+            <span className="rounded border border-[rgba(245,185,65,0.35)] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-[var(--warning)]">
+              Unavailable
+            </span>
+            <span className="rounded border border-[var(--line)] px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.14em] text-[var(--text-lo)]">
+              Not provided
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stack ───────────────────────────────────────────────────────── */}
+      <section id="stack" className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-6">Built on</p>
+        <div className="flex flex-wrap gap-3">
+          {STACK.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-2 rounded border border-[var(--line)] bg-[rgba(21,25,28,0.96)] px-3.5 py-2 text-[11px] font-mono tracking-[0.1em] text-[var(--text-mid)] transition-colors hover:border-[rgba(56,232,255,0.3)] hover:text-[var(--accent)]"
+            >
+              <Icon size={13} className="text-[var(--accent)]" />
+              {label}
+            </span>
+          ))}
+        </div>
