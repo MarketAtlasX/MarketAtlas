@@ -42,4 +42,25 @@ async def test_correct_answer_verifies_once_then_consumed():
     # the service writes to (tests run without Redis, so the in-process
     # fallback holds it).
     answer = captcha_service._fallback_store[challenge.captcha_id][0]
+
+    assert await verify_captcha(challenge.captcha_id, answer) is True
+    # Single-use: the same (correct) answer cannot be replayed.
+    assert await verify_captcha(challenge.captcha_id, answer) is False
+
+
+@pytest.mark.asyncio
+async def test_wrong_answer_consumes_the_challenge():
+    challenge = await generate_captcha()
+
+    assert await verify_captcha(challenge.captcha_id, "definitely-wrong") is False
+    # Even a later correct attempt fails — the challenge was consumed.
+    stored_answer = captcha_service._fallback_store.get(challenge.captcha_id)
+    assert stored_answer is None
+
+
+@pytest.mark.asyncio
+async def test_verify_rejects_missing_fields():
+    assert await verify_captcha(None, "abc") is False
+    assert await verify_captcha("some-id", None) is False
+    assert await verify_captcha("some-id", "") is False
 
