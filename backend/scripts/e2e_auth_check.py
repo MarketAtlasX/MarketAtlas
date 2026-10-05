@@ -118,3 +118,63 @@ async def main() -> int:
             },
         )
         check("register with valid captcha -> 201", r.status_code == 201, r.text[:200])
+        token = r.json().get("access_token")
+        check("register returns a JWT", bool(token))
+        check("register returns the user", r.json().get("user", {}).get("email") == "operator@example.com")
+
+        # 6. Duplicate register rejected
+        r2 = await client.get("/api/v1/auth/captcha")
+        cap2 = r2.json()
+        ans2 = (captcha_service._fallback_store.get(cap2["captcha_id"]) or [""])[0]
+        r = await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": "operator@example.com", "password": "password123",
+                "display_name": "Dup", "captcha_id": cap2["captcha_id"], "captcha_answer": ans2,
+            },
+        )
+        check("duplicate email -> 409", r.status_code == 409, f"got {r.status_code}")
+
+        # 7. /auth/me with the JWT
+        r = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+        check("GET /auth/me -> 200", r.status_code == 200, r.text[:120])
+        check("me returns display_name", r.json().get("display_name") == "Operator One")
+
+        # 8. /auth/me without token -> 401
+        r = await client.get("/api/v1/auth/me")
+        check("GET /auth/me without token -> 401", r.status_code == 401, f"got {r.status_code}")
+
+        # 9. Logout (authenticated)
+        r = await client.post("/api/v1/auth/logout", headers={"Authorization": f"Bearer {token}"})
+        check("POST /auth/logout -> 200", r.status_code == 200, r.text[:120])
+
+        # 10. Login: wrong password after valid captcha
+        r = await client.get("/api/v1/auth/captcha")
+        cap3 = r.json()
+        ans3 = (captcha_service._fallback_store.get(cap3["captcha_id"]) or [""])[0]
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "operator@example.com", "password": "wrong-password",
+                "captcha_id": cap3["captcha_id"], "captcha_answer": ans3,
+            },
+        )
+        check("login wrong password -> 401", r.status_code == 401, f"got {r.status_code}")
+
+        # 11. Login without captcha -> 400
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "operator@example.com", "password": "password123"},
+        )
+        check("login without captcha -> 400", r.status_code == 400, f"got {r.status_code}")
+
+        # 12. Successful login
+        r = await client.get("/api/v1/auth/captcha")
+        cap4 = r.json()
+        ans4 = (captcha_service._fallback_store.get(cap4["captcha_id"]) or [""])[0]
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "operator@example.com", "password": "password123",
+                "captcha_id": cap4["captcha_id"], "captcha_answer": ans4,
+            },
