@@ -17,4 +17,12 @@ export interface AuthUser {
   is_active: boolean
   created_at: string
 }
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
 
