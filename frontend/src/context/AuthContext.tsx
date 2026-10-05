@@ -134,4 +134,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setStatus('unauthenticated')
   }, [])
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, status, login, register, logout }),
+    [user, status, login, register, logout],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
 
