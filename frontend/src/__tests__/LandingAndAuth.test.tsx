@@ -159,4 +159,22 @@ describe('AuthPage (login mode)', () => {
 
     renderAt('/login', <AuthPage mode="login" />)
     await screen.findByText('Type the characters shown on the left.')
+
+    const inputs = screen.getAllByRole('textbox')
+    fireEventChange(inputs[0], 'a@b.co')
+    fireEventChange(inputs[1], 'x7')
+    fireEventChange(screen.getByPlaceholderText('Password'), 'pw123456')
+    screen.getByRole('button', { name: /sign in/i }).click()
+
+    expect(await screen.findByText(/Captcha verification failed/)).toBeInTheDocument()
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2)) // initial + refresh
+  })
+})
+
+describe('AuthPage (register mode)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    post.mockReset()
+    get.mockReset()
+  })
 
