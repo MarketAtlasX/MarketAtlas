@@ -1,5 +1,5 @@
 import type { AtlasEvent } from './atlasEvents'
-import { ensureAuth } from '../../simulation/auth'
+import { getToken } from '../../auth/storage'
 
 export interface RealtimeVoiceOptions {
   onEvent: (event: AtlasEvent) => void
@@ -16,7 +16,8 @@ export class RealtimeVoice {
   }
 
   async connect({ onEvent }: RealtimeVoiceOptions): Promise<void> {
-    const appToken = await ensureAuth()
+    const appToken = getToken()
+    if (!appToken) throw new Error('Sign in to use realtime voice')
     const tokenResponse = await fetch('/api/assistant/realtime-token', {
       method: 'POST',
       headers: { Authorization: `Bearer ${appToken}` },
