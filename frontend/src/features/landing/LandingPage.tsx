@@ -215,4 +215,20 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Stack ───────────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-6">Built on</p>
+        <div className="flex flex-wrap gap-3">
+          {STACK.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-2 rounded border border-[var(--line)] bg-[rgba(21,25,28,0.96)] px-3.5 py-2 text-[11px] font-mono tracking-[0.1em] text-[var(--text-mid)]"
+            >
+              <Icon size={13} className="text-[var(--accent)]" />
+              {label}
+            </span>
+          ))}
+        </div>
+      </section>
 
