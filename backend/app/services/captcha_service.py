@@ -35,4 +35,14 @@ _NOISE_COLORS = ("rgba(97, 199, 182, 0.35)", "rgba(95, 125, 153, 0.4)")
 @dataclass(frozen=True)
 class CaptchaChallenge:
     """A captcha issued to a client. The answer is never included."""
+
+    captcha_id: str
+    svg: str
+    kind: str  # 'code' | 'sum'
+    expires_in: int = CAPTCHA_TTL_SECONDS
+
+
+# ---------------------------------------------------------------------------
+# Storage — Redis first, in-process fallback when Redis is unavailable.
+# ---------------------------------------------------------------------------
 
