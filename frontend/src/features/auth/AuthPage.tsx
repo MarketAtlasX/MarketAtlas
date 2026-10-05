@@ -178,3 +178,18 @@ export default function AuthPage({ mode }: AuthPageProps) {
             {isRegister ? 'Already have an account? ' : 'New to MarketAtlas? '}
             <Link
               to={isRegister ? '/login' : '/register'}
+              className="text-[var(--accent)] transition-colors hover:text-glow"
+            >
+              {isRegister ? 'Sign in' : 'Create one'}
+            </Link>
+          </p>
+        </form>
+
+        <p className="mt-6 text-center text-[10px] leading-relaxed text-[var(--text-lo)]">
+          Protected by server-issued captcha challenges. Answers are verified
+          server-side and every challenge is single-use.
+        </p>
+      </div>
+    </div>
+  )
+}
