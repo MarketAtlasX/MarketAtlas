@@ -78,4 +78,19 @@ async def _store_answer(captcha_id: str, answer: str) -> None:
     stored = await cache.set(f"{_KEY_PREFIX}{captcha_id}", answer, ttl=CAPTCHA_TTL_SECONDS)
     if not stored:
         await _fallback_put(captcha_id, answer)
+
+
+async def _take_answer(captcha_id: str) -> str | None:
+    """Fetch and delete the stored answer — every captcha is single-use."""
+    key = f"{_KEY_PREFIX}{captcha_id}"
+    stored = await cache.get(key)
+    if stored is not None:
+        await cache.delete(key)
+        return str(stored)
+    return await _fallback_take(captcha_id)
+
+
+# ---------------------------------------------------------------------------
+# Challenge generation
+# ---------------------------------------------------------------------------
 
