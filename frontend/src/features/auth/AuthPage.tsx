@@ -125,4 +125,34 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 className={inputClass}
               />
             </div>
+
+            <div className="relative">
+              <KeyRound size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-lo)]" />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder={isRegister ? 'Password (min 8 characters)' : 'Password'}
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                required
+                minLength={isRegister ? 8 : undefined}
+                className={inputClass}
+              />
+            </div>
+
+            <CaptchaChallenge onChallenge={handleChallenge} refreshToken={captchaRefresh} />
+            <div className="relative">
+              <ShieldCheck size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-lo)]" />
+              <input
+                type="text"
+                value={captchaAnswer}
+                onChange={e => setCaptchaAnswer(e.target.value)}
+                placeholder="Answer the security check"
+                required
+                maxLength={12}
+                autoComplete="off"
+                className="w-full rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] py-2.5 pl-9 pr-3 text-[13px] text-[var(--text-hi)] transition-colors placeholder:text-[var(--text-lo)] focus:border-[rgba(56,232,255,0.45)]"
+              />
+            </div>
+          </div>
 
