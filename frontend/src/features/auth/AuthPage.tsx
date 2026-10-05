@@ -118,3 +118,63 @@ export default function AuthPage({ mode }: AuthPageProps) {
               <input
                 type="email"
                 value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Email"
+                autoComplete="email"
+                required
+                className={inputClass}
+              />
+            </div>
+
+            <div className="relative">
+              <KeyRound size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-lo)]" />
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder={isRegister ? 'Password (min 8 characters)' : 'Password'}
+                autoComplete={isRegister ? 'new-password' : 'current-password'}
+                required
+                minLength={isRegister ? 8 : undefined}
+                className={inputClass}
+              />
+            </div>
+
+            <CaptchaChallenge onChallenge={handleChallenge} refreshToken={captchaRefresh} />
+            <div className="relative">
+              <ShieldCheck size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-lo)]" />
+              <input
+                type="text"
+                value={captchaAnswer}
+                onChange={e => setCaptchaAnswer(e.target.value)}
+                placeholder="Answer the security check"
+                required
+                maxLength={12}
+                autoComplete="off"
+                className="w-full rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] py-2.5 pl-9 pr-3 text-[13px] text-[var(--text-hi)] transition-colors placeholder:text-[var(--text-lo)] focus:border-[rgba(56,232,255,0.45)]"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded border border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.12)] px-5 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--accent)] transition-all hover:bg-[rgba(56,232,255,0.2)] hover:shadow-[0_0_18px_rgba(56,232,255,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                {isRegister ? 'Creating account…' : 'Signing in…'}
+              </>
+            ) : (
+              <>
+                {isRegister ? 'Create account' : 'Sign in'}
+                <ArrowRight size={14} />
+              </>
+            )}
+          </button>
+
+          <p className="mt-5 text-center text-[12px] text-[var(--text-mid)]">
+            {isRegister ? 'Already have an account? ' : 'New to MarketAtlas? '}
+            <Link
+              to={isRegister ? '/login' : '/register'}
