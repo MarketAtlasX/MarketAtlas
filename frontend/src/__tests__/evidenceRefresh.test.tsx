@@ -178,3 +178,28 @@ describe('live evidence update experience', () => {
       uncertainty: ['No persisted provider-backed event matched the request.'],
       limitations: ['No persisted provider-backed event matched the request.'],
     })
+
+    await waitFor(() => expect(captured?.evidence.observation?.status).toBe('unavailable'))
+    expect(screen.getAllByText('UNAVAILABLE').length).toBeGreaterThan(0)
+    // No stale evidence-driven (affected) highlights remain for an unavailable
+    // observation; only the selection marker itself stays.
+    const affected = buildEvidenceGlobeOverlay(captured!.evidence.selection, captured!.evidence.observation).points.filter(p => p.kind === 'affected')
+    expect(affected).toHaveLength(0)
+  })
+
+  it('refreshes automatically on an interval without changing the selection', async () => {
+    installFetchMock()
+    // A 20ms interval races the initial fetch under load (the poll can fire
+    // before the first response applies and supersede it). 300ms still
+    // exercises the background refresh deterministically.
+    renderHarness('Taiwan', 300)
+
+    await waitFor(() => expect(pending.length).toBe(1), { timeout: 5000 })
+    pending[0].resolve(liveObservation('GDELT'))
+    await waitFor(() => expect(captured?.evidence.status).toBe('ready'), { timeout: 5000 })
+
+    // The poll triggers a background refresh of the same selection.
+    await waitFor(() => expect(pending.length).toBeGreaterThanOrEqual(2), { timeout: 5000 })
+    expect(captured?.evidence.selection).toBe('Taiwan')
+  })
+})
