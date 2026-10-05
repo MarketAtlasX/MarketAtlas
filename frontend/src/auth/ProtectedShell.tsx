@@ -53,3 +53,10 @@ export default function ProtectedShell() {
             <VoiceAssistantProvider>
               <AtlasCommandHandler />
               <Outlet />
+            </VoiceAssistantProvider>
+          </AssistantStateProvider>
+        </AtlasProvider>
+      </WorldProvider>
+    </RequireAuth>
+  )
+}
