@@ -13,15 +13,15 @@ import type {
   SectorSnapshot,
   PortfolioImpact,
 } from './types'
-import { ensureAuth, getToken } from './auth'
+import { getToken } from '../auth/storage'
 
 const simApi = axios.create({
   baseURL: '/api',
   timeout: 120000,
 })
 
-simApi.interceptors.request.use(async (config) => {
-  const token = getToken() || (await ensureAuth())
+simApi.interceptors.request.use((config) => {
+  const token = getToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -31,8 +31,8 @@ const portfolioApi = axios.create({
   timeout: 60000,
 })
 
-portfolioApi.interceptors.request.use(async (config) => {
-  const token = getToken() || (await ensureAuth())
+portfolioApi.interceptors.request.use((config) => {
+  const token = getToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
