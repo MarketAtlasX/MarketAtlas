@@ -53,3 +53,58 @@ _FALLBACK_MAX_KEYS = 10_000
 
 
 async def _fallback_put(captcha_id: str, answer: str) -> None:
+    if len(_fallback_store) >= _FALLBACK_MAX_KEYS:
+        now = time.monotonic()
+        for key in [k for k, (_, exp) in _fallback_store.items() if exp <= now]:
+            _fallback_store.pop(key, None)
+        # Still full (all live entries): drop the oldest half.
+        if len(_fallback_store) >= _FALLBACK_MAX_KEYS:
+            for key in list(_fallback_store)[: _FALLBACK_MAX_KEYS // 2]:
+                _fallback_store.pop(key, None)
+    _fallback_store[captcha_id] = (answer, time.monotonic() + CAPTCHA_TTL_SECONDS)
+
+
+async def _fallback_take(captcha_id: str) -> str | None:
+    entry = _fallback_store.pop(captcha_id, None)
+    if entry is None:
+        return None
+    answer, expiry = entry
+    if expiry <= time.monotonic():
+        return None
+    return answer
+
+
+async def _store_answer(captcha_id: str, answer: str) -> None:
+    stored = await cache.set(f"{_KEY_PREFIX}{captcha_id}", answer, ttl=CAPTCHA_TTL_SECONDS)
+    if not stored:
+        await _fallback_put(captcha_id, answer)
+
+
+async def _take_answer(captcha_id: str) -> str | None:
+    """Fetch and delete the stored answer — every captcha is single-use."""
+    key = f"{_KEY_PREFIX}{captcha_id}"
+    stored = await cache.get(key)
+    if stored is not None:
+        await cache.delete(key)
+        return str(stored)
+    return await _fallback_take(captcha_id)
+
+
+# ---------------------------------------------------------------------------
+# Challenge generation
+# ---------------------------------------------------------------------------
+
+
+def _random_code() -> str:
+    return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
+
+
+def _random_sum() -> tuple[str, str]:
+    a = random.randint(11, 79)  # noqa: S311 — non-cryptographic is fine for display
+    b = random.randint(12, 59)
+    return f"{a} + {b}", str(a + b)
+
+
+def _render_svg(text: str) -> str:
+    """Render challenge text as a distorted, noisy SVG on a dark plate."""
+    char_spacing = 30
