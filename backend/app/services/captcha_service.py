@@ -148,4 +148,19 @@ def _render_svg(text: str) -> str:
         "</svg>"
     )
 
+
+async def generate_captcha() -> CaptchaChallenge:
+    """Create a one-time challenge and store its answer server-side."""
+    if random.random() < 0.5:  # noqa: S311
+        question, answer = _random_sum()
+        kind = "sum"
+    else:
+        question = _random_code()
+        answer = question
+        kind = "code"
+
+    captcha_id = uuid.uuid4().hex
+    await _store_answer(captcha_id, answer.lower().strip())
+    return CaptchaChallenge(captcha_id=captcha_id, svg=_render_svg(question), kind=kind)
+
 
