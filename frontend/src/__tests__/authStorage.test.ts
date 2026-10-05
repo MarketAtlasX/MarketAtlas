@@ -32,4 +32,11 @@ describe('auth storage', () => {
     expect(first).toBeTruthy()
     expect(first).toBe(second)
   })
-
+
+  it('keeps anon id stable across a logout (chat history keying)', () => {
+    const anon = getAnonId()
+    setToken(makeJwt(7))
+    clearToken()
+    expect(getUserId()).toBe(anon)
+  })
+})
