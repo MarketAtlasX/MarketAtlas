@@ -128,4 +128,44 @@ describe('AuthContext', () => {
       </AuthProvider>,
     )
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+
+    await act(async () => {
+      screen.getByText('register').click()
+    })
+    await waitFor(() => expect(screen.getByTestId('user')).toHaveTextContent('Atlas'))
+    expect(post).toHaveBeenCalledWith('/auth/register', {
+      email: 'a@b.co',
+      password: 'pw123456',
+      display_name: 'Atlas',
+      captcha_id: 'c1',
+      captcha_answer: 'x7',
+    })
+  })
+
+  it('logout clears the token and user', async () => {
+    post.mockResolvedValue({ data: tokenPayload })
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await act(async () => {
+      screen.getByText('login').click()
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+
+    await act(async () => {
+      screen.getByText('logout').click()
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(localStorage.getItem('marketatlas_token')).toBeNull()
+  })
+
+  it('extracts the backend detail message from a failed login', () => {
+    const message = authErrorMessage({
+      response: { status: 400, data: { detail: 'Captcha verification failed — request a new challenge' } },
+    })
+    expect(message).toBe('Captcha verification failed — request a new challenge')
+  })
 
