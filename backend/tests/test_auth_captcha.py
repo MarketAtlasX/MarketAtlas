@@ -172,4 +172,29 @@ async def test_register_login_and_me_with_valid_captcha(client, known_captcha):
     assert login.status_code == 200
     assert login.json()["access_token"]
 
-
+
+@pytest.mark.asyncio
+async def test_login_with_bad_password_fails_after_valid_captcha(client, known_captcha):
+    await client.post(
+        REGISTER_URL,
+        json={
+            "email": "bad.pw@example.com",
+            "password": "super-secret-1",
+            "display_name": "Bad PW",
+            **known_captcha,
+        },
+    )
+    # The register captcha was consumed; use a fresh login attempt with a
+    # wrong password and a valid captcha.
+    body = await _fetch_captcha(client)
+    stored = captcha_service._fallback_store[body["captcha_id"]][0]
+    login = await client.post(
+        LOGIN_URL,
+        json={
+            "email": "bad.pw@example.com",
+            "password": "not-the-password",
+            "captcha_id": body["captcha_id"],
+            "captcha_answer": stored,
+        },
+    )
+    assert login.status_code == 401
