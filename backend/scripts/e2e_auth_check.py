@@ -43,4 +43,26 @@ async def main() -> int:
         return _real_create(url, **kwargs)
 
     _sa_asyncio.create_async_engine = _sqlite_create  # type: ignore[assignment]
+
+    from app.database import get_db
+    from app.models.user import User
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from app.main import app
+
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    # Only the auth surface is under test; the full schema uses Postgres-only
+    # types (JSONB) that SQLite cannot render.
+    async with engine.begin() as conn:
+        await conn.run_sync(User.__table__.create, checkfirst=True)
+
+    async def override_get_db():
+        from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+
+        maker = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with maker() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    passed, failed = 0, 0
 
