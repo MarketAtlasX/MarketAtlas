@@ -13,7 +13,10 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User
 
-bearer_scheme = HTTPBearer()
+# auto_error=False so a missing/blank Authorization header can be turned into
+# a proper 401 (HTTPBearer's default auto_error raises 403, which conflates
+# "not authenticated" with "not allowed").
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def hash_password(password: str) -> str:
@@ -67,9 +70,15 @@ def verify_api_key(plain: str, stored: str) -> bool:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> User:
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
 
     # Try as JWT first
