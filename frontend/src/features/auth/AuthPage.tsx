@@ -32,4 +32,34 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [error, setError] = useState<string | null>(null)
 
   const handleChallenge = useCallback((id: string) => setCaptchaId(id), [])
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (submitting) return
+    if (!captchaId || !captchaAnswer.trim()) {
+      setError('Complete the security check before continuing.')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      if (isRegister) {
+        await register({ email, password, displayName, captchaId, captchaAnswer })
+      } else {
+        await login({ email, password, captchaId, captchaAnswer })
+      }
+      navigate(redirectTo, { replace: true })
+    } catch (err) {
+      setError(authErrorMessage(err))
+      // The captcha was consumed by the failed attempt (win or lose) — fetch a
+      // fresh challenge and clear the answer field.
+      setCaptchaAnswer('')
+      setCaptchaRefresh(n => n + 1)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputClass =
+    'w-full rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] py-2.5 pl-9 pr-3 text-[13px] text-[var(--text-hi)] transition-colors placeholder:text-[var(--text-lo)] focus:border-[rgba(56,232,255,0.45)]'
 
