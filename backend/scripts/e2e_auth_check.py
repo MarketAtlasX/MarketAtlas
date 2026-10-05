@@ -17,4 +17,30 @@ os.environ["AUTH_CAPTCHA_ENABLED"] = "true"
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 
+
+async def main() -> int:
+    # Import after env vars so settings pick them up. The Postgres-oriented
+    # URL composer can't produce a valid SQLite URL and SQLite rejects pool
+    # sizing kwargs, so shim both before app.database builds its engine.
+    from app.config import Settings
+    import sqlalchemy.ext.asyncio as _sa_asyncio
+
+    Settings.database_url = property(lambda self: "sqlite+aiosqlite:///:memory:")  # type: ignore[method-assign]
+
+    _real_create = _sa_asyncio.create_async_engine
+
+    def _sqlite_create(url: str, **kwargs):  # type: ignore[no-untyped-def]
+        if url.startswith("sqlite"):
+            kwargs.pop("pool_size", None)
+            kwargs.pop("max_overflow", None)
+            kwargs.pop("pool_recycle", None)
+            kwargs.setdefault("poolclass", _sa_asyncio.AsyncAdaptedQueuePool if False else None) or kwargs.pop("poolclass", None)
+            kwargs["connect_args"] = {"check_same_thread": False}
+            # Reuse one shared in-memory DB across sessions.
+            from sqlalchemy.pool import StaticPool
+
+            kwargs["poolclass"] = StaticPool
+        return _real_create(url, **kwargs)
+
+    _sa_asyncio.create_async_engine = _sqlite_create  # type: ignore[assignment]
 
