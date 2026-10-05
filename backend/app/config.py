@@ -107,6 +107,11 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
     jwt_expiry_hours: int = Field(alias="JWT_EXPIRY_HOURS", default=24)
 
+    # Require a server-issued captcha on /auth/register and /auth/login.
+    # Challenges are stored in Redis (in-process fallback) — see
+    # app/services/captcha_service.py.
+    auth_captcha_enabled: bool = Field(default=True, alias="AUTH_CAPTCHA_ENABLED")
+
     # -------------------------------------------------------------------------
     # -------------------------------------------------------------------------
     # AI / LLM Configuration
