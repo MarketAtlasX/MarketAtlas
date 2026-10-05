@@ -274,4 +274,18 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
+
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-lo)]">
+            MarketAtlas — geopolitical intelligence workspace
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-lo)]">
+            Evidence in · answers out
+          </span>
+        </div>
+      </footer>
+    </div>
+  )
+}
