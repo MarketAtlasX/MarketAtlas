@@ -64,4 +64,43 @@ describe('LandingPage', () => {
     expect(screen.getAllByText('Create account').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0)
   })
+
+  it('links the sign-in CTA to /login', () => {
+    renderAt('/', <LandingPage />)
+    const links = screen.getAllByText('Sign in').map(el => el.closest('a')?.getAttribute('href'))
+    expect(links).toContain('/login')
+  })
+
+  it('greets a signed-in user and links to the workspace', async () => {
+    post.mockResolvedValue({ data: tokenPayload })
+    renderAt(
+      '/',
+      <>
+        <SignedInProbe />
+        <LandingPage />
+      </>,
+    )
+    screen.getByText('sign-in').click()
+    await waitFor(() => expect(screen.getByText(/Welcome back, Atlas/)).toBeInTheDocument())
+    expect(screen.getAllByText('Open workspace').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Create account')).not.toBeInTheDocument()
+  })
+})
+
+describe('AuthPage (login mode)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    post.mockReset()
+    get.mockReset()
+  })
+
+  it('renders the captcha challenge from the backend', async () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-1', svg: '<svg>challenge</svg>', kind: 'sum', expires_in: 300 },
+    })
+    renderAt('/login', <AuthPage mode="login" />)
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/auth/captcha', { timeout: 8000 }))
+    expect(await screen.findByText('Enter the sum shown on the left.')).toBeInTheDocument()
+    expect(screen.getByText('Welcome back')).toBeInTheDocument()
+  })
 
