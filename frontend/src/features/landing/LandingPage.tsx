@@ -49,4 +49,6 @@ const CAPABILITIES = [
     body: 'The assistant answers strictly from the evidence on screen, cites its provenance, and separates recorded fact from unsupported inference.',
   },
 ]
+
+const JOURNEY = ['Live Event', 'Globe', 'Evidence', 'Causal Chain', 'Markets', 'ATLAS']
 
