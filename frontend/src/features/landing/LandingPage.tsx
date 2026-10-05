@@ -238,3 +238,54 @@ export default function LandingPage() {
           <div
             className="pointer-events-none absolute inset-0"
             style={{ background: 'radial-gradient(ellipse at center, rgba(56,232,255,0.08), transparent 70%)' }}
+          />
+          <h2 className="relative font-display text-2xl font-semibold text-[var(--text-hi)]">
+            See the world as the market sees it.
+          </h2>
+          <p className="relative mx-auto mt-3 max-w-xl text-[13px] text-[var(--text-mid)]">
+            Create a free account to enter the command center — live events, evidence, causal chains, and ATLAS.
+          </p>
+          <div className="relative mt-6 flex justify-center gap-3">
+            {signedIn ? (
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-2 rounded border border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.12)] px-6 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--accent)] transition-all hover:bg-[rgba(56,232,255,0.2)]"
+              >
+                Open workspace
+                <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-2 rounded border border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.12)] px-6 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--accent)] transition-all hover:bg-[rgba(56,232,255,0.2)]"
+                >
+                  Create account
+                  <ArrowRight size={14} />
+                </Link>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-2 rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] px-6 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--text-mid)] transition-colors hover:border-[rgba(56,232,255,0.35)] hover:text-[var(--accent)]"
+                >
+                  Sign in
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 sm:flex-row">
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-lo)]">
+            MarketAtlas — geopolitical intelligence workspace
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-lo)]">
+            Evidence in · answers out
+          </span>
+        </div>
+      </footer>
+    </div>
+  )
+}
