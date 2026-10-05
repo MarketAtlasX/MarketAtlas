@@ -125,4 +125,19 @@ describe('AuthPage (login mode)', () => {
     )
     expect(post).not.toHaveBeenCalled()
   })
+
+  it('submits login with captcha fields and navigates on success', async () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-1', svg: '<svg>x</svg>', kind: 'code', expires_in: 300 },
+    })
+    post.mockResolvedValue({ data: tokenPayload })
+
+    renderAt('/login', <AuthPage mode="login" />)
+    await screen.findByText('Type the characters shown on the left.')
+
+    const inputs = screen.getAllByRole('textbox')
+    // inputs: [email, captcha answer]
+    fireEventChange(inputs[0], 'a@b.co')
+    fireEventChange(inputs[1], 'x7')
+    fireEventChange(screen.getByPlaceholderText('Password'), 'pw123456')
 
