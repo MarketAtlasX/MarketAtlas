@@ -62,4 +62,30 @@ export default function AuthPage({ mode }: AuthPageProps) {
 
   const inputClass =
     'w-full rounded border border-[var(--line)] bg-[rgba(6,12,18,0.72)] py-2.5 pl-9 pr-3 text-[13px] text-[var(--text-hi)] transition-colors placeholder:text-[var(--text-lo)] focus:border-[rgba(56,232,255,0.45)]'
+
+  return (
+    <div className="min-h-screen w-full bg-command flex items-center justify-center px-4 py-10 overflow-y-auto">
+      <div className="w-full max-w-md">
+        {/* Brand */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <Link to="/" className="flex items-center gap-2.5" aria-label="Back to home">
+            <span className="h-2.5 w-2.5 bg-[var(--accent)] pulse-dot" />
+            <span className="text-[15px] font-semibold tracking-[0.22em] text-[var(--text-hi)]">
+              MARKET<span className="text-[var(--accent)] text-glow">ATLAS</span>
+            </span>
+          </Link>
+          <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-[var(--text-lo)]">
+            {isRegister ? 'Create your account' : 'Operator sign-in'}
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="panel hud-corners p-6 sm:p-7">
+          <h1 className="font-display text-xl font-semibold text-[var(--text-hi)]">
+            {isRegister ? 'Join MarketAtlas' : 'Welcome back'}
+          </h1>
+          <p className="mt-1.5 mb-6 text-[12px] text-[var(--text-mid)]">
+            {isRegister
+              ? 'Live events, evidence, causal chains, and ATLAS — one account.'
+              : 'Sign in to reopen the command center.'}
+          </p>
 
