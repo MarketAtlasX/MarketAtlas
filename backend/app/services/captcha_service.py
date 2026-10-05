@@ -45,4 +45,22 @@ class CaptchaChallenge:
 # ---------------------------------------------------------------------------
 # Storage — Redis first, in-process fallback when Redis is unavailable.
 # ---------------------------------------------------------------------------
+
+# Maps captcha_id -> (expected_answer, expiry_timestamp). Bounded by the sweep
+# in _fallback_take, which runs on every verification.
+_fallback_store: dict[str, tuple[str, float]] = {}
+_FALLBACK_MAX_KEYS = 10_000
+
+
+async def _fallback_put(captcha_id: str, answer: str) -> None:
+    if len(_fallback_store) >= _FALLBACK_MAX_KEYS:
+        now = time.monotonic()
+        for key in [k for k, (_, exp) in _fallback_store.items() if exp <= now]:
+            _fallback_store.pop(key, None)
+        # Still full (all live entries): drop the oldest half.
+        if len(_fallback_store) >= _FALLBACK_MAX_KEYS:
+            for key in list(_fallback_store)[: _FALLBACK_MAX_KEYS // 2]:
+                _fallback_store.pop(key, None)
+    _fallback_store[captcha_id] = (answer, time.monotonic() + CAPTCHA_TTL_SECONDS)
+
 
