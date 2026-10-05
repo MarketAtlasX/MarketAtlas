@@ -155,4 +155,33 @@ export default function AuthPage({ mode }: AuthPageProps) {
               />
             </div>
           </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded border border-[rgba(56,232,255,0.55)] bg-[rgba(56,232,255,0.12)] px-5 py-2.5 text-[12px] font-mono uppercase tracking-[0.18em] text-[var(--accent)] transition-all hover:bg-[rgba(56,232,255,0.2)] hover:shadow-[0_0_18px_rgba(56,232,255,0.25)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                {isRegister ? 'Creating account…' : 'Signing in…'}
+              </>
+            ) : (
+              <>
+                {isRegister ? 'Create account' : 'Sign in'}
+                <ArrowRight size={14} />
+              </>
+            )}
+          </button>
+
+          <p className="mt-5 text-center text-[12px] text-[var(--text-mid)]">
+            {isRegister ? 'Already have an account? ' : 'New to MarketAtlas? '}
+            <Link
+              to={isRegister ? '/login' : '/register'}
+              className="text-[var(--accent)] transition-colors hover:text-glow"
+            >
+              {isRegister ? 'Sign in' : 'Create one'}
+            </Link>
+          </p>
+        </form>
 
