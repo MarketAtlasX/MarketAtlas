@@ -205,4 +205,8 @@ function fireEventChange(element: Element, value: string) {
   setter?.call(element, value)
   element.dispatchEvent(new Event('input', { bubbles: true }))
 }
-
+
+function fireEventSubmit() {
+  const form = document.querySelector('form')
+  form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+}
