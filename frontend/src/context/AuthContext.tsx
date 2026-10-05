@@ -91,4 +91,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true
     }
   }, [])
+
+  const applySession = useCallback((payload: TokenResponsePayload) => {
+    setToken(payload.access_token)
+    setUser(payload.user)
+    setStatus('authenticated')
+    return payload.user
+  }, [])
+
+  const login = useCallback(
+    async (input: LoginInput) => {
+      const { data } = await api.post<TokenResponsePayload>('/auth/login', {
+        email: input.email.trim(),
+        password: input.password,
+        captcha_id: input.captchaId,
+        captcha_answer: input.captchaAnswer,
+      })
+      return applySession(data)
+    },
+    [applySession],
+  )
 
