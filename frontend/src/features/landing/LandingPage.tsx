@@ -162,4 +162,21 @@ export default function LandingPage() {
           )}
         </div>
       </section>
+
+      {/* ── Core journey ────────────────────────────────────────────────── */}
+      <section id="pipeline" className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-4">The core journey</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {JOURNEY.map((step, index) => (
+            <div key={step} className="flex items-center gap-2">
+              <span className="rounded border border-[var(--line)] bg-[rgba(21,25,28,0.96)] px-3 py-1.5 text-[11px] font-mono tracking-[0.12em] text-[var(--text-mid)]">
+                {step}
+              </span>
+              {index < JOURNEY.length - 1 && (
+                <ArrowRight size={12} className="text-[var(--text-lo)]" />
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
