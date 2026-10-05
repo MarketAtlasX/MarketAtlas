@@ -118,3 +118,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: input.email.trim(),
         password: input.password,
         display_name: input.displayName.trim(),
+        captcha_id: input.captchaId,
+        captcha_answer: input.captchaAnswer,
+      })
+      return applySession(data)
+    },
+    [applySession],
+  )
+
+  const logout = useCallback(() => {
+    // Best-effort authenticated 200; the JWT stays valid server-side until it
+    // expires, so the real session end is dropping the token here.
+    api.post('/auth/logout', null, { timeout: 3000 }).catch(() => {})
+    clearToken()
+    setUser(null)
+    setStatus('unauthenticated')
+  }, [])
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ user, status, login, register, logout }),
+    [user, status, login, register, logout],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
+}
