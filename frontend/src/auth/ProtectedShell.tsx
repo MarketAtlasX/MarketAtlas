@@ -26,4 +26,9 @@ function AuthSplash() {
     </div>
   )
 }
+
+/** Redirects unauthenticated visitors to the login page, preserving intent. */
+export function RequireAuth({ children }: { children: ReactNode }) {
+  const { status } = useAuth()
+  const location = useLocation()
 
