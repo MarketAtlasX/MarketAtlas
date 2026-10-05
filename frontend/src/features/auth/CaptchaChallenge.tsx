@@ -40,4 +40,8 @@ export default function CaptchaChallenge({ onChallenge, refreshToken }: CaptchaC
       setLoading(false)
     }
   }, [onChallenge])
+
+  useEffect(() => {
+    void load()
+  }, [load, refreshToken])
 
