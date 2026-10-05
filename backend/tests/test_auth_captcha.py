@@ -21,4 +21,25 @@ def clean_fallback_store():
 # ---------------------------------------------------------------------------
 # Service level
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_generate_captcha_returns_svg_and_id():
+    challenge = await generate_captcha()
+
+    assert challenge.captcha_id
+    assert challenge.kind in ("code", "sum")
+    assert challenge.expires_in == CAPTCHA_TTL_SECONDS
+    assert challenge.svg.startswith("<svg")
+    assert "</svg>" in challenge.svg
+
+
+@pytest.mark.asyncio
+async def test_correct_answer_verifies_once_then_consumed():
+    challenge = await generate_captcha()
+
+    # The expected answer lives only server-side; fetch it from the store
+    # the service writes to (tests run without Redis, so the in-process
+    # fallback holds it).
+    answer = captcha_service._fallback_store[challenge.captcha_id][0]
 
