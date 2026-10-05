@@ -59,4 +59,40 @@ describe('AuthContext', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
+
+  it('starts unauthenticated without a stored token', async () => {
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+  })
+
+  it('restores the session from a stored token via /auth/me', async () => {
+    localStorage.setItem('marketatlas_token', 'stored-jwt')
+    get.mockResolvedValue({ data: tokenPayload.user })
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    expect(screen.getByTestId('user')).toHaveTextContent('Atlas')
+    expect(get).toHaveBeenCalledWith('/auth/me', { timeout: 8000 })
+  })
+
+  it('drops a stale stored token when /auth/me rejects', async () => {
+    localStorage.setItem('marketatlas_token', 'stale-jwt')
+    get.mockRejectedValue(new Error('401'))
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+    expect(localStorage.getItem('marketatlas_token')).toBeNull()
+  })
 
