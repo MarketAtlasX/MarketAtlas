@@ -63,4 +63,19 @@ async def _fallback_put(captcha_id: str, answer: str) -> None:
                 _fallback_store.pop(key, None)
     _fallback_store[captcha_id] = (answer, time.monotonic() + CAPTCHA_TTL_SECONDS)
 
+
+async def _fallback_take(captcha_id: str) -> str | None:
+    entry = _fallback_store.pop(captcha_id, None)
+    if entry is None:
+        return None
+    answer, expiry = entry
+    if expiry <= time.monotonic():
+        return None
+    return answer
+
+
+async def _store_answer(captcha_id: str, answer: str) -> None:
+    stored = await cache.set(f"{_KEY_PREFIX}{captcha_id}", answer, ttl=CAPTCHA_TTL_SECONDS)
+    if not stored:
+        await _fallback_put(captcha_id, answer)
 
