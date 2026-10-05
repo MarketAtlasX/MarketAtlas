@@ -98,4 +98,16 @@ async def _take_answer(captcha_id: str) -> str | None:
 def _random_code() -> str:
     return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
 
+
+def _random_sum() -> tuple[str, str]:
+    a = random.randint(11, 79)  # noqa: S311 — non-cryptographic is fine for display
+    b = random.randint(12, 59)
+    return f"{a} + {b}", str(a + b)
+
+
+def _render_svg(text: str) -> str:
+    """Render challenge text as a distorted, noisy SVG on a dark plate."""
+    char_spacing = 30
+    x_start = 22
+    baseline = 34
 
