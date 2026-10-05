@@ -19,4 +19,16 @@ export interface LoginInput {
   captchaId: string
   captchaAnswer: string
 }
+
+export interface RegisterInput extends LoginInput {
+  displayName: string
+}
+
+interface AuthContextValue {
+  user: AuthUser | null
+  status: AuthStatus
+  login: (input: LoginInput) => Promise<AuthUser>
+  register: (input: RegisterInput) => Promise<AuthUser>
+  logout: () => void
+}
 
