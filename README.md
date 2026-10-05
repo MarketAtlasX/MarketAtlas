@@ -36,9 +36,14 @@ than inventing a value.
 ## Core user journey
 
 ```
-Live Event → Globe → Evidence → Causal Intelligence → Markets → Asset → ATLAS
+Landing → Register/Sign in (captcha) → Dashboard
+        → Live Event → Globe → Evidence → Causal Intelligence → Markets → Asset → ATLAS
 ```
 
+0. **Landing** — `/` is the public entryway: what MarketAtlas does, the
+   no-fabrication guarantee, and the core journey, with CTAs into
+   `/register` and `/login`. Signed-in visitors get a direct
+   "Open workspace" CTA instead.
 1. **Live Event** — a validated GDELT event appears in the timeline (or the
    clearly-labelled seeded `SIMULATED` feed when the backend is unreachable).
 2. **Globe** — clicking a located event flies the globe to the backend-provided
@@ -56,6 +61,38 @@ Live Event → Globe → Evidence → Causal Intelligence → Markets → Asset 
    screen, grounded in a deterministic briefing and the backend grounding rules.
 
 The full demo runbook and checklist live in [`docs/DEMO.md`](docs/DEMO.md).
+
+---
+
+## Authentication
+
+Every workspace route (`/dashboard`, `/markets`, `/graph`, `/simulator`,
+`/memory`, `/atlas`) is behind `RequireAuth`. Unauthenticated visitors are
+redirected to `/login`; the landing page and auth pages are public.
+
+- **Register / login** — `POST /api/v1/auth/register` and `/auth/login` return
+  a JWT (24 h default) plus the user record; `/auth/me` restores the session on
+  reload, and a stored token that the backend rejects is dropped immediately.
+- **Captcha gate** — both endpoints require a server-issued captcha:
+  `GET /api/v1/auth/captcha` returns a distorted SVG challenge (characters or
+  an arithmetic sum) and a one-time `captcha_id`. The expected answer never
+  leaves the server; it is stored in Redis (5-minute TTL) with an in-process
+  fallback when Redis is unavailable. Verification is single-use — a failed
+  attempt consumes the challenge and the UI fetches a fresh one. Disable in
+  trusted environments with `AUTH_CAPTCHA_ENABLED=False`.
+- **Token handling** — the SPA stores the JWT in `localStorage` and attaches it
+  via an axios interceptor. A 401 from a non-auth endpoint clears the stale
+  session and redirects to `/login`. `POST /auth/logout` acknowledges the
+  sign-out (JWTs stay valid until expiry; a denylist is the future home for
+  revocation).
+- **Legacy demo auth removed** — the old silent "demo user" auto-registration
+  is gone; unauthenticated means unauthenticated.
+
+Verify the flow without Postgres/Redis running:
+
+```bash
+cd backend && PYTHONPATH="..:." python scripts/e2e_auth_check.py   # 20 checks
+```
 
 ---
 
@@ -91,6 +128,9 @@ degrade gracefully when absent — see
 | Component | Location | Responsibility |
 |-----------|----------|----------------|
 | API + middleware | `backend/app/main.py` | `/api/v1` routes, CORS, rate limiting (200 req/min), logging, metrics, `/ws` broadcaster, lifespan-started background tasks |
+| Auth + captcha | `backend/app/routes/auth.py`, `backend/app/services/captcha_service.py` | JWT register/login/me/logout, server-issued single-use captcha challenges |
+| Frontend auth | `frontend/src/context/AuthContext.tsx`, `frontend/src/auth/` | Session restore, login/register/logout, `RequireAuth` guard, protected-shell provider scoping |
+| Landing page | `frontend/src/features/landing/LandingPage.tsx` | Public entryway: capabilities, journey, no-fabrication guarantee, CTAs |
 | Live-event stream | `backend/app/services/gdelt_stream_service.py` | Polls GDELT DOC 2.0 every 120 s (no key), broadcasts validated events to `/ws` |
 | Canonical evidence | `backend/app/routes/live_events.py`, `backend/app/schemas/observation.py` | Composes the `EvidenceObservation` envelope from persisted records + quotes + causal edges |
 | Causal graph | `backend/app/services/canonical_causal_graph.py` | Persisted `event / impact / asset` hops only, with `evidence_class` and `status` |
@@ -306,11 +346,11 @@ For the final demo, run the **built** frontend rather than the dev server.
 
 ```bash
 # 1. Configure
-cp backend/.env.example backend/.env            # DB_*, REDIS_URL, one LLM key
+cp backend/.env.example backend/.env            # DB_*, REDIS_URL, JWT_SECRET, one LLM key
 cp frontend/.env.example frontend/.env.local
 
 # 2. Backend (production, no reload)
-cd backend && ../venv/bin/alembic upgrade head
+cd backend && ../venv/bin/alembic upgrade head   # creates the users table for auth
 PYTHONPATH="$(pwd):$(dirname "$(pwd)")" \
   ../venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 
@@ -318,8 +358,9 @@ PYTHONPATH="$(pwd):$(dirname "$(pwd)")" \
 cd frontend && npm ci && npm run build && npm run preview   # http://localhost:3000
 ```
 
-Verify with `curl localhost:8000/health`, open `http://localhost:3000`, then walk
-the demo checklist (`Live Event → Globe → Evidence → Causal Chain → Markets → ATLAS`).
+Verify with `curl localhost:8000/health`, open `http://localhost:3000` (the
+landing page), create an account at `/register`, then walk the demo checklist
+(`Live Event → Globe → Evidence → Causal Chain → Markets → ATLAS`).
 
 ### Optional: scenario simulator (`/simulator`, port 8007)
 
@@ -381,7 +422,8 @@ git diff --check                                      # clean
 
 The suites cover the evidence contract and lifecycle, causal-chain rendering,
 market observations, live-event timeline and validation, ATLAS evidence
-grounding, demo auth, and the backend observation/agent-prompt contracts.
+grounding, the auth context and captcha-gated auth pages, and the backend
+observation/agent-prompt contracts.
 
 ---
 
