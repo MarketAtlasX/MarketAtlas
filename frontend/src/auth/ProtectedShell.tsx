@@ -31,4 +31,11 @@ function AuthSplash() {
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { status } = useAuth()
   const location = useLocation()
+
+  if (status === 'loading') return <AuthSplash />
+  if (status !== 'authenticated') {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  }
+  return <>{children}</>
+}
 
