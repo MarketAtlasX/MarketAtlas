@@ -53,3 +53,39 @@ export default function CaptchaChallenge({ onChallenge, refreshToken }: CaptchaC
         </label>
         <button
           type="button"
+          onClick={() => void load()}
+          disabled={loading}
+          title="New challenge"
+          aria-label="Request a new captcha challenge"
+          className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-lo)] transition-colors hover:text-[var(--accent)] disabled:opacity-40"
+        >
+          <RefreshCw size={11} className={loading ? 'animate-spin' : undefined} />
+          New
+        </button>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex h-[52px] w-[190px] shrink-0 items-center justify-center rounded border border-[var(--line)] bg-[#0d1418]">
+          {challenge ? (
+            // The SVG comes from our own backend (it only ever contains the
+            // distorted challenge text) and needs inline rendering to display.
+            <div dangerouslySetInnerHTML={{ __html: challenge.svg }} />
+          ) : loading ? (
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[var(--text-lo)] animate-breathe">
+              Loading…
+            </span>
+          ) : (
+            <span className="px-2 text-center text-[9px] font-mono uppercase tracking-[0.12em] text-[var(--critical)]">
+              {error ?? 'Unavailable'}
+            </span>
+          )}
+        </div>
+        <p className="flex items-start gap-1.5 text-[10px] leading-snug text-[var(--text-lo)]">
+          <ShieldCheck size={12} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+          {challenge?.kind === 'sum'
+            ? 'Enter the sum shown on the left.'
+            : 'Type the characters shown on the left.'}
+        </p>
+      </div>
+    </div>
+  )
+}
