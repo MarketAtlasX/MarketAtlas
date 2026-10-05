@@ -25,4 +25,25 @@ export function getToken(): string | null {
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token)
 }
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
+/**
+ * Decode the JWT `sub` claim without verifying the signature — verification
+ * is the backend's job on every request; this only routes client behaviour
+ * (e.g. which conversation bucket chat history lands in).
+ */
+export function getUserId(): string {
+  const token = getToken()
+  if (token) {
+    try {
+      const [, payload] = token.split('.')
+      const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+      if (decoded?.sub) return String(decoded.sub)
+    } catch { /* fall through to the anonymous id */ }
+  }
+  return getAnonId()
+}
 
