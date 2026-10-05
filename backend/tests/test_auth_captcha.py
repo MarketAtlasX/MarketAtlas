@@ -122,4 +122,54 @@ async def test_register_without_captcha_is_rejected(client):
     assert response.status_code == 400
     assert "captcha" in response.json()["detail"].lower()
 
+
+@pytest.mark.asyncio
+async def test_register_with_wrong_captcha_is_rejected(client):
+    response = await client.post(
+        REGISTER_URL,
+        json={
+            "email": "gate@example.com",
+            "password": "super-secret-1",
+            "display_name": "Gate",
+            "captcha_id": "nonexistent",
+            "captcha_answer": "wrong",
+        },
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_register_login_and_me_with_valid_captcha(client, known_captcha):
+    register = await client.post(
+        REGISTER_URL,
+        json={
+            "email": "atlas.user@example.com",
+            "password": "super-secret-1",
+            "display_name": "Atlas User",
+            **known_captcha,
+        },
+    )
+    assert register.status_code == 201
+    token = register.json()["access_token"]
+    assert register.json()["user"]["email"] == "atlas.user@example.com"
+
+    me = await client.get(ME_URL, headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
+    assert me.json()["display_name"] == "Atlas User"
+
+    # Re-fetch a captcha (the register one was consumed) and log in.
+    login_captcha = await _fetch_captcha(client)
+    stored = captcha_service._fallback_store[login_captcha["captcha_id"]][0]
+    login = await client.post(
+        LOGIN_URL,
+        json={
+            "email": "atlas.user@example.com",
+            "password": "super-secret-1",
+            "captcha_id": login_captcha["captcha_id"],
+            "captcha_answer": stored,
+        },
+    )
+    assert login.status_code == 200
+    assert login.json()["access_token"]
+
 
