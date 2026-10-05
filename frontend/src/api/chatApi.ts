@@ -107,7 +107,7 @@ export async function sendChat(query: string): Promise<ChatResponse> {
   const online = await backendOnline()
   if (!online) throw new Error('Atlas intelligence unavailable: backend is offline')
   try {
-    const { getUserId } = await import('../simulation/auth')
+    const { getUserId } = await import('../auth/storage')
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -136,8 +136,9 @@ export async function runAtlasAgentTurn(
   context: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<AtlasAgentTurnResponse> {
-  const { ensureAuth } = await import('../simulation/auth')
-  const token = await ensureAuth()
+  const { getToken } = await import('../auth/storage')
+  const token = getToken()
+  if (!token) throw new Error('Sign in to use the Atlas agent')
   const response = await fetch('/api/chat/agent/turn', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
