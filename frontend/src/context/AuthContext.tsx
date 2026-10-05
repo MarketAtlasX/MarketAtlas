@@ -31,4 +31,11 @@ interface AuthContextValue {
   register: (input: RegisterInput) => Promise<AuthUser>
   logout: () => void
 }
+
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+interface TokenResponsePayload {
+  access_token: string
+  user: AuthUser
+}
 
