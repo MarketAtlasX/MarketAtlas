@@ -110,4 +110,42 @@ def _render_svg(text: str) -> str:
     char_spacing = 30
     x_start = 22
     baseline = 34
+
+    glyphs: list[str] = []
+    for index, char in enumerate(text):
+        rotation = random.uniform(-24, 24)  # noqa: S311
+        dy = random.uniform(-4, 4)
+        size = random.uniform(26, 34)
+        color = random.choice(_CHAR_COLORS)  # noqa: S311
+        x = x_start + index * char_spacing
+        glyphs.append(
+            f'<text x="{x:.0f}" y="{baseline + dy:.1f}" '
+            f'transform="rotate({rotation:.1f} {x:.0f} {baseline + dy:.1f})" '
+            f'fill="{color}" font-size="{size:.0f}" font-weight="600" '
+            f'font-family="\'Space Grotesk\', \'JetBrains Mono\', monospace" '
+            f'letter-spacing="2">{char}</text>'
+        )
+
+    noise: list[str] = []
+    for _ in range(3):
+        y = random.uniform(8, 44)
+        c1, c2 = random.uniform(10, 60), random.uniform(120, 170)
+        mid = random.uniform(14, 38)
+        color = random.choice(_NOISE_COLORS)  # noqa: S311
+        noise.append(
+            f'<path d="M 8 {y:.1f} C {c1:.0f} {mid:.1f}, {c2:.0f} {46 - mid:.1f}, 172 {random.uniform(6, 46):.1f}" '
+            f'stroke="{color}" stroke-width="1.4" fill="none"/>'
+        )
+    for _ in range(14):
+        dx, dy = random.uniform(4, 168), random.uniform(4, 48)
+        noise.append(f'<circle cx="{dx:.0f}" cy="{dy:.0f}" r="1" fill="rgba(190, 204, 204, 0.35)"/>')
+
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="190" height="52" '
+        'viewBox="0 0 190 52" role="img" aria-label="captcha challenge">'
+        '<rect width="190" height="52" rx="4" fill="#0d1418"/>'
+        f"{''.join(noise)}{''.join(glyphs)}"
+        "</svg>"
+    )
+
 
