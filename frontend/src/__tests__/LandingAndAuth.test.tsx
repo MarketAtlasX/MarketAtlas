@@ -140,4 +140,23 @@ describe('AuthPage (login mode)', () => {
     fireEventChange(inputs[0], 'a@b.co')
     fireEventChange(inputs[1], 'x7')
     fireEventChange(screen.getByPlaceholderText('Password'), 'pw123456')
+
+    screen.getByRole('button', { name: /sign in/i }).click()
+
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        '/auth/login',
+        expect.objectContaining({ email: 'a@b.co', captcha_id: 'cap-1', captcha_answer: 'x7' }),
+      ),
+    )
+  })
+
+  it('surfaces the backend error and requests a fresh captcha on failure', async () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-1', svg: '<svg>x</svg>', kind: 'code', expires_in: 300 },
+    })
+    post.mockRejectedValue({ response: { status: 400, data: { detail: 'Captcha verification failed — request a new challenge' } } })
+
+    renderAt('/login', <AuthPage mode="login" />)
+    await screen.findByText('Type the characters shown on the left.')
 
