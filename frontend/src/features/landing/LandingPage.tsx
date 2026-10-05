@@ -179,4 +179,21 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* ── Capabilities ────────────────────────────────────────────────── */}
+      <section id="capabilities" className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-6">What it does</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {CAPABILITIES.map(({ icon: Icon, title, body }) => (
+            <div
+              key={title}
+              className="panel hud-corners p-5 transition-colors hover:border-[rgba(56,232,255,0.28)]"
+            >
+              <Icon size={18} className="mb-3 text-[var(--accent)]" />
+              <h3 className="mb-2 text-[14px] font-semibold text-[var(--text-hi)]">{title}</h3>
+              <p className="text-[12.5px] leading-relaxed text-[var(--text-mid)]">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
