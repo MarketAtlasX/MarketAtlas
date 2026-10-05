@@ -168,4 +168,8 @@ describe('AuthContext', () => {
     })
     expect(message).toBe('Captcha verification failed — request a new challenge')
   })
-
+
+  it('maps a network failure to an offline message', () => {
+    expect(authErrorMessage(new Error('boom'))).not.toContain('password')
+  })
+})
