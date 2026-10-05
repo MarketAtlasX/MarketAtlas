@@ -95,4 +95,37 @@ describe('AuthContext', () => {
     await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
     expect(localStorage.getItem('marketatlas_token')).toBeNull()
   })
+
+  it('login stores the token and sets the user', async () => {
+    post.mockResolvedValue({ data: tokenPayload })
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+
+    await act(async () => {
+      screen.getByText('login').click()
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    expect(localStorage.getItem('marketatlas_token')).toBe('jwt-token')
+    expect(post).toHaveBeenCalledWith('/auth/login', {
+      email: 'a@b.co',
+      password: 'pw123456',
+      captcha_id: 'c1',
+      captcha_answer: 'x7',
+    })
+  })
+
+  it('register posts display_name and captcha fields', async () => {
+    post.mockResolvedValue({ data: tokenPayload })
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
 
