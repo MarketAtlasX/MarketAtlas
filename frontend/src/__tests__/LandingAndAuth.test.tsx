@@ -39,4 +39,29 @@ function SignedInProbe() {
     </button>
   )
 }
+
+function renderAt(path: string, ui: React.ReactNode) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AuthProvider>{ui}</AuthProvider>
+    </MemoryRouter>,
+  )
+}
+
+describe('LandingPage', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    post.mockReset()
+    get.mockReset()
+  })
+
+  it('renders the hero, capabilities, and CTAs for signed-out visitors', () => {
+    renderAt('/', <LandingPage />)
+    expect(screen.getByText(/Connect world events to the markets they move/i)).toBeInTheDocument()
+    expect(screen.getByText('The no-fabrication guarantee')).toBeInTheDocument()
+    expect(screen.getByText('Live event ingestion')).toBeInTheDocument()
+    expect(screen.getByText('ATLAS, evidence-grounded')).toBeInTheDocument()
+    expect(screen.getAllByText('Create account').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0)
+  })
 
