@@ -59,4 +59,8 @@ const STACK = [
   { icon: Database, label: 'Provider-backed market data' },
   { icon: Layers, label: 'React 19 + WebGL frontend' },
 ]
+
+export default function LandingPage() {
+  const { user, status } = useAuth()
+  const signedIn = status === 'authenticated' && user !== null
 
