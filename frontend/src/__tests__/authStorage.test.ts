@@ -20,4 +20,16 @@ describe('auth storage', () => {
     clearToken()
     expect(getToken()).toBeNull()
   })
+
+  it('derives the user id from the JWT sub claim', () => {
+    setToken(makeJwt(42))
+    expect(getUserId()).toBe('42')
+  })
+
+  it('falls back to a stable anonymous id without a token', () => {
+    const first = getUserId()
+    const second = getUserId()
+    expect(first).toBeTruthy()
+    expect(first).toBe(second)
+  })
 
