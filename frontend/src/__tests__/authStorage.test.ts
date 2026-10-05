@@ -12,4 +12,12 @@ describe('auth storage', () => {
   afterEach(() => {
     localStorage.clear()
   })
+
+  it('stores, reads, and clears the session token', () => {
+    expect(getToken()).toBeNull()
+    setToken('token-abc')
+    expect(getToken()).toBe('token-abc')
+    clearToken()
+    expect(getToken()).toBeNull()
+  })
 
