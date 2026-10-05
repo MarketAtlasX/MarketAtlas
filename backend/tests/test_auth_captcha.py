@@ -81,4 +81,19 @@ REGISTER_URL = "/api/v1/auth/register"
 LOGIN_URL = "/api/v1/auth/login"
 CAPTCHA_URL = "/api/v1/auth/captcha"
 ME_URL = "/api/v1/auth/me"
+
+
+@pytest.fixture
+def known_captcha(monkeypatch):
+    """Pin a captcha with a known answer, stored through the service itself."""
+
+    async def fake_generate():
+        from app.services.captcha_service import CaptchaChallenge
+
+        await captcha_service._fallback_put("known-captcha-id", "answer42")
+        return CaptchaChallenge(captcha_id="known-captcha-id", svg="<svg>challenge</svg>", kind="code")
+
+    monkeypatch.setattr("app.routes.auth.generate_captcha", fake_generate)
+    return {"captcha_id": "known-captcha-id", "captcha_answer": "answer42"}
+
 
