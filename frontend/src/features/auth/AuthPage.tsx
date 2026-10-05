@@ -30,4 +30,6 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [captchaRefresh, setCaptchaRefresh] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const handleChallenge = useCallback((id: string) => setCaptchaId(id), [])
 
