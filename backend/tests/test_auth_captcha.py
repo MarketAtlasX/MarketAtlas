@@ -96,4 +96,30 @@ def known_captcha(monkeypatch):
     monkeypatch.setattr("app.routes.auth.generate_captcha", fake_generate)
     return {"captcha_id": "known-captcha-id", "captcha_answer": "answer42"}
 
+
+async def _fetch_captcha(client):
+    response = await client.get(CAPTCHA_URL)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["captcha_id"]
+    assert "<svg" in body["svg"]
+    return body
+
+
+@pytest.mark.asyncio
+async def test_captcha_endpoint_issues_a_challenge(client):
+    body = await _fetch_captcha(client)
+    assert body["kind"] in ("code", "sum")
+    assert body["expires_in"] == CAPTCHA_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_register_without_captcha_is_rejected(client):
+    response = await client.post(
+        REGISTER_URL,
+        json={"email": "gate@example.com", "password": "super-secret-1", "display_name": "Gate"},
+    )
+    assert response.status_code == 400
+    assert "captcha" in response.json()["detail"].lower()
+
 
