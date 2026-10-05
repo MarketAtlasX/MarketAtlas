@@ -58,3 +58,63 @@ async def test_wrong_answer_consumes_the_challenge():
     stored_answer = captcha_service._fallback_store.get(challenge.captcha_id)
     assert stored_answer is None
 
+
+@pytest.mark.asyncio
+async def test_verify_rejects_missing_fields():
+    assert await verify_captcha(None, "abc") is False
+    assert await verify_captcha("some-id", None) is False
+    assert await verify_captcha("some-id", "") is False
+
+
+@pytest.mark.asyncio
+async def test_answer_is_normalized_case_and_whitespace():
+    challenge = await generate_captcha()
+    stored_answer = captcha_service._fallback_store[challenge.captcha_id][0]
+
+    assert await verify_captcha(challenge.captcha_id, f"  {stored_answer.upper()} ") is True
+
+
+# ---------------------------------------------------------------------------
+# Endpoint level
+# ---------------------------------------------------------------------------
+
+REGISTER_URL = "/api/v1/auth/register"
+LOGIN_URL = "/api/v1/auth/login"
+CAPTCHA_URL = "/api/v1/auth/captcha"
+ME_URL = "/api/v1/auth/me"
+
+
+@pytest_asyncio.fixture
+async def known_captcha(monkeypatch):
+    """Pin a captcha with a known answer, stored through the service itself.
+
+    The answer is stored both up front (for tests that submit the captcha
+    without first requesting a challenge) and on every issued challenge (for
+    tests that do fetch one, e.g. after the first is consumed).
+    """
+
+    async def fake_generate():
+        from app.services.captcha_service import CaptchaChallenge
+
+        await captcha_service._fallback_put("known-captcha-id", "answer42")
+        return CaptchaChallenge(captcha_id="known-captcha-id", svg="<svg>challenge</svg>", kind="code")
+
+    monkeypatch.setattr("app.routes.auth.generate_captcha", fake_generate)
+    await captcha_service._fallback_put("known-captcha-id", "answer42")
+    return {"captcha_id": "known-captcha-id", "captcha_answer": "answer42"}
+
+
+async def _fetch_captcha(client):
+    response = await client.get(CAPTCHA_URL)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["captcha_id"]
+    assert "<svg" in body["svg"]
+    return body
+
+
+@pytest.mark.asyncio
+async def test_captcha_endpoint_issues_a_challenge(client):
+    body = await _fetch_captcha(client)
+    assert body["kind"] in ("code", "sum")
+    assert body["expires_in"] == CAPTCHA_TTL_SECONDS
