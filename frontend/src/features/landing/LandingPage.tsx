@@ -58,3 +58,63 @@ const JOURNEY = [
   { step: '01', title: 'Live Event', body: 'A validated world event arrives from the live feed.' },
   { step: '02', title: 'Globe', body: 'The camera flies to the recorded coordinates.' },
   { step: '03', title: 'Evidence', body: 'One canonical observation loads for the selection.' },
+  { step: '04', title: 'Causal Chain', body: 'Only the hops the backend actually recorded.' },
+  { step: '05', title: 'Markets', body: 'Affected assets with value, freshness and provider.' },
+  { step: '06', title: 'ATLAS', body: 'Ask the assistant, grounded in the evidence on screen.' },
+]
+
+const STACK = [
+  { icon: Server, label: 'FastAPI + PostgreSQL + Redis' },
+  { icon: Radio, label: 'WebSocket event stream' },
+  { icon: Cpu, label: 'LLM-grounded assistant' },
+  { icon: Database, label: 'Provider-backed market data' },
+  { icon: Layers, label: 'React 19 + WebGL frontend' },
+]
+
+const METRICS = [
+  { value: '1', label: 'canonical evidence contract' },
+  { value: '0', label: 'fabricated values, ever' },
+  { value: '120s', label: 'live ingest interval' },
+  { value: '6', label: 'stages from event to answer' },
+]
+
+const CONSOLE_STAGES = [
+  { label: 'EVENT', value: 'Strait transit disruption', status: 'LIVE', tone: 'live' },
+  { label: 'IMPACT', value: 'Energy · Shipping', status: 'RECORDED', tone: 'ok' },
+  { label: 'ASSET', value: 'XOM · CVX', status: 'PROVIDER-BACKED', tone: 'ok' },
+  { label: 'MARKET OBS.', value: 'Quote unavailable', status: 'UNAVAILABLE', tone: 'warn' },
+]
+
+const TONE_STYLES: Record<string, string> = {
+  live: 'border-[rgba(46,230,168,0.35)] text-[var(--positive)]',
+  ok: 'border-[rgba(56,232,255,0.3)] text-[var(--accent)]',
+  warn: 'border-[rgba(245,185,65,0.35)] text-[var(--warning)]',
+}
+
+/** Live backend reachability — proves the stack is actually running. */
+function useSystemStatus() {
+  const [online, setOnline] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (import.meta.env.MODE === 'test') return
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), 4000)
+    fetch('/api/health', { signal: controller.signal })
+      .then(res => setOnline(res.ok))
+      .catch(() => setOnline(false))
+      .finally(() => window.clearTimeout(timer))
+    return () => {
+      window.clearTimeout(timer)
+      controller.abort()
+    }
+  }, [])
+  return online
+}
+
+export default function LandingPage() {
+  const { user, status } = useAuth()
+  const signedIn = status === 'authenticated' && user !== null
+  const online = useSystemStatus()
+
+  const statusLabel =
+    online === null ? 'CHECKING' : online ? 'SYSTEM ONLINE' : 'BACKEND OFFLINE'
+  const statusColor =
