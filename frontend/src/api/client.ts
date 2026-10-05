@@ -13,19 +13,9 @@ export const api = axios.create({
   timeout: 2000,
 })
 
-let authPromise: Promise<string | null> | null = null
-async function ensureAuthToken(): Promise<string | null> {
-  if (!authPromise) {
-    authPromise = import('../simulation/auth')
-      .then(({ ensureAuth }) => ensureAuth())
-      .catch(() => null)
-  }
-  return authPromise
-}
-
 api.interceptors.request.use(async (config) => {
   try {
-    const { getToken } = await import('../simulation/auth')
+    const { getToken } = await import('../auth/storage')
     const token = getToken()
     if (token) config.headers.Authorization = `Bearer ${token}`
   } catch { /* stay token-less */ }
@@ -35,15 +25,18 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
-    if (error.response?.status === 401 && !error.config?._authRetried) {
-      error.config._authRetried = true
-      try {
-        const token = await ensureAuthToken()
-        if (token) {
-          error.config.headers.Authorization = `Bearer ${token}`
-          return api(error.config)
+    // A 401 after an authenticated request means the JWT expired or was
+    // revoked: drop the stale session and let the RequireAuth guard take the
+    // user to /login on their next navigation. Never force a redirect mid-
+    // request on public pages (e.g. a 401 from a captcha-protected auth call).
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
+      const { getToken: readToken, clearToken } = await import('../auth/storage')
+      if (readToken()) {
+        clearToken()
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.assign('/login')
         }
-      } catch { /* fall through */ }
+      }
     }
     return Promise.reject(error)
   },
