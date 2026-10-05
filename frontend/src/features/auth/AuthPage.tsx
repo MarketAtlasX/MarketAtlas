@@ -184,4 +184,12 @@ export default function AuthPage({ mode }: AuthPageProps) {
             </Link>
           </p>
         </form>
-
+
+        <p className="mt-6 text-center text-[10px] leading-relaxed text-[var(--text-lo)]">
+          Protected by server-issued captcha challenges. Answers are verified
+          server-side and every challenge is single-use.
+        </p>
+      </div>
+    </div>
+  )
+}
