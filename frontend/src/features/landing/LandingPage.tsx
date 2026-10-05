@@ -298,3 +298,63 @@ export default function LandingPage() {
                         </p>
                         <p className="truncate text-[12px] text-[var(--text-mid)]">{stage.value}</p>
                       </div>
+                      <span
+                        className={`shrink-0 rounded border px-2 py-0.5 text-[8.5px] font-mono uppercase tracking-[0.14em] ${TONE_STYLES[stage.tone]}`}
+                      >
+                        {stage.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="divider" />
+
+                <p className="text-[10.5px] leading-relaxed text-[var(--text-lo)]">
+                  EVENT → IMPACT → ASSET → MARKET OBSERVATION. Hops the backend did not record are
+                  reported as <span className="font-mono text-[var(--warning)]">NOT ESTABLISHED</span>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Metrics band ────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-6">
+        <div className="panel scanline grid grid-cols-2 gap-px overflow-hidden bg-[var(--line)] sm:grid-cols-4">
+          {METRICS.map(metric => (
+            <div key={metric.label} className="bg-[rgba(21,25,28,0.96)] px-5 py-4">
+              <p className="font-display text-2xl font-semibold text-[var(--accent)]">{metric.value}</p>
+              <p className="mt-1 text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-lo)]">
+                {metric.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Core journey ────────────────────────────────────────────────── */}
+      <section id="pipeline" className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-2">The core journey</p>
+        <h2 className="mb-6 font-display text-2xl font-semibold text-[var(--text-hi)]">
+          From a live event to a grounded answer
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {JOURNEY.map(item => (
+            <div
+              key={item.step}
+              className="panel hud-corners p-5 transition-colors hover:border-[rgba(56,232,255,0.28)]"
+            >
+              <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--accent)]">
+                {item.step}
+              </span>
+              <h3 className="mt-2 text-[14px] font-semibold text-[var(--text-hi)]">{item.title}</h3>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--text-mid)]">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Capabilities ────────────────────────────────────────────────── */}
+      <section id="capabilities" className="mx-auto max-w-6xl px-6 py-12">
+        <p className="panel-title mb-6">What it does</p>
