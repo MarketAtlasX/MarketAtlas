@@ -93,4 +93,9 @@ async def _take_answer(captcha_id: str) -> str | None:
 # ---------------------------------------------------------------------------
 # Challenge generation
 # ---------------------------------------------------------------------------
+
+
+def _random_code() -> str:
+    return "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
+
 
