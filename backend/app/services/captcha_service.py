@@ -16,4 +16,14 @@ import secrets
 import time
 import uuid
 from dataclasses import dataclass
+
+from app.cache import cache
+
+CAPTCHA_TTL_SECONDS = 300
+
+_KEY_PREFIX = "captcha:"
+
+# Characters without visually ambiguous pairs (no 0/O, 1/I/l, 5/S, 8/B …).
+_CODE_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+_CODE_LENGTH = 5
 
