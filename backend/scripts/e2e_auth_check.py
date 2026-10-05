@@ -160,4 +160,49 @@ async def main() -> int:
             },
         )
         check("login wrong password -> 401", r.status_code == 401, f"got {r.status_code}")
+
+        # 11. Login without captcha -> 400
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={"email": "operator@example.com", "password": "password123"},
+        )
+        check("login without captcha -> 400", r.status_code == 400, f"got {r.status_code}")
+
+        # 12. Successful login
+        r = await client.get("/api/v1/auth/captcha")
+        cap4 = r.json()
+        ans4 = (captcha_service._fallback_store.get(cap4["captcha_id"]) or [""])[0]
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "operator@example.com", "password": "password123",
+                "captcha_id": cap4["captcha_id"], "captcha_answer": ans4,
+            },
+        )
+        check("login valid -> 200", r.status_code == 200, r.text[:200])
+        login_token = r.json().get("access_token")
+        check("login returns a JWT", bool(login_token))
+
+        # 13. Replay the same captcha -> rejected (single-use)
+        r = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "operator@example.com", "password": "password123",
+                "captcha_id": cap4["captcha_id"], "captcha_answer": ans4,
+            },
+        )
+        check("captcha replay -> 400", r.status_code == 400, f"got {r.status_code}")
+
+        # 14. Captcha svg for a sum challenge contains '+' (format sanity)
+        r = await client.get("/api/v1/auth/captcha")
+        cap5 = r.json()
+        if cap5["kind"] == "sum":
+            check("sum svg contains +", "+" in cap5["svg"])
+        else:
+            check("code svg is non-trivial", len(cap5["svg"]) > 300)
+
+    await engine.dispose()
+    print(f"\n{passed} passed, {failed} failed")
+    return 1 if failed else 0
+
 
