@@ -196,4 +196,23 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
+
+      {/* ── No fabrication ──────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-6 py-12">
+        <div className="panel scanline flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
+          <BadgeCheck size={22} className="shrink-0 text-[var(--positive)]" />
+          <div>
+            <h3 className="text-[15px] font-semibold text-[var(--text-hi)]">
+              The no-fabrication guarantee
+            </h3>
+            <p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-[var(--text-mid)]">
+              Missing data renders as <span className="font-mono text-[var(--warning)]">UNAVAILABLE</span> — never a
+              plausible-looking placeholder. Unlocated events are not placed on the globe. Unsupported assistant
+              claims are labelled &ldquo;the evidence does not establish it&rdquo;. Simulated data is tagged{' '}
+              <span className="font-mono text-[var(--warning)]">SIMULATED</span> at the record level, never passed
+              off as live.
+            </p>
+          </div>
+        </div>
+      </section>
 
