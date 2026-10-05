@@ -38,4 +38,25 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   }
   return <>{children}</>
 }
-
+
+/**
+ * Layout route for every signed-in surface. Scopes the world/assistant
+ * providers (WebSocket bootstrap, voice, wake word) to authenticated pages so
+ * public pages never start them.
+ */
+export default function ProtectedShell() {
+  return (
+    <RequireAuth>
+      <WorldProvider>
+        <AtlasProvider>
+          <AssistantStateProvider>
+            <VoiceAssistantProvider>
+              <AtlasCommandHandler />
+              <Outlet />
+            </VoiceAssistantProvider>
+          </AssistantStateProvider>
+        </AtlasProvider>
+      </WorldProvider>
+    </RequireAuth>
+  )
+}
