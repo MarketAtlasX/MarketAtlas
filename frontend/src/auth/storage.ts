@@ -53,11 +53,3 @@ export function getUserId(): string {
  */
 export function getAnonId(): string {
   let id = localStorage.getItem(ANON_ID_KEY)
-  if (!id) {
-    id = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `anon-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
-    localStorage.setItem(ANON_ID_KEY, id)
-  }
-  return id
-}
