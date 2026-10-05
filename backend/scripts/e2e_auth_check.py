@@ -205,4 +205,6 @@ async def main() -> int:
     print(f"\n{passed} passed, {failed} failed")
     return 1 if failed else 0
 
-
+
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))
