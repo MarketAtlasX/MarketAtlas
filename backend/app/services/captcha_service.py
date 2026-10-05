@@ -163,3 +163,13 @@ async def generate_captcha() -> CaptchaChallenge:
     await _store_answer(captcha_id, answer.lower().strip())
     return CaptchaChallenge(captcha_id=captcha_id, svg=_render_svg(question), kind=kind)
 
+
+async def verify_captcha(captcha_id: str | None, answer: str | None) -> bool:
+    """Verify a submitted answer. Single-use: the stored answer is consumed
+    whether the attempt succeeds or fails, so it cannot be replayed."""
+    if not captcha_id or not answer:
+        return False
+    expected = await _take_answer(captcha_id)
+    if expected is None:
+        return False
+    return secrets.compare_digest(expected, answer.strip().lower())
