@@ -112,4 +112,17 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 />
               </div>
             )}
+
+            <div className="relative">
+              <AtSign size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-lo)]" />
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Email"
+                autoComplete="email"
+                required
+                className={inputClass}
+              />
+            </div>
 
