@@ -118,3 +118,63 @@ describe('live evidence update experience', () => {
     renderHarness('Iran')
 
     await waitFor(() => expect(pending.length).toBe(1), { timeout: 5000 })
+    pending[0].resolve(liveObservation('GDELT'))
+    await waitFor(() => expect(captured?.evidence.status).toBe('ready'), { timeout: 5000 })
+
+    screen.getByTestId('evidence-refresh').click()
+    await waitFor(() => expect(pending.length).toBe(2))
+    pending[1].reject(new Error('network down'))
+
+    await waitFor(() => expect(captured?.evidence.refreshing).toBe(false), { timeout: 5000 })
+    // The previous observation is still shown; no fabricated update, no reset.
+    expect(captured?.evidence.observation?.provenance?.provider).toBe('GDELT')
+    expect(screen.getByText('GDELT')).toBeInTheDocument()
+    expect(screen.queryByTestId('evidence-loading')).not.toBeInTheDocument()
+    expect(screen.getByTestId('evidence-refresh-error')).toBeInTheDocument()
+  })
+
+  it('drops a stale refresh response after the selection changes', async () => {
+    installFetchMock()
+    const { rerenderHarness } = renderHarness('Taiwan')
+
+    await waitFor(() => expect(pending.length).toBe(1), { timeout: 5000 })
+    pending[0].resolve(liveObservation('TAIWAN-PROVIDER'))
+    await waitFor(() => expect(captured?.evidence.status).toBe('ready'), { timeout: 5000 })
+
+    // Start a refresh for Taiwan, then switch selection before it resolves.
+    screen.getByTestId('evidence-refresh').click()
+    await waitFor(() => expect(pending.length).toBe(2))
+
+    rerenderHarness('Iran')
+    await waitFor(() => expect(pending.length).toBe(3))
+    expect(captured?.evidence.selection).toBe('Iran')
+    expect(captured?.evidence.observation).toBeNull()
+
+    // The late Taiwan refresh must not leak into the Iran selection.
+    pending[1].resolve({ status: 'degraded', freshness: 'unknown', provenance: { provider: 'TAIWAN-LATE' } })
+    pending[2].resolve({ status: 'live', freshness: 'current', provenance: { provider: 'IRAN-PROVIDER' } })
+
+    await waitFor(() => expect(captured?.evidence.status).toBe('ready'), { timeout: 5000 })
+    expect(captured?.evidence.selection).toBe('Iran')
+    expect(captured?.evidence.observation?.provenance?.provider).toBe('IRAN-PROVIDER')
+    expect(screen.queryByText('TAIWAN-LATE')).not.toBeInTheDocument()
+  })
+
+  it('reflects a status transition from live to unavailable on refresh', async () => {
+    installFetchMock()
+    renderHarness('Japan')
+
+    await waitFor(() => expect(pending.length).toBe(1), { timeout: 5000 })
+    pending[0].resolve(liveObservation('GDELT'))
+    await waitFor(() => expect(captured?.evidence.status).toBe('ready'), { timeout: 5000 })
+    expect(screen.getAllByText('LIVE').length).toBeGreaterThan(0)
+
+    screen.getByTestId('evidence-refresh').click()
+    await waitFor(() => expect(pending.length).toBe(2))
+    pending[1].resolve({
+      status: 'unavailable',
+      freshness: 'unknown',
+      provider_status: { events: 'unavailable', market_data: 'unavailable', causal_graph: 'unavailable' },
+      uncertainty: ['No persisted provider-backed event matched the request.'],
+      limitations: ['No persisted provider-backed event matched the request.'],
+    })
