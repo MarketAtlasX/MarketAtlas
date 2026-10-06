@@ -4,6 +4,7 @@ import MarketsPage from './features/markets/MarketsPage'
 import GraphPage from './features/graph-analysis/GraphPage'
 import SimulatorPage from './features/scenario-simulator/SimulatorPage'
 import MemoryPage from './features/world-memory/MemoryPage'
+import ProfilePage from './features/profile/ProfilePage'
 import { AtlasPage } from './assistant/AtlasPage'
 import AppLayout from './components/AppLayout'
 import LandingPage from './features/landing/LandingPage'
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/simulator" element={<AppLayout><SimulatorPage /></AppLayout>} />
         <Route path="/memory" element={<AppLayout><MemoryPage /></AppLayout>} />
         <Route path="/atlas" element={<AppLayout><AtlasPage /></AppLayout>} />
+        <Route path="/profile" element={<AppLayout><ProfilePage /></AppLayout>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
