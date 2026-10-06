@@ -25,7 +25,7 @@ The World Command Center is the main dashboard of MarketAtlas. It provides geopo
 ## Components
 
 - `TopStatusBar` — Header with brand, back navigation, risk score, and clock
-- `NavigationRail` — Vertical nav with WORLD, MARKETS, EVENTS, GRAPH, SIMULATOR, MEMORY, AGENTS, ATLAS
+- `NavigationRail` — Vertical nav with WORLD, MARKETS, EVENTS, GRAPH, SIMULATOR, MEMORY, PROFILE, AGENTS, ATLAS
 - `IntelligencePanel` — Geopolitical risk and market impact panel
 - `AgentStatusMatrix` — AI agent roster and consensus display
 - `CommandConsole` — Tabbed console with LIVE EVENTS, PROPAGATION, AI ANALYSIS, WORLD MEMORY, COMMAND

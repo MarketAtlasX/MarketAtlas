@@ -1,4 +1,4 @@
-import { ChevronLeft, LogOut, Mic, MicOff, RadioTower } from 'lucide-react'
+import { ChevronLeft, LogOut, Mic, MicOff, RadioTower, UserRound } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useWorldStore } from '../../stores/WorldStore'
@@ -17,6 +17,7 @@ export default function TopStatusBar() {
   const now = useClock()
   const risk = worldState.worldRisk
   const isDashboard = location.pathname === '/dashboard'
+  const isProfile = location.pathname === '/profile'
 
   const handleLogout = () => {
     logout()
@@ -115,17 +116,30 @@ export default function TopStatusBar() {
 
         {/* Account chip + sign-out */}
         <div className="flex items-center gap-2">
-          <div
-            className="flex items-center gap-2 border border-[var(--line)] bg-[rgba(6,12,18,0.72)] px-2.5 py-1.5"
-            title={user ? `Signed in as ${user.email}` : 'Signed in'}
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            title={user ? `Signed in as ${user.email} — open profile` : 'Open profile'}
+            aria-label="Open profile"
+            aria-current={isProfile ? 'page' : undefined}
+            className={`flex items-center gap-2 border px-2.5 py-1.5 transition-colors ${
+              isProfile
+                ? 'border-[rgba(56,232,255,0.4)] bg-[rgba(56,232,255,0.1)]'
+                : 'border-[var(--line)] bg-[rgba(6,12,18,0.72)] hover:border-[rgba(56,232,255,0.3)]'
+            }`}
           >
             <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[rgba(56,232,255,0.15)] text-[8px] font-bold text-[var(--accent)]">
               {(user?.display_name?.trim()?.[0] ?? 'A').toUpperCase()}
             </span>
-            <span className="hidden max-w-[140px] truncate text-[10px] font-mono uppercase tracking-[0.14em] text-[var(--text-mid)]">
+            <span
+              className={`hidden max-w-[140px] truncate text-[10px] font-mono uppercase tracking-[0.14em] sm:inline ${
+                isProfile ? 'text-[var(--accent)]' : 'text-[var(--text-mid)]'
+              }`}
+            >
               {user?.display_name ?? 'Operator'}
             </span>
-          </div>
+            <UserRound size={12} className={isProfile ? 'text-[var(--accent)]' : 'text-[var(--text-lo)]'} />
+          </button>
           <button
             type="button"
             onClick={handleLogout}

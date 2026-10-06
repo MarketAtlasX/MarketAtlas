@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Globe, TrendingUp, Network, FlaskConical, Database, Radio, Bot, Orbit } from 'lucide-react'
+import { Globe, TrendingUp, Network, FlaskConical, Database, Radio, Bot, Orbit, Wallet } from 'lucide-react'
 import { useWorldStore } from '../../stores/WorldStore'
 import StatusDot from '../../components/ui/StatusDot'
 import { useAssistantState } from '../../assistant/state/AssistantStateContext'
@@ -37,6 +37,7 @@ export default function NavigationRail() {
     { label: 'GRAPH', icon: <Network size={14} />, to: '/graph' },
     { label: 'SIMULATOR', icon: <FlaskConical size={14} />, to: '/simulator' },
     { label: 'MEMORY', icon: <Database size={14} />, to: '/memory' },
+    { label: 'PROFILE', icon: <Wallet size={14} />, to: '/profile' },
     { label: 'AGENTS', icon: <Bot size={14} />, action: () => navigate('/dashboard?tab=agents') },
     { label: 'ATLAS', icon: <Orbit size={14} />, action: toggleAtlas, isAtlas: true },
   ]
