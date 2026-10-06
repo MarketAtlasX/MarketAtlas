@@ -42,6 +42,7 @@ from app.routes import (
     memory_router,
     portfolio_router,
     prediction_router,
+    profile_router,
     signal_router,
     simulation_ws_router,
     simulations_router,
@@ -177,6 +178,7 @@ api_v1_router.include_router(graph_engine_router)
 api_v1_router.include_router(live_event_router)
 api_v1_router.include_router(backtest_router)
 api_v1_router.include_router(portfolio_router)
+api_v1_router.include_router(profile_router)
 api_v1_router.include_router(simulations_router)
 api_v1_router.include_router(market_data_router)
 api_v1_router.include_router(assistant_router)
