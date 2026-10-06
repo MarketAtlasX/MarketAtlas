@@ -42,6 +42,10 @@ from app.models.portfolio import (
 )
 from app.models.raw_event import RawEvent  # noqa: F401
 from app.models.signal import Signal  # noqa: F401
+from app.models.trade import (  # noqa: F401
+    Trade,
+    Watchlist,
+)
 from app.models.trade_route import TradeRoute  # noqa: F401
 from app.models.user import User  # noqa: F401
 
