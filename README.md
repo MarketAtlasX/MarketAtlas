@@ -80,7 +80,9 @@ redirected to `/login`; the landing page and auth pages are public.
   fallback when Redis is unavailable. Verification is single-use — a failed
   attempt consumes the challenge and the UI fetches a fresh one. Disable in
   trusted environments with `AUTH_CAPTCHA_ENABLED=False`.
-- **Token handling** — the SPA stores the JWT in `localStorage` and attaches it
+- **Token handling** — the SPA stores the JWT (with "Remember me" checked it
+  goes to `localStorage` and survives browser restarts; unchecked it is
+  session-scoped in `sessionStorage`) and attaches it
   via an axios interceptor. A 401 from a non-auth endpoint clears the stale
   session and redirects to `/login`. `POST /auth/logout` acknowledges the
   sign-out (JWTs stay valid until expiry; a denylist is the future home for
