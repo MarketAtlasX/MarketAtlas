@@ -11,6 +11,7 @@ const makeJwt = (sub: string | number) =>
 describe('auth storage', () => {
   afterEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('stores, reads, and clears the session token', () => {
@@ -38,5 +39,32 @@ describe('auth storage', () => {
     setToken(makeJwt(7))
     clearToken()
     expect(getUserId()).toBe(anon)
+  })
+
+  it('persists in localStorage when remember me is on (default)', () => {
+    setToken('remembered', true)
+    expect(localStorage.getItem('marketatlas_token')).toBe('remembered')
+    expect(sessionStorage.getItem('marketatlas_token')).toBeNull()
+    expect(getToken()).toBe('remembered')
+  })
+
+  it('keeps the token session-only when remember me is off', () => {
+    setToken('session-only', false)
+    expect(sessionStorage.getItem('marketatlas_token')).toBe('session-only')
+    expect(localStorage.getItem('marketatlas_token')).toBeNull()
+    expect(getToken()).toBe('session-only')
+  })
+
+  it('prefers the session-scoped token over a stale remembered one', () => {
+    setToken('remembered')
+    setToken('session-only', false)
+    expect(getToken()).toBe('session-only')
+  })
+
+  it('clears the token from both stores', () => {
+    setToken('remembered')
+    sessionStorage.setItem('marketatlas_token', 'stray')
+    clearToken()
+    expect(getToken()).toBeNull()
   })
 })

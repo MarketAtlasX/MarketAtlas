@@ -34,6 +34,13 @@ function Probe() {
       </button>
       <button
         onClick={() =>
+          void login({ email: 'a@b.co', password: 'pw123456', captchaId: 'c1', captchaAnswer: 'x7', rememberMe: false })
+        }
+      >
+        login-session
+      </button>
+      <button
+        onClick={() =>
           void register({ email: 'a@b.co', password: 'pw123456', displayName: 'Atlas', captchaId: 'c1', captchaAnswer: 'x7' })
         }
       >
@@ -52,6 +59,7 @@ const tokenPayload = {
 describe('AuthContext', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     post.mockReset()
     get.mockReset()
   })
@@ -140,6 +148,24 @@ describe('AuthContext', () => {
       captcha_id: 'c1',
       captcha_answer: 'x7',
     })
+  })
+
+  it('keeps the token session-only when remember me is off', async () => {
+    post.mockResolvedValue({ data: tokenPayload })
+
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('unauthenticated'))
+
+    await act(async () => {
+      screen.getByText('login-session').click()
+    })
+    await waitFor(() => expect(screen.getByTestId('status')).toHaveTextContent('authenticated'))
+    expect(localStorage.getItem('marketatlas_token')).toBeNull()
+    expect(sessionStorage.getItem('marketatlas_token')).toBe('jwt-token')
   })
 
   it('logout clears the token and user', async () => {

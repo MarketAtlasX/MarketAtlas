@@ -51,6 +51,7 @@ function renderAt(path: string, ui: React.ReactNode) {
 describe('LandingPage', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     post.mockReset()
     get.mockReset()
   })
@@ -90,6 +91,7 @@ describe('LandingPage', () => {
 describe('AuthPage (login mode)', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     post.mockReset()
     get.mockReset()
   })
@@ -174,6 +176,7 @@ describe('AuthPage (login mode)', () => {
 describe('AuthPage (register mode)', () => {
   beforeEach(() => {
     localStorage.clear()
+    sessionStorage.clear()
     post.mockReset()
     get.mockReset()
   })
@@ -186,6 +189,15 @@ describe('AuthPage (register mode)', () => {
     expect(screen.getByPlaceholderText('Display name')).toBeInTheDocument()
     expect(screen.getByText('Join MarketAtlas')).toBeInTheDocument()
     expect(await screen.findByText('Enter the sum shown on the left.')).toBeInTheDocument()
+  })
+
+  it('offers a remember-me option that defaults to on', async () => {
+    get.mockResolvedValue({
+      data: { captcha_id: 'cap-2', svg: '<svg>y</svg>', kind: 'sum', expires_in: 300 },
+    })
+    renderAt('/register', <AuthPage mode="register" />)
+    const checkbox = screen.getByRole('checkbox', { name: /remember me/i })
+    expect(checkbox).toBeChecked()
   })
 
   it('links to login for existing accounts', () => {
