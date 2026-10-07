@@ -27,6 +27,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [displayName, setDisplayName] = useState('')
   const [captchaId, setCaptchaId] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState('')
+  const [rememberMe, setRememberMe] = useState(true)
   const [captchaRefresh, setCaptchaRefresh] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,9 +45,9 @@ export default function AuthPage({ mode }: AuthPageProps) {
     setError(null)
     try {
       if (isRegister) {
-        await register({ email, password, displayName, captchaId, captchaAnswer })
+        await register({ email, password, displayName, captchaId, captchaAnswer, rememberMe })
       } else {
-        await login({ email, password, captchaId, captchaAnswer })
+        await login({ email, password, captchaId, captchaAnswer, rememberMe })
       }
       navigate(redirectTo, { replace: true })
     } catch (err) {
@@ -139,6 +140,16 @@ export default function AuthPage({ mode }: AuthPageProps) {
                 className={inputClass}
               />
             </div>
+
+            <label className="flex cursor-pointer select-none items-center gap-2 text-[12px] text-[var(--text-mid)]">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                className="h-3.5 w-3.5 accent-[var(--accent)]"
+              />
+              Remember me on this device
+            </label>
 
             <CaptchaChallenge onChallenge={handleChallenge} refreshToken={captchaRefresh} />
             <div className="relative">

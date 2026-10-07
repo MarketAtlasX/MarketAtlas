@@ -19,15 +19,33 @@ export interface AuthUser {
 }
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  // Session-scoped token first: it is the more recently written choice, and a
+  // "remember me" token in localStorage must not shadow it.
+  return sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY)
 }
 
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
+/**
+ * Persist the session token.
+ *
+ * `persist` mirrors the "Remember me" choice:
+ *   - true  -> localStorage, so the session survives closing the browser
+ *   - false -> sessionStorage, so it ends when the tab/window closes
+ * Either way the token is removed from the other store so a stale value can
+ * never win on the next read.
+ */
+export function setToken(token: string, persist = true): void {
+  if (persist) {
+    localStorage.setItem(TOKEN_KEY, token)
+    sessionStorage.removeItem(TOKEN_KEY)
+  } else {
+    sessionStorage.setItem(TOKEN_KEY, token)
+    localStorage.removeItem(TOKEN_KEY)
+  }
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
 }
 
 /**

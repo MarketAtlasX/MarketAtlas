@@ -18,6 +18,10 @@ export interface LoginInput {
   password: string
   captchaId: string
   captchaAnswer: string
+  /** Persist the session across browser restarts (localStorage) vs. only for
+   * this tab (sessionStorage). Defaults to true so existing callers keep the
+   * previous always-persisted behaviour. */
+  rememberMe?: boolean
 }
 
 export interface RegisterInput extends LoginInput {
@@ -92,8 +96,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const applySession = useCallback((payload: TokenResponsePayload) => {
-    setToken(payload.access_token)
+  const applySession = useCallback((payload: TokenResponsePayload, rememberMe = true) => {
+    setToken(payload.access_token, rememberMe)
     setUser(payload.user)
     setStatus('authenticated')
     return payload.user
@@ -107,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         captcha_id: input.captchaId,
         captcha_answer: input.captchaAnswer,
       })
-      return applySession(data)
+      return applySession(data, input.rememberMe)
     },
     [applySession],
   )
@@ -121,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         captcha_id: input.captchaId,
         captcha_answer: input.captchaAnswer,
       })
-      return applySession(data)
+      return applySession(data, input.rememberMe)
     },
     [applySession],
   )
