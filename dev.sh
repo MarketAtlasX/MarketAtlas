@@ -32,6 +32,12 @@ else
   echo "[local] Docker startup disabled. Using local Postgres/Redis when available."
 fi
 
+# Read the DB host/port from the same .env the backend loads, so the readiness
+# probe targets the real database. Probing the 5432 default while the app uses
+# a .env DB_PORT (e.g. 5433) silently skips `alembic upgrade head`, leaving the
+# schema stale — which makes every auth query fail with a 500.
+DB_HOST="${DB_HOST:-$(awk -F= '/^DB_HOST=/{print substr($0, index($0, "=") + 1); exit}' "$ROOT/backend/.env" 2>/dev/null)}"
+DB_PORT="${DB_PORT:-$(awk -F= '/^DB_PORT=/{print substr($0, index($0, "=") + 1); exit}' "$ROOT/backend/.env" 2>/dev/null)}"
 if command -v pg_isready >/dev/null 2>&1 && pg_isready -h "${DB_HOST:-localhost}" -p "${DB_PORT:-5432}" >/dev/null 2>&1; then
   echo "[database] Running migrations..."
   (cd "$ROOT/backend" && "$ROOT/venv/bin/alembic" upgrade head)
