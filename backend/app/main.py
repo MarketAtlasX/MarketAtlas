@@ -46,6 +46,7 @@ from app.routes import (
     signal_router,
     simulation_ws_router,
     simulations_router,
+    watchlist_router,
     world_state_router,
     ws_router,
 )
@@ -178,6 +179,10 @@ api_v1_router.include_router(graph_engine_router)
 api_v1_router.include_router(live_event_router)
 api_v1_router.include_router(backtest_router)
 api_v1_router.include_router(portfolio_router)
+# The watchlist intelligence router shares the /profile/watchlist prefix and
+# MUST be registered before profile_router so its static sub-paths
+# (/quotes, /alerts, /atlas-context) win over /watchlist/{watchlist_id}.
+api_v1_router.include_router(watchlist_router)
 api_v1_router.include_router(profile_router)
 api_v1_router.include_router(simulations_router)
 api_v1_router.include_router(market_data_router)
