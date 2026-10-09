@@ -20,6 +20,7 @@ from app.routes.profile import router as profile_router
 from app.routes.signal import router as signal_router
 from app.routes.simulation_ws import ws_router as simulation_ws_router
 from app.routes.simulations import router as simulations_router
+from app.routes.watchlist import router as watchlist_router
 from app.routes.world_state import router as world_state_router
 from app.routes.ws import ws_router
 
@@ -29,6 +30,7 @@ __all__ = [
     "market_price_router",
     "portfolio_router",
     "profile_router",
+    "watchlist_router",
     "signal_router",
     "prediction_router",
     "simulations_router",
