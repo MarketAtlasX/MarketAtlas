@@ -71,6 +71,32 @@ vi.mock('../api/profileApi', () => ({
   closeTrade: vi.fn(),
   deleteTrade: vi.fn(),
   getWatchlist: vi.fn(async () => watchlist),
+  getWatchlistQuotes: vi.fn(async () =>
+    watchlist.map(item => ({
+      ...item,
+      market: {
+        status: 'unavailable',
+        symbol: item.ticker,
+        price: null,
+        change: null,
+        change_percent: null,
+        previous_close: null,
+        currency: null,
+        provider: null,
+        observed_at: null,
+        freshness: 'unknown',
+        limitations: [],
+      },
+    })),
+  ),
+  getWatchlistHistory: vi.fn(),
+  getWatchlistEvidence: vi.fn(),
+  getAlertRules: vi.fn(async () => []),
+  getAlertEvents: vi.fn(async () => []),
+  createAlertRule: vi.fn(),
+  updateAlertRule: vi.fn(),
+  deleteAlertRule: vi.fn(),
+  evaluateAlerts: vi.fn(),
   addToWatchlist: vi.fn(),
   updateWatchlistItem: vi.fn(),
   removeFromWatchlist: vi.fn(),
@@ -84,10 +110,13 @@ describe('ProfilePage', () => {
   it('shows money invested, earned and withdrawable totals', async () => {
     renderProfile()
 
-    expect(await screen.findByText('$1,000.00')).toBeInTheDocument()
+    // Scope to the stat cards: identical figures also appear in the positions
+    // table, so a bare text query is ambiguous once trades load.
+    expect(await screen.findByTestId('stat-money-invested')).toHaveTextContent('$1,000.00')
+    expect(screen.getByTestId('stat-current-value')).toHaveTextContent('$1,100.00')
+    expect(screen.getByTestId('stat-profit-loss')).toHaveTextContent('+$100.00')
+    expect(screen.getByTestId('stat-withdrawable')).toHaveTextContent('$250.00')
     expect(screen.getByText('$600.00')).toBeInTheDocument()
-    expect(screen.getByText('$250.00')).toBeInTheDocument()
-    expect(screen.getByText('+$100.00')).toBeInTheDocument()
     expect(screen.getByText('+10.00% vs invested')).toBeInTheDocument()
     expect(screen.getByText('operator@test.com')).toBeInTheDocument()
   })
