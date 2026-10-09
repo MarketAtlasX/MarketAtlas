@@ -55,6 +55,25 @@ export function planAtlasRequest(query: string, state: AtlasState): AtlasPlan {
     return { query, steps, responseHint: 'I restored the global view.' }
   }
 
+  // Watchlist questions are answered from the user's own, provider-backed
+  // context rather than a generic market summary.
+  const watchlistIntent =
+    lower.includes('watchlist') ||
+    lower.includes('my assets') ||
+    lower.includes('my positions') ||
+    lower.includes('my portfolio')
+  if (watchlistIntent) {
+    const wantsBriefing = ['changed', 'today', 'moving', 'why', 'exposed', 'exposure', 'significant', 'summary', 'brief'].some(
+      token => lower.includes(token),
+    )
+    if (wantsBriefing) {
+      steps.push(step('watchlist', 'Reading your watchlist context', 'brief_watchlist', {}, 'OPEN_MARKET'))
+      return { query, steps, responseHint: 'Reviewing your watchlist with provider-backed data.' }
+    }
+    steps.push(step('watchlist', 'Opening your watchlist', 'show_watchlist', {}, 'OPEN_MARKET'))
+    return { query, steps, responseHint: 'Here is your watchlist.' }
+  }
+
   if (lower.includes('compare') && (company || state.selectedCompany)) {
     const symbols = Array.from(new Set([symbol, 'AMD'].filter(Boolean)))
     steps.push(step('compare', `Comparing ${symbols.join(' and ')}`, 'compare_stocks', { symbols: symbols.join(',') }, 'OPEN_MARKET'))
