@@ -287,21 +287,47 @@ async def add_to_watchlist(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> WatchlistRead:
-    """Add a stock to user's watchlist."""
-    # Check if already exists
+    """Add a stock to user's watchlist.
+
+    Duplicate active entries are rejected. A previously deactivated entry for
+    the same ticker is reactivated (with the new values) rather than creating a
+    duplicate row, so the watchlist never holds two rows for one symbol.
+    """
+    ticker = body.ticker.upper()
     existing = await db.execute(
         select(Watchlist).where(
             Watchlist.user_id == current_user.id,
-            Watchlist.ticker == body.ticker.upper(),
+            Watchlist.ticker == ticker,
             Watchlist.is_active.is_(True),
         )
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Ticker already in watchlist")
 
+    inactive = await db.execute(
+        select(Watchlist)
+        .where(
+            Watchlist.user_id == current_user.id,
+            Watchlist.ticker == ticker,
+            Watchlist.is_active.is_(False),
+        )
+        .order_by(Watchlist.created_at.desc())
+    )
+    reactivated = inactive.scalars().first()
+    if reactivated is not None:
+        reactivated.company_name = body.company_name
+        reactivated.asset_type = body.asset_type
+        reactivated.target_price = body.target_price
+        reactivated.stop_loss = body.stop_loss
+        reactivated.notes = body.notes
+        reactivated.is_active = True
+        await db.commit()
+        await db.refresh(reactivated)
+        return WatchlistRead.model_validate(reactivated)
+
     watchlist_item = Watchlist(
         user_id=current_user.id,
-        ticker=body.ticker.upper(),
+        ticker=ticker,
         company_name=body.company_name,
         asset_type=body.asset_type,
         target_price=body.target_price,
