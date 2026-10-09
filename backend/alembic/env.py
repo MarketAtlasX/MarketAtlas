@@ -48,6 +48,11 @@ from app.models.trade import (  # noqa: F401
 )
 from app.models.trade_route import TradeRoute  # noqa: F401
 from app.models.user import User  # noqa: F401
+from app.models.watchlist_alert import (  # noqa: F401
+    WatchlistAlertEvalRun,
+    WatchlistAlertEvent,
+    WatchlistAlertRule,
+)
 
 # ---------------------------------------------------------------------------
 # Alembic configuration
