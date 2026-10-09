@@ -16,6 +16,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 from app.config import settings
+from app.constants import WATCHLIST_ALERT_SCHEDULE_MINUTES
 
 celery_app = Celery(
     "marketatlas",
@@ -27,6 +28,7 @@ celery_app = Celery(
         "app.workers.geo_event_tasks",
         "app.workers.live_event_tasks",
         "app.workers.simulation_tasks",
+        "app.workers.watchlist_alert_tasks",
     ],
 )
 
@@ -49,6 +51,12 @@ celery_app.conf.beat_schedule = {
     "resolve-stale-events": {
         "task": "app.workers.live_event_tasks.resolve_stale_events",
         "schedule": crontab(minute=30),
+        "kwargs": {},
+    },
+    "evaluate-watchlist-alerts": {
+        "task": "app.workers.watchlist_alert_tasks.evaluate_watchlist_alerts_task",
+        # Cadence is shared with the health endpoint so they cannot drift.
+        "schedule": crontab(minute=f"*/{WATCHLIST_ALERT_SCHEDULE_MINUTES}"),
         "kwargs": {},
     },
 }
