@@ -3,7 +3,16 @@ import type {
   Profile,
   PortfolioSummary,
   Trade,
+  WatchlistAlertEvaluation,
+  WatchlistAlertEvent,
+  WatchlistAlertKind,
+  WatchlistAlertRule,
+  WatchlistAlertSchedulerHealth,
+  WatchlistEvidence,
+  WatchlistHistory,
+  WatchlistAtlasContext,
   WatchlistItem,
+  WatchlistQuoteItem,
 } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -104,4 +113,128 @@ export async function updateWatchlistItem(
 
 export async function removeFromWatchlist(itemId: string): Promise<void> {
   await api.delete(`/v1/profile/watchlist/${itemId}`)
+}
+
+// ---------------------------------------------------------------------------
+// Watchlist intelligence
+// ---------------------------------------------------------------------------
+
+/** Every active watchlist item joined with its provider-backed market quote. */
+export async function getWatchlistQuotes(): Promise<WatchlistQuoteItem[]> {
+  const { data } = await api.get<WatchlistQuoteItem[]>('/v1/profile/watchlist/quotes')
+  return data
+}
+
+/** Compact provider-backed close series for a sparkline. */
+export async function getWatchlistHistory(
+  itemId: string,
+  interval: 'daily' | 'weekly' | 'monthly' = 'daily',
+  points = 30,
+): Promise<WatchlistHistory> {
+  const params = new URLSearchParams({ interval, points: String(points) })
+  const { data } = await api.get<WatchlistHistory>(
+    `/v1/profile/watchlist/${itemId}/history?${params.toString()}`,
+  )
+  return data
+}
+
+/** Recorded and candidate geopolitical evidence for one watched asset. */
+export async function getWatchlistEvidence(itemId: string): Promise<WatchlistEvidence> {
+  const { data } = await api.get<WatchlistEvidence>(`/v1/profile/watchlist/${itemId}/evidence`)
+  return data
+}
+
+// ---------------------------------------------------------------------------
+// Watchlist alerts
+// ---------------------------------------------------------------------------
+
+export async function getAlertRules(): Promise<WatchlistAlertRule[]> {
+  const { data } = await api.get<WatchlistAlertRule[]>('/v1/profile/watchlist/alerts')
+  return data
+}
+
+export async function createAlertRule(input: {
+  watchlist_id: string
+  kind: WatchlistAlertKind
+  threshold?: number
+  percent_threshold?: number
+  direction?: 'above' | 'below'
+  cooldown_seconds?: number
+  notes?: string
+}): Promise<WatchlistAlertRule> {
+  const { data } = await api.post<WatchlistAlertRule>('/v1/profile/watchlist/alerts', input)
+  return data
+}
+
+export async function updateAlertRule(
+  ruleId: string,
+  updates: Partial<{
+    threshold: number
+    percent_threshold: number
+    direction: 'above' | 'below'
+    cooldown_seconds: number
+    is_active: boolean
+    notes: string
+  }>,
+): Promise<WatchlistAlertRule> {
+  const { data } = await api.patch<WatchlistAlertRule>(
+    `/v1/profile/watchlist/alerts/${ruleId}`,
+    updates,
+  )
+  return data
+}
+
+export async function deleteAlertRule(ruleId: string): Promise<void> {
+  await api.delete(`/v1/profile/watchlist/alerts/${ruleId}`)
+}
+
+export async function getAlertEvents(limit = 50, unreadOnly = false): Promise<WatchlistAlertEvent[]> {
+  const params = new URLSearchParams({ limit: String(limit), unread_only: String(unreadOnly) })
+  const { data } = await api.get<WatchlistAlertEvent[]>(
+    `/v1/profile/watchlist/alerts/events?${params.toString()}`,
+  )
+  return data
+}
+
+export async function getAlertUnreadCount(): Promise<number> {
+  const { data } = await api.get<{ count: number }>('/v1/profile/watchlist/alerts/unread-count')
+  return data.count
+}
+
+export async function markAlertEventRead(eventId: string): Promise<WatchlistAlertEvent> {
+  const { data } = await api.post<WatchlistAlertEvent>(
+    `/v1/profile/watchlist/alerts/events/${eventId}/read`,
+  )
+  return data
+}
+
+export async function markAllAlertEventsRead(): Promise<number> {
+  const { data } = await api.post<{ marked: number }>(
+    '/v1/profile/watchlist/alerts/events/read-all',
+  )
+  return data.marked
+}
+
+export async function getAlertSchedulerHealth(): Promise<WatchlistAlertSchedulerHealth> {
+  const { data } = await api.get<WatchlistAlertSchedulerHealth>(
+    '/v1/profile/watchlist/alerts/scheduler',
+  )
+  return data
+}
+
+/** Server-side evaluation of all the current user's active alert rules. */
+export async function evaluateAlerts(): Promise<WatchlistAlertEvaluation> {
+  const { data } = await api.post<WatchlistAlertEvaluation>(
+    '/v1/profile/watchlist/alerts/evaluate',
+  )
+  return data
+}
+
+/**
+ * Authorized, user-scoped watchlist context for grounded ATLAS answers.
+ * Never returns another user's assets. Requires a valid session token.
+ */
+export async function getWatchlistAtlasContext(): Promise<WatchlistAtlasContext> {
+  const { data } = await api.get<WatchlistAtlasContext>('/v1/profile/watchlist/atlas-context')
+  return data
 }
