@@ -26,6 +26,11 @@ MIN_TICKER_LENGTH = 1
 
 ASSET_TYPES = ('equity', 'index', 'commodity', 'currency', 'crypto')
 
+# Watchlist alert scheduling (shared by Celery beat and the health endpoint).
+WATCHLIST_ALERT_SCHEDULE_MINUTES = 5
+# A run still 'running' after this long is treated as crashed and reclaimed.
+WATCHLIST_ALERT_LOCK_TTL_SECONDS = 300
+
 PROVIDER_YFINANCE = 'yfinance'
 PROVIDER_ALPHA_VANTAGE = 'alpha_vantage'
 PROVIDER_SIMULATED = 'simulated'
