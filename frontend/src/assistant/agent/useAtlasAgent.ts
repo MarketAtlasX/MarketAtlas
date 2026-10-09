@@ -46,6 +46,8 @@ export function useAtlasAgent() {
 
     const messages: string[] = []
     let ok = true
+    // A grounded watchlist briefing is preferred over the generic plan hint.
+    let groundedBriefing: string | null = null
     for (const [index, planned] of plan.steps.entries()) {
       update({
         execution: 'executing',
@@ -75,6 +77,8 @@ export function useAtlasAgent() {
           limitations: evidence.limitations ?? [],
         } })
       }
+      const briefing = (result.observation?.watchlistBriefing as { text?: string } | undefined)?.text
+      if (briefing) groundedBriefing = briefing
       messages.push(result.ok ? result.message : result.error ?? 'Tool failed')
       if (!result.ok) ok = false
     }
@@ -92,7 +96,7 @@ export function useAtlasAgent() {
       executionSteps: plan.steps.map(step => ({ id: step.id, label: step.label, status: ok ? 'complete' : 'failed' })),
       analysis: { ...finalState.analysis, query, status: ok ? 'success' : 'degraded', updatedAt: new Date().toISOString() },
     })
-    return { plan, ok, messages, response: grounded ?? plan.responseHint, providerBacked: false }
+    return { plan, ok, messages, response: grounded ?? groundedBriefing ?? plan.responseHint, providerBacked: false }
   }, [update])
 
   const execute = useCallback(async (query: string, options?: AtlasExecuteOptions): Promise<AtlasExecution> => {
