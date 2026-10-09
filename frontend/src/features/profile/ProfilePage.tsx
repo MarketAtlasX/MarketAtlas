@@ -36,10 +36,11 @@ function StatCard({
   tone?: string
   hint?: string
 }) {
+  const testId = `stat-${label.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}`
   return (
     <div className="bg-[var(--bg-raised)] px-4 py-3">
       <div className="text-[9px] font-mono uppercase tracking-[0.14em] text-[var(--text-lo)]">{label}</div>
-      <div className="mt-1 text-sm font-semibold font-mono" style={{ color: tone }}>
+      <div data-testid={testId} className="mt-1 text-sm font-semibold font-mono" style={{ color: tone }}>
         {value}
       </div>
       {hint && <div className="mt-0.5 text-[9px] font-mono text-[var(--text-lo)]">{hint}</div>}
