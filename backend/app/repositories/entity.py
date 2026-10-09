@@ -1,12 +1,26 @@
 import re
-from typing import List, Optional
+from typing import List, NamedTuple, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.entity import Entity
 from app.repositories.base import BaseRepository
+from app.utils.asset_entity_map import get_asset_mapping
+from app.utils.ticker_validation import normalize_ticker
+
+
+class AssetResolution(NamedTuple):
+    """Result of resolving an asset symbol to a stored entity.
+
+    ``method`` is ``'explicit_mapping'`` (a reviewed alias), ``'ticker_symbol'``
+    (exact token in ``ticker_symbols``), or ``None`` when unresolved. This is a
+    lookup method only — it makes no claim about relationships or causality.
+    """
+
+    entity: Optional[Entity]
+    method: Optional[str]
 
 
 class EntityRepository(BaseRepository[Entity]):
@@ -59,18 +73,49 @@ class EntityRepository(BaseRepository[Entity]):
 
     async def get_by_ticker(self, ticker: str) -> Optional[Entity]:
         """
-        Get entity by ticker symbol (searches within comma-separated list).
+        Get entity by ticker symbol (exact match within a comma-separated list).
 
-        Note: this is a substring search and has known limitations. A proper
-        solution requires migrating ticker_symbols to a dedicated join table.
+        A SQL LIKE narrows the candidate rows before the exact token check, so
+        this no longer scans the whole table while still refusing substring
+        false positives (e.g. 'GO' must never match 'GOOGL').
         """
-        clean = ticker.strip().upper()
-        result = await self.session.execute(select(self.model).where(self.model.ticker_symbols.isnot(None)))
+        clean = normalize_ticker(ticker)
+        if not clean:
+            return None
+        result = await self.session.execute(
+            select(self.model).where(self.model.ticker_symbols.ilike(f"%{clean}%"))
+        )
         for entity in result.scalars().all():
             tickers = {value.strip().upper() for value in (entity.ticker_symbols or '').split(',')}
             if clean in tickers:
                 return entity
         return None
+
+    async def resolve_asset(self, ticker: str) -> AssetResolution:
+        """Resolve a watchlist symbol to an entity, preferring reviewed aliases.
+
+        Order: explicit reviewed mapping (exact entity-name match) → exact
+        ticker token. Currencies carry no aliases by design, so they resolve
+        only if an entity genuinely lists the symbol.
+        """
+        clean = normalize_ticker(ticker)
+        if not clean:
+            return AssetResolution(None, None)
+
+        mapping = get_asset_mapping(clean)
+        if mapping is not None and mapping.entity_names:
+            names = [name.lower() for name in mapping.entity_names]
+            result = await self.session.execute(
+                select(self.model).where(func.lower(self.model.name).in_(names))
+            )
+            entity = result.scalars().first()
+            if entity is not None:
+                return AssetResolution(entity, "explicit_mapping")
+
+        entity = await self.get_by_ticker(clean)
+        if entity is not None:
+            return AssetResolution(entity, "ticker_symbol")
+        return AssetResolution(None, None)
 
     async def match_mentions(self, text: str) -> list[int]:
         """Resolve exact entity names and ticker tokens without substring collisions."""
