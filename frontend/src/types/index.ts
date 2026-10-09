@@ -115,6 +115,176 @@ export interface WatchlistItem {
   updated_at: string
 }
 
+// ── Watchlist intelligence ────────────────────────────────────────────────
+
+/** Provider-backed market envelope for one watched asset. Absence means unknown. */
+export interface WatchlistMarketQuote {
+  status: 'provider-backed' | 'cached' | 'unavailable'
+  symbol: string
+  price?: number | null
+  change?: number | null
+  change_percent?: number | null
+  previous_close?: number | null
+  currency?: string | null
+  provider?: string | null
+  observed_at?: string | null
+  freshness: string
+  limitations: string[]
+}
+
+export interface WatchlistQuoteItem extends WatchlistItem {
+  market: WatchlistMarketQuote
+}
+
+export interface WatchlistHistory {
+  status: 'provider-backed' | 'unavailable'
+  symbol: string
+  interval: string
+  provider?: string | null
+  freshness: string
+  points: { date: string; close: number }[]
+  limitations: string[]
+}
+
+export interface WatchlistEvidenceEntity {
+  id: number
+  name: string
+  entity_type: string
+  country_code?: string | null
+  latitude?: number | null
+  longitude?: number | null
+}
+
+export interface WatchlistEvidenceEvent {
+  id: number
+  title: string
+  event_type: string
+  severity: string
+  status: string
+  event_date: string
+  source?: string | null
+  source_url?: string | null
+  association: 'recorded_entity_link'
+}
+
+export interface WatchlistEvidenceLiveEvent {
+  id: string
+  title: string
+  event_type: string
+  severity: number
+  status: string
+  first_seen_at: string
+  country_code?: string | null
+  region?: string | null
+  lat?: number | null
+  lng?: number | null
+  impacts: Array<Record<string, unknown>>
+  affected_assets: Array<Record<string, unknown>>
+  association: 'ticker_keyword_match'
+}
+
+export interface WatchlistGeography {
+  label: string
+  latitude?: number | null
+  longitude?: number | null
+  country_code?: string | null
+  region?: string | null
+  source: 'entity' | 'live_event'
+}
+
+export interface WatchlistEvidence {
+  ticker: string
+  asset_type: string
+  association_reliability: 'recorded' | 'candidate' | 'none'
+  association_methods: string[]
+  entity?: WatchlistEvidenceEntity | null
+  geography?: WatchlistGeography | null
+  events: WatchlistEvidenceEvent[]
+  live_events: WatchlistEvidenceLiveEvent[]
+  market?: WatchlistMarketQuote | null
+  causality: 'not_established'
+  uncertainty: string[]
+  limitations: string[]
+}
+
+export type WatchlistAlertKind = 'target_price' | 'stop_loss' | 'percent_move' | 'event_severity'
+
+export interface WatchlistAlertRule {
+  id: string
+  user_id: number
+  watchlist_id: string
+  ticker: string
+  kind: WatchlistAlertKind
+  threshold?: number | null
+  percent_threshold?: number | null
+  direction?: 'above' | 'below' | null
+  cooldown_seconds: number
+  is_active: boolean
+  last_state?: string | null
+  last_triggered_at?: string | null
+  notes?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface WatchlistAlertEvent {
+  id: string
+  rule_id: string
+  user_id: number
+  watchlist_id: string
+  ticker: string
+  kind: string
+  direction?: string | null
+  message: string
+  observed_price?: number | null
+  threshold?: number | null
+  delivered: boolean
+  is_read: boolean
+  read_at?: string | null
+  dedupe_key: string
+  triggered_at: string
+}
+
+export interface WatchlistAlertSchedulerHealth {
+  schedule_minutes: number
+  lock_ttl_seconds: number
+  is_running: boolean
+  runs_last_24h: number
+  failures_last_24h: number
+  last_run_at?: string | null
+  last_run_status?: string | null
+  last_run_error?: string | null
+  last_success_at?: string | null
+}
+
+export interface WatchlistAlertEvaluation {
+  evaluated_rules: number
+  triggered: WatchlistAlertEvent[]
+  quotes_checked: number
+  unavailable_tickers: string[]
+  not_evaluable: string[]
+  limitations: string[]
+}
+
+export interface WatchlistAtlasAsset {
+  ticker: string
+  company_name?: string | null
+  asset_type: string
+  market: WatchlistMarketQuote
+  association_reliability: 'recorded' | 'candidate' | 'none'
+}
+
+export interface WatchlistAtlasContext {
+  generated_at: string
+  total_tracked: number
+  assets: WatchlistAtlasAsset[]
+  movers: WatchlistAtlasAsset[]
+  unavailable_tickers: string[]
+  causality: 'not_established'
+  uncertainty: string[]
+  limitations: string[]
+}
+
 export interface PortfolioSummary {
   total_invested: number
   total_earned: number
