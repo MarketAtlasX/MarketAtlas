@@ -3,6 +3,8 @@ import { createCommand, type AtlasCommand } from '../commands/commandTypes'
 import { resolveCoords } from '../../features/globe/globeData'
 import { resolveCompanyLocation } from '../../data/companyLocations'
 import { intelligenceBus } from '../../services/intelligenceBus'
+import { getWatchlistAtlasContext } from '../../api/profileApi'
+import { buildWatchlistBriefing } from '../brain/watchlistBriefing'
 
 export interface AtlasToolContext {
   currentQuery: string
@@ -113,6 +115,7 @@ export const atlasTools: AtlasToolDefinition[] = [
   simpleTool('show_currency', 'Show a currency.', 'OPEN_MARKET', ['currency'], 'Currency view opened.'),
   simpleTool('show_market', 'Show a market overview.', 'OPEN_MARKET', [], 'Market view opened.'),
   simpleTool('show_watchlist', 'Show the current watchlist.', 'OPEN_MARKET', [], 'Watchlist opened.'),
+  simpleTool('brief_watchlist', 'Summarize the watched assets with provider-backed movements and recorded event links.', 'OPEN_MARKET', [], 'Watchlist briefing prepared.'),
 
   simpleTool('open_panel', 'Open a dashboard panel.', 'OPEN_MARKET', ['panel'], 'Panel opened.'),
   simpleTool('close_panel', 'Close the active dashboard panel.', 'VISUALIZE', [], 'Panel closed.'),
@@ -174,7 +177,39 @@ export async function executeAtlasToolAsync(
   signal?: AbortSignal,
 ): Promise<AtlasToolResult> {
   const localResult = executeAtlasTool(name, args, context)
-  if (!localResult.ok || (!EVIDENCE_TOOLS.has(name) && !MARKET_TOOLS.has(name))) return localResult
+  if (!localResult.ok) return localResult
+
+  // Watchlist briefing: grounded in the authenticated user's own context.
+  if (name === 'brief_watchlist') {
+    try {
+      const watchlistContext = await getWatchlistAtlasContext()
+      const brief = buildWatchlistBriefing(watchlistContext)
+      return {
+        ...localResult,
+        message: brief.text,
+        observation: { ...localResult.observation, watchlistBriefing: brief, watchlistContext },
+      }
+    } catch (error) {
+      return {
+        ...localResult,
+        ok: false,
+        message: 'Watchlist data is unavailable.',
+        error: error instanceof Error ? error.message : 'Watchlist data unavailable',
+        observation: {
+          ...localResult.observation,
+          watchlistBriefing: {
+            text: 'Watchlist data is unavailable.',
+            facts: [],
+            uncertainty: ['Watchlist context could not be loaded (unauthorized or service unavailable).'],
+            tracked: 0,
+            hasLiveData: false,
+          },
+        },
+      }
+    }
+  }
+
+  if (!EVIDENCE_TOOLS.has(name) && !MARKET_TOOLS.has(name)) return localResult
 
   const params = new URLSearchParams()
   const query = String(args.event ?? args.entity ?? args.company ?? args.region ?? args.query ?? '')
