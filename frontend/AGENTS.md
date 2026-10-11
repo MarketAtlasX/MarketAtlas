@@ -20,8 +20,11 @@ MarketAtlas is the visual operating system for the intelligence infrastructure: 
 | `/graph` | Causal map + four-graph intelligence system | `src/features/graph-analysis/GraphPage.tsx` |
 | `/simulator` | Scenario simulator (clone-simulate-destroy) | `src/features/scenario-simulator/SimulatorPage.tsx` |
 | `/memory` | World memory / historical analogues | `src/features/world-memory/MemoryPage.tsx` |
+| `/atlas` | ATLAS assistant page | `src/assistant/AtlasPage.tsx` |
+| `/profile` | Profile, portfolio, watchlists | `src/features/profile/ProfilePage.tsx` |
 
-`/` redirects to `/dashboard`.
+`/` is the public landing page; `/login` and `/register` are public too. Every
+other route is wrapped in `RequireAuth` and redirects to `/login` when signed out.
 
 ## Design System
 
@@ -53,6 +56,7 @@ src/
     graph-analysis/           # GraphPage (causal map + IntelligenceGraphPanel)
     scenario-simulator/       # SimulatorPage (wraps SimulationView)
     world-memory/             # MemoryPage
+    profile/                  # ProfilePage, portfolio holdings, watchlists
   components/
     ui/                       # Panel, Badge, Tabs, Gauge, ProgressBar, Sparkline, StatusDot
   globe/                      # 3D engine (Earth, Atmosphere, Hologram, Grid, Stars, Rings,
@@ -61,7 +65,7 @@ src/
   simulation/                 # scenario simulator (reused)
   data/                       # offline-first country/event/world-state datasets
   api/                        # chat/country/geopolitical clients
-  hooks/                      # useClock, useWebSocket, useWorldState
+  hooks/                      # useClock
 ```
 
 ## Conventions
