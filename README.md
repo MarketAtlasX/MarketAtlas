@@ -32,12 +32,19 @@ than inventing a value.
   observation displayed, cites provenance, and explicitly separates recorded
   evidence from unsupported inference. A deterministic fallback produces the
   same briefing when no LLM provider is configured.
+- **Profile, portfolio, and watchlists** — `/profile` holds the signed-in
+  user's watchlist (ticker, optional target price, stop loss, notes), a trade
+  ledger that composes a portfolio summary, and watchlist alert rules. Quotes,
+  price history, and geopolitical evidence load per asset under the same
+  no-fabrication rule: a missing provider quote is `unavailable`, and an
+  association is never presented as a cause.
 
 ## Core user journey
 
 ```
 Landing → Register/Sign in (captcha) → Dashboard
         → Live Event → Globe → Evidence → Causal Intelligence → Markets → Asset → ATLAS
+        → Profile (portfolio · watchlists · alerts)
 ```
 
 0. **Landing** — `/` is the public entryway: what MarketAtlas does, the
@@ -59,6 +66,10 @@ Landing → Register/Sign in (captcha) → Dashboard
    the same selection path, reloading evidence for that entity.
 7. **ATLAS** — "Ask ATLAS about this evidence" answers from the observation on
    screen, grounded in a deterministic briefing and the backend grounding rules.
+8. **Profile** — `/profile` shows the account, a portfolio summary derived from
+   the recorded trade ledger, and each watchlist item with its quote, sparkline
+   history, and geopolitical evidence — with causality explicitly
+   `not established`.
 
 The full demo runbook and checklist live in [`docs/DEMO.md`](docs/DEMO.md).
 
@@ -67,12 +78,14 @@ The full demo runbook and checklist live in [`docs/DEMO.md`](docs/DEMO.md).
 ## Authentication
 
 Every workspace route (`/dashboard`, `/markets`, `/graph`, `/simulator`,
-`/memory`, `/atlas`) is behind `RequireAuth`. Unauthenticated visitors are
-redirected to `/login`; the landing page and auth pages are public.
+`/memory`, `/atlas`, `/profile`) is behind `RequireAuth`. Unauthenticated
+visitors are redirected to `/login`; the landing page and auth pages are public.
 
 - **Register / login** — `POST /api/v1/auth/register` and `/auth/login` return
   a JWT (24 h default) plus the user record; `/auth/me` restores the session on
   reload, and a stored token that the backend rejects is dropped immediately.
+  `POST /auth/api-key` mints (and stores a hash of) a personal API key for the
+  signed-in user.
 - **Captcha gate** — both endpoints require a server-issued captcha:
   `GET /api/v1/auth/captcha` returns a distorted SVG challenge (characters or
   an arithmetic sum) and a one-time `captcha_id`. The expected answer never
@@ -143,6 +156,9 @@ degrade gracefully when absent — see
 | Globe | `frontend/src/features/globe/CinematicGlobe.tsx` | Particle globe, camera choreography, evidence highlights and causal arcs |
 | Live socket | `frontend/src/services/websocket/useLiveWorldSocket.ts` | Validation, dedup, bounded reconnect, evidence-affecting detection |
 | ATLAS frontend | `frontend/src/assistant/agent/` | Tool execution, context snapshot, deterministic evidence fallback |
+| Profile & portfolio | `backend/app/routes/profile.py`, `frontend/src/features/profile/ProfilePage.tsx` | Per-user profile, trade ledger CRUD, and the composed portfolio summary |
+| Watchlists | `backend/app/routes/watchlist.py`, `frontend/src/features/profile/WatchlistSection.tsx` | Watchlist CRUD, provider-backed quotes, history, and per-asset evidence |
+| Watchlist alerts | `backend/app/services/watchlist_alert_scheduler.py`, `backend/app/workers/watchlist_alert_tasks.py` | Celery-beat rule evaluation (every 5 min) with a lock so concurrent runs cannot double-fire |
 
 ---
 
@@ -242,11 +258,14 @@ See [`frontend/package.json`](frontend/package.json) for exact versions.
 
 There is exactly one live socket for the core flow: `/ws`.
 
-- **Backend** — a single broadcaster (`app.state.broadcaster`) fans out to
-  channels: `signals`, `events`, `risk`, `forecasts`, `live_events`. Auth-gated
-  realtime at `/ws/chat` requires a `?token=` JWT.
-- **Frontend** — `useLiveWorldSocket` subscribes to the world channels and
-  treats every *world* event as untrusted input:
+- **Backend** — a single broadcaster (`app.state.broadcaster`) fans out per
+  channel. It currently publishes `events`, `signals`, `market_prices`,
+  `live_events`, `impacts`, and `alerts`, plus a per-user `simulation:<id>`
+  channel behind `/ws/simulation`. Auth-gated realtime at `/ws/chat` requires a
+  `?token=` JWT.
+- **Frontend** — `useLiveWorldSocket` subscribes to `signals`, `events`, `risk`,
+  `forecasts`, and `live_events`, and treats every *world* event as untrusted
+  input:
   - `parseLiveEventEnvelope` drops events missing an id, title, severity,
     coordinates, or a parseable timestamp, instead of inventing a country or
     position;
@@ -272,9 +291,10 @@ ATLAS is a text/voice assistant whose answers about world state are grounded in
 the canonical evidence envelope:
 
 - The frontend context snapshot carries a **deterministic briefing**
-  (`evidenceBriefing.ts`) covering what happened, sources, impacts,
-  assets/markets, causal relationships, freshness/confidence/uncertainty, and
-  an explicit `NOT ESTABLISHED` list for anything the envelope does not contain.
+  (`frontend/src/features/evidence/evidenceBriefing.ts`) covering what happened,
+  sources, impacts, assets/markets, causal relationships,
+  freshness/confidence/uncertainty, and an explicit `NOT ESTABLISHED` list for
+  anything the envelope does not contain.
 - The backend agent prompt (`build_agent_system_prompt` +
   `ATLAS_EVIDENCE_GROUNDING_RULES`) requires provenance citations and forces the
   phrasing "the evidence does not establish it" whenever the envelope lacks the
@@ -411,11 +431,11 @@ and the two `.env.example` files.
 
 ```bash
 # Backend
-cd backend && ../venv/bin/python -m pytest -q        # 90 passed
+cd backend && ../venv/bin/python -m pytest -q        # 147 passed
 
 # Frontend
 cd frontend && npx tsc --noEmit                       # clean
-cd frontend && npm test                               # 74 files / 321 tests
+cd frontend && npm test                               # 79 files / 370 tests
 cd frontend && npm run build                          # production bundle
 
 # Repo hygiene
@@ -424,8 +444,9 @@ git diff --check                                      # clean
 
 The suites cover the evidence contract and lifecycle, causal-chain rendering,
 market observations, live-event timeline and validation, ATLAS evidence
-grounding, the auth context and captcha-gated auth pages, and the backend
-observation/agent-prompt contracts.
+grounding, the auth context and captcha-gated auth pages, the portfolio /
+watchlist API and profile page, and the backend observation/agent-prompt
+contracts.
 
 ---
 
@@ -459,7 +480,7 @@ Documented, non-blocking limitations (drawn from `docs/DEMO.md` and
 |-----------|---------|
 | `backend/` | FastAPI + Celery service, PostgreSQL/Redis, canonical evidence and ATLAS subsystems |
 | `frontend/` | Vite + React/TypeScript SPA with the globe, evidence, markets, and ATLAS surfaces |
-| `docs/` | Architecture, API contract, deployment, demo, and intelligence-core documentation |
+| `docs/` | Architecture, API contract, deployment, demo, watchlist, and intelligence-core documentation |
 | `market_agents/`, `knowledge-graph-agent/`, `world_state/`, `graph_engine/`, `simulator/`, `memory/`, `pipelines/`, `chat-bot/` | Optional services and shared packages started by `dev.sh` when present |
 | `dev.sh` | Development orchestrator — starts available services in parallel |
 
@@ -469,5 +490,13 @@ Documented, non-blocking limitations (drawn from `docs/DEMO.md` and
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — production-style setup and degradation
 - [`docs/intelligence-core.md`](docs/intelligence-core.md) — ATLAS brain → backend → globe pipeline
 - [`docs/architecture-assessment.md`](docs/architecture-assessment.md) — architecture findings and target control model
+- [`docs/watchlist.md`](docs/watchlist.md) — watchlist, quotes, per-asset evidence, and alerting
 - [`docs/api-contract.md`](docs/api-contract.md) — API endpoint specifications
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — service-level architecture notes
+- [`docs/API_REFERENCE.md`](docs/API_REFERENCE.md) — endpoint reference
+- [`docs/SECURITY.md`](docs/SECURITY.md) — security posture
+- [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) — contribution guide
+- [`docs/phase4-intelligence-assessment.md`](docs/phase4-intelligence-assessment.md) — intelligence-phase assessment
+- [`backend/README.md`](backend/README.md) — backend service guide
+- [`frontend/README.md`](frontend/README.md) — frontend guide
 - [`frontend/src/features/evidence/README.md`](frontend/src/features/evidence/README.md) — evidence contract and behaviors
