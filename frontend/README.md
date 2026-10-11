@@ -20,12 +20,18 @@ MarketAtlas is the visual operating system for geopolitical intelligence: a holo
 
 | Route | Feature |
 |-------|---------|
+| `/` | Public landing page |
+| `/login` | Sign in (captcha-gated) |
+| `/register` | Create an account (captcha-gated) |
 | `/dashboard` | World Command Center (default) |
 | `/markets` | Market forecasts and confidence |
 | `/graph` | Causal map and intelligence |
 | `/simulator` | Scenario simulator |
 | `/memory` | World memory and analogues |
 | `/atlas` | Atlas assistant page |
+| `/profile` | Profile, portfolio, and watchlists |
+
+Every route except `/`, `/login`, and `/register` is wrapped in `RequireAuth`.
 
 ## Quick Start
 
@@ -51,6 +57,7 @@ src/
     graph-analysis/           # Causal graph
     scenario-simulator/       # Scenario simulator
     world-memory/             # Historical analogues
+    profile/                  # Profile, portfolio holdings, watchlists
   __tests__/                  # Unit tests
 ```
 
