@@ -227,7 +227,7 @@ A tiny component that owns a GSAP tween on `camera.position` and re-aims
 ## 6. Verification
 
 - `npx tsc --noEmit` and `npm run build` pass in `frontend/`.
-- `npx vitest run` — 72 tests, including `inferVisualization.test.ts`
+- `npx vitest run` — 370 tests across 79 files, including `inferVisualization.test.ts`
   (mode mapping) and `generalKnowledge.test.ts` (math + curated topics).
 - Backend modules compile via `python -m py_compile`; the visualization
   extractor is exercised with a stubbed model in isolated runs.
