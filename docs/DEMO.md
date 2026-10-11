@@ -148,8 +148,8 @@ PYTHONPATH="$(dirname "$(pwd)")" ../venv/bin/uvicorn simulator.main:app --host 1
 ## Verification
 
 ```bash
-cd backend  && python -m pytest -q          # 90 passed
-cd frontend && npx tsc --noEmit && npm test # 73 files / 319 tests
+cd backend  && python -m pytest -q          # 147 passed
+cd frontend && npx tsc --noEmit && npm test # 79 files / 370 tests
 cd frontend && npm run build                # production bundle
 git diff --check                            # whitespace / conflict markers
 ```
