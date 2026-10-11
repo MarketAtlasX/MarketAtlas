@@ -6,3 +6,7 @@ __pycache__/
 .env
 celerybeat-schedule.db
 .DS_Store
+node_modules/
+dist/
+.pytest_cache/
+.ruff_cache/
